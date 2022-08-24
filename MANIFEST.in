@@ -1,0 +1,2 @@
+recursive-include cards *
+recursive-exclude cards *.pyc

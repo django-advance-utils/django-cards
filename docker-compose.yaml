@@ -1,0 +1,26 @@
+version: "3"
+services:
+
+ django_cards:
+  build:
+   context: ./
+  volumes:
+   - ./django_examples/:/app
+   - ./cards/:/app/cards
+   - /var/run/docker.sock:/var/run/docker.sock
+  command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8011"
+  environment:
+   - PYTHONPATH=/cards
+  ports:
+   - 8011:8011
+  depends_on:
+   - db_cards
+ db_cards:
+  image: postgres:13.0-alpine
+  volumes:
+   - ./data/db:/var/lib/postgresql/data
+  environment:
+   - POSTGRES_USER=django_cards
+   - POSTGRES_PASSWORD=django_cards
+   - POSTGRES_DB=django_cards
+
