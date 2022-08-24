@@ -1,4 +1,4 @@
-{% load digits others datatable_tags %}
+{% load datatable_tags %}
 
 {% for group in groups.values %}
     <div class="card django-card" id="list" data-title="">
@@ -42,8 +42,8 @@
         </div>
         {% if group.created_modified_dates %}
             <div class="card-footer">
-                <small style="text-align: left">Date modified: {% format_date_time group.created_modified_dates.0 %}<br>Date
-                    created: {% format_date_time group.created_modified_dates.1 %}
+                <small style="text-align: left">Date modified: {{ group.created_modified_dates.0 }}<br>Date
+                    created: {{ group.created_modified_dates.1 }}
                 </small>
             </div>
         {% endif %}

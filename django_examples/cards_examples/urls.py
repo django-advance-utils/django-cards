@@ -1,12 +1,11 @@
 from django.urls import path
-from django.views.generic import TemplateView
+
+from cards_examples.views import ExampleIndex
 
 app_name = 'cards_examples'
 
 
 urlpatterns = [
-
-    # path('example_link/<int:pk>',
-    #      TemplateView.as_view(template_name='report_builder_examples/example_link.html'), name='example_link'),
+    path('', ExampleIndex.as_view(), name='index'),
 
 ]
