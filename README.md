@@ -1,0 +1,2 @@
+# django-cards
+Django Cards
