@@ -1,0 +1,38 @@
+    <div class="{{ list_class }}">
+        <div class="card django-card" id="list">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <h5 class="mr-auto">{% block list_header %}{{ list_title }}{% endblock %}</h5>
+                    {% block list_buttons %}{{ menus.list_menu.render }}{% endblock %}
+                </div>
+            </div>
+            <div class="card-body django-list">
+                {% for entry in entries %}
+                    <a class="list-group-item django-list-group-item" id="list_{{ entry.pk }}"
+                       href="javascript:load_details({{ entry.pk }})">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <h4 class="list-group-item-heading {{ entry.class }}">
+                                    {% if entry.colour %}<i class="fa fa-square"
+                                                           style="color: #{{ entry.colour }};opacity: 1;"></i>{% endif %}{{ entry.name }}
+                                </h4>
+                            </div>
+                        </div>
+                    </a>
+                    {% if selected_id == entry.pk %}
+                       <script>load_details({{ entry.pk }})</script>
+                    {% endif %}
+                    {% empty %}
+                    <div class="list-group-item">
+                        <div class="alert alert-warning">No {{ list_type }} setup yet!.</div>
+                    </div>
+                {% endfor %}
+            </div><!--panel-->
+        </div>
+    </div><!--list-->
+
+    <div class="{{ details_class }}" id="details_card">
+        <div id="details_card">
+        </div>
+    </div>
+    <!--list details column-->

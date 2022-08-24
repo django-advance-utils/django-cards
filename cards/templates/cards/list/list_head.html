@@ -1,0 +1,9 @@
+    <script>
+        function load_details(entry_id) {
+            $('.cards-list-group-item.active').removeClass('active');
+            $('#list_'+entry_id).addClass('active');
+            $(document).ready(function () {
+                ajax_helpers.post_json({'data': {'button': 'details_html', 'entry_id': entry_id}});
+            });
+        }
+    </script>
