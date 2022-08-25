@@ -130,4 +130,5 @@ dmypy.json
 
 .idea/
 data/
-django_examples/.DS_Store
+.DS_Store
+
