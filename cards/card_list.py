@@ -80,7 +80,7 @@ class CardListMixin(CardBase, TemplateView):
 
         context['entries'] = self.list_entries
         selected_id = self.slug.get('pk')
-        if not selected_id and self.list_entries:
+        if (not selected_id or selected_id == '-') and self.list_entries:
             selected_id = self.list_entries[0]['pk']
 
         if selected_id:
