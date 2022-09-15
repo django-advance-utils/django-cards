@@ -43,6 +43,10 @@ class CardMixin:
 
     card_cls = Card
 
+    def add_card_group(self, *args, div_css_class):
+        cards = [self.cards[card] for card in args]
+        self.card_groups.append({'div_css_class': div_css_class, 'cards': cards})
+
     def add_card(self, card_name, **kwargs):
         request = getattr(self, 'request', None)
 
@@ -62,7 +66,12 @@ class CardMixin:
         else:
             context = {}
         context['cards'] = self.cards
+        if len(self.card_groups) > 0:
+            context['card_groups'] = self.render_card_groups()
         return context
+
+    def render_card_groups(self):
+        return render_to_string('cards/standard/groups.html', context={'groups': self.card_groups})
 
     def setup_cards(self):
         return
@@ -70,3 +79,4 @@ class CardMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cards = {}
+        self.card_groups = []

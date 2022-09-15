@@ -1,0 +1,7 @@
+{% for group in groups %}
+    <div class="{{ group.div_css_class }}">
+        {% for card in group.cards %}
+        {{ card.render }}
+        {% endfor %}
+    </div>
+{% endfor %}
