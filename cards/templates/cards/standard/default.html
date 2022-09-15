@@ -9,7 +9,7 @@
             </div>
         </div>
         <div class="card-body cards-list">
-            {% if group.type == group_types.datatable or group.type == group.group_types.ordered_datatable %}
+            {% if group.type == group_types.datatable or group.type == group_types.ordered_datatable %}
                 {{ group.datatable.render|safe }}
             {% elif group.type == group_types.standard %}
                 <div class="list-group">
