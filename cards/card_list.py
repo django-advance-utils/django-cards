@@ -116,17 +116,20 @@ class CardListMixin(CardBase, TemplateView):
 
         self.get_details_data(details_object=details_object, group_type=group_type)
 
-        data = render_to_string(self.details_template_name, {'groups': self.detail_groups,
-                                                             'request': self.request,
-                                                             'group_types': {'standard': self.GROUP_TYPE_STANDARD,
-                                                                             'datatable': self.GROUP_TYPE_DATATABLE,
-                                                                             'html': self.GROUP_TYPE_HTML}})
+        data = render_to_string(self.details_template_name,
+                                {'groups': self.detail_groups,
+                                 'request': self.request,
+                                 'group_types': {'standard': self.GROUP_TYPE_STANDARD,
+                                                 'datatable': self.GROUP_TYPE_DATATABLE,
+                                                 'ordered_datatable': self.GROUP_TYPE_ORDERED_DATATABLE,
+                                                 'html': self.GROUP_TYPE_HTML}})
         return self.command_response('html', selector='#details_card', html=data)
 
     def add_html_group(self, code, title, template_name, context, menu=None):
         self.add_detail_group(code=code, title=title, menu=menu, group_type=self.GROUP_TYPE_HTML)
         html = render_to_string(template_name, context)
         self.detail_groups[code]['html'] = html
+
 
 
 class CardList(AjaxHelpers, MenuMixin, CardListMixin):
