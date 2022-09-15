@@ -1,6 +1,7 @@
 import datetime
 
 from django_datatables.datatables import DatatableTable
+from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
@@ -148,6 +149,7 @@ class CardBase:
                                  model=model,
                                  view=self,
                                  order_field=order_field)
+        table.add_plugin(Reorder)
         self.tables[table_id] = table
         return self.tables[table_id]
 
@@ -159,3 +161,14 @@ class CardBase:
         if details_object and hasattr(details_object, 'created') and hasattr(details_object, 'modified'):
             return details_object.created, details_object.modified
         return None
+
+    def datatable_sort(self, **kwargs):
+        order_field = self.datatable_order_field
+        ids = [x[1] for x in kwargs['sort']]
+        current_sort = dict(self.datatable_model.objects.filter(id__in=ids).values_list('id', order_field))
+        for s in kwargs['sort']:
+            if current_sort[s[1]] != s[0]:
+                o = self.datatable_model.objects.get(id=s[1])
+                setattr(o, order_field, s[0])
+                o.save()
+        return self.command_response('')
