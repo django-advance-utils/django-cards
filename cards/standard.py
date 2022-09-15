@@ -29,6 +29,7 @@ class Card(CardBase):
                                            'request': self.request,
                                            'group_types': {'standard': self.GROUP_TYPE_STANDARD,
                                                            'datatable': self.GROUP_TYPE_DATATABLE,
+                                                           'ordered_datatable': self.GROUP_TYPE_ORDERED_DATATABLE,
                                                            'html': self.GROUP_TYPE_HTML}})
         return mark_safe(data)
 

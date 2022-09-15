@@ -14,7 +14,7 @@ class CardBase:
 
     ajax_commands = ['datatable']
     datatable_model = None
-    datatable_order_field = None
+    datatable_order_field = 'order'
 
     def __init__(self):
         self.detail_groups = {}
