@@ -1,6 +1,7 @@
 import datetime
 
 from django_datatables.datatables import DatatableTable
+from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
 
@@ -8,10 +9,12 @@ class CardBase:
 
     GROUP_TYPE_STANDARD = 1
     GROUP_TYPE_DATATABLE = 2
-    GROUP_TYPE_HTML = 3
+    GROUP_TYPE_ORDERED_DATATABLE = 3
+    GROUP_TYPE_HTML = 4
 
     ajax_commands = ['datatable']
     datatable_model = None
+    datatable_order_field = None
 
     def __init__(self):
         self.detail_groups = {}
@@ -32,7 +35,7 @@ class CardBase:
                                         'created_modified_dates': created_modified_dates,
                                         'menu': details_menu,
                                         'type': group_type}
-        elif group_type == self.GROUP_TYPE_DATATABLE:
+        elif group_type in (self.GROUP_TYPE_DATATABLE, self.GROUP_TYPE_ORDERED_DATATABLE):
             self.detail_groups[code] = {'table': None,
                                         'title': title,
                                         'created_modified_dates': created_modified_dates,
@@ -121,6 +124,10 @@ class CardBase:
             table = self.add_table(model=self.datatable_model)
             self.setup_table(details_object=details_object, table=table)
             self.detail_groups[self.current_group]['datatable'] = table
+        elif group_type == self.GROUP_TYPE_ORDERED_DATATABLE:
+            table = self.add_ordered_table(model=self.datatable_model, order_field=self.datatable_order_field)
+            self.setup_table(details_object=details_object, table=table)
+            self.detail_groups[self.current_group]['datatable'] = table
 
     def get_details_menu(self, details_object):
         return []
@@ -133,6 +140,14 @@ class CardBase:
 
     def add_table(self, model, table_id=None):
         table = DatatableTable(table_id=table_id, model=model, view=self)
+        self.tables[table_id] = table
+        return self.tables[table_id]
+
+    def add_ordered_table(self, model, order_field, table_id=None):
+        table = OrderedDatatable(table_id=table_id,
+                                 model=model,
+                                 view=self,
+                                 order_field=order_field)
         self.tables[table_id] = table
         return self.tables[table_id]
 
