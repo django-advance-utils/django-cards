@@ -20,7 +20,8 @@ class Card(CardBase):
                               title=title,
                               menu=menu,
                               created_modified_dates=created_modified_dates,
-                              group_type=group_type)
+                              group_type=group_type,
+                              details_object=details_object)
 
     def render(self, template_name='default'):
         template = self.template_types.get(template_name, template_name)

@@ -3,6 +3,7 @@ from django.views.generic import TemplateView
 from django_menus.menu import MenuMixin, MenuItem
 
 from cards.standard import CardMixin
+from cards_examples.models import Company
 
 
 class MainMenu(AjaxHelpers, MenuMixin):
@@ -36,8 +37,17 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('extra', title='Extra')
         card.add_entry(value='sample text', label='Sample')
 
-        card = self.add_card('right', title='Right')
-        card.add_entry(value='sample text right', label='Sample')
+        company = Company.objects.first()
+        if company is None:
+            card = self.add_card('company', title='Company')
+            card.add_entry(value='Warning No Companies in the system', label='Warning')
+        else:
+            card = self.add_card('company', title='Company', details_object=company, show_created_modified_dates=True)
+            card.add_rows(['name', 'active'],
+                          [{'field': 'company_category__name', 'label': 'category'}],
+                          'importance')
 
         self.add_card_group('welcome', 'extra', div_css_class='col-6 float-left')
-        self.add_card_group('right', div_css_class='col-6 float-right')
+        self.add_card_group('company', div_css_class='col-6 float-right')
+
+

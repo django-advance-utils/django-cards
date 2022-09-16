@@ -24,7 +24,11 @@ class CardBase:
         self.request = None
         super().__init__()
 
-    def add_detail_group(self, code, title, menu=None, created_modified_dates=None, group_type=GROUP_TYPE_STANDARD):
+    def add_detail_group(self, code, title, menu=None,
+                         created_modified_dates=None,
+                         group_type=GROUP_TYPE_STANDARD,
+                         details_object=None,
+                         **kwargs):
         if menu is not None:
             details_menu = HtmlMenu(self.request, 'button_group').add_items(*menu)
         else:
@@ -35,19 +39,24 @@ class CardBase:
                                         'title': title,
                                         'created_modified_dates': created_modified_dates,
                                         'menu': details_menu,
-                                        'type': group_type}
+                                        'type': group_type,
+                                        'details_object': details_object}
         elif group_type in (self.GROUP_TYPE_DATATABLE, self.GROUP_TYPE_ORDERED_DATATABLE):
-            self.detail_groups[code] = {'table': None,
+            table = kwargs.get('table')
+            self.detail_groups[code] = {'table': table,
                                         'title': title,
                                         'created_modified_dates': created_modified_dates,
                                         'menu': details_menu,
-                                        'type': group_type}
+                                        'type': group_type,
+                                        'details_object': details_object}
         elif group_type == self.GROUP_TYPE_HTML:
-            self.detail_groups[code] = {'html': None,
+            html = kwargs.get('html')
+            self.detail_groups[code] = {'html': html,
                                         'title': title,
                                         'created_modified_dates': created_modified_dates,
                                         'menu': details_menu,
-                                        'type': group_type}
+                                        'type': group_type,
+                                        'details_object': details_object}
         self.current_group = code
 
     def add_boolean_entry(self, value, label=None):
@@ -67,7 +76,10 @@ class CardBase:
 
         entries = []
         for arg in args:
-            entry = self._add_entry_internal(**arg)
+            if isinstance(arg, str):
+                entry = self._add_entry_internal(field=arg)
+            else:
+                entry = self._add_entry_internal(**arg)
             if entry is not None:
                 entries.append(entry)
 
@@ -82,22 +94,38 @@ class CardBase:
                 entry = {'type': 'multiple', 'entries': entries, 'css_class': css_class}
             self.detail_groups[self.current_group]['rows'].append(entry)
 
-    def add_entry(self, value, label=None, css_class=None, default='N/A', link=None,
+    def add_entry(self, value=None, field=None, label=None, css_class=None, default='N/A', link=None,
                   hidden=False, hidden_if_blank_or_none=False, html_override=None):
 
         entry = self._add_entry_internal(value=value,
+                                         field=field,
                                          label=label,
                                          html_class=css_class,
                                          default=default,
                                          link=link,
                                          hidden=hidden,
                                          hidden_if_blank_or_none=hidden_if_blank_or_none,
-                                         html_override=html_override)
+                                         html_override=html_override,
+                                         )
         if entry is not None:
             self.detail_groups[self.current_group]['rows'].append({'type': 'standard', 'entries': [entry]})
 
-    def _add_entry_internal(self, value, label=None, html_class=None, default='N/A', link=None,
+    def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=False, html_override=None):
+
+        if value is None and field is not None:
+            details_object = self.detail_groups[self.current_group]['details_object']
+            if details_object is not None:
+                value = details_object
+                try:
+                    for part in field.split('__'):
+                        value = getattr(value, part)
+                except AttributeError:
+                    value = None
+
+                if label is None:
+                    label = self.label_from_field(field=field)
+
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
         if isinstance(value, bool):
@@ -115,10 +143,6 @@ class CardBase:
             entry = {'label': label, 'html': value, 'html_class': html_class,
                      'multiple_lines': multiple_lines, 'link': link}
             return entry
-
-    def add_rows(self, *args, html_class=None, default='N/A', hidden=False):
-        for arg in args:
-            self.add_entry(value=arg[0], label=arg[1], css_class=html_class, default=default, hidden=hidden)
 
     def get_details_data(self, details_object, group_type):
         if group_type == self.GROUP_TYPE_DATATABLE:
@@ -172,3 +196,32 @@ class CardBase:
                 setattr(o, order_field, s[0])
                 o.save()
         return self.command_response('')
+
+    @staticmethod
+    def label_from_field(field):
+        if type(field) == str and len(field) > 0:
+            field_no_path = field.split('/')[-1].split('__')[-1]
+            if field_no_path.find('_') > 0:
+                return field_no_path.replace('_', ' ').title()
+            else:
+                title = field_no_path[0].upper()
+                for letter in field_no_path[1:]:
+                    if letter.isupper():
+                        title += ' '
+                    title += letter
+                return title
+
+    def add_rows(self, *args, html_class=None, default='N/A', hidden=False):
+        for arg in args:
+            if isinstance(arg, str):
+                self.add_entry(field=arg, css_class=html_class, default=default, hidden=hidden)
+            elif isinstance(arg, dict):
+                if 'html_class' not in args:
+                    arg['html_class'] = html_class
+                if 'default' not in args:
+                    arg['default'] = default
+                if 'hidden' not in args:
+                    arg['hidden'] = default
+                self.add_entry(**arg)
+            elif isinstance(arg, (list, tuple)):
+                self.add_row(*arg)
