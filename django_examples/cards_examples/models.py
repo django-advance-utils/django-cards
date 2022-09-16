@@ -41,6 +41,9 @@ class Company(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def get_display_name(self):
+        return f"{self.name} ({self.number})"
+
 
 class CompanyInformation(models.Model):
     company = models.OneToOneField(Company, primary_key=True,

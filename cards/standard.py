@@ -7,11 +7,12 @@ from cards.base import CardBase
 class Card(CardBase):
     template_types = {'default': 'cards/standard/default.html'}
 
-    def __init__(self, request, details_object=None, title=None, menu=None,
+    def __init__(self, request, details_object=None, title=None, menu=None, template_name='default',
                  group_type=CardBase.GROUP_TYPE_STANDARD, show_created_modified_dates=False):
         super().__init__()
         self.details_object = details_object
         self.request = request
+        self.template_name = template_name
         self.group_type = group_type
         self.show_created_modified_dates = show_created_modified_dates
 
@@ -23,8 +24,8 @@ class Card(CardBase):
                               group_type=group_type,
                               details_object=details_object)
 
-    def render(self, template_name='default'):
-        template = self.template_types.get(template_name, template_name)
+    def render(self):
+        template = self.template_types.get(self.template_name, self.template_name)
         self.get_details_data(details_object=self.details_object, group_type=self.group_type)
         data = render_to_string(template, {'groups': self.detail_groups,
                                            'request': self.request,

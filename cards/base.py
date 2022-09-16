@@ -110,21 +110,38 @@ class CardBase:
         if entry is not None:
             self.detail_groups[self.current_group]['rows'].append({'type': 'standard', 'entries': [entry]})
 
-    def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=False, html_override=None):
+    def get_field_value(self, value, field, label):
 
         if value is None and field is not None:
             details_object = self.detail_groups[self.current_group]['details_object']
             if details_object is not None:
                 value = details_object
+                old_value = None
+                parts = field.split('__')
                 try:
-                    for part in field.split('__'):
+                    for part in parts:
+                        old_value = value
                         value = getattr(value, part)
                 except AttributeError:
                     value = None
 
+                if old_value is not None and len(parts) > 0:
+                    try:
+                        value = getattr(old_value, f'get_{parts[-1]}_display')
+                    except AttributeError:
+                        pass
+
+                if callable(value):
+                    value = value()
+
                 if label is None:
                     label = self.label_from_field(field=field)
+        return value, label
+
+    def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
+                            hidden=False, hidden_if_blank_or_none=False, html_override=None):
+
+        value, label = self.get_field_value(value=value, field=field, label=label)
 
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
@@ -211,13 +228,13 @@ class CardBase:
                     title += letter
                 return title
 
-    def add_rows(self, *args, html_class=None, default='N/A', hidden=False):
+    def add_rows(self, *args, css_class=None, default='N/A', hidden=False):
         for arg in args:
             if isinstance(arg, str):
-                self.add_entry(field=arg, css_class=html_class, default=default, hidden=hidden)
+                self.add_entry(field=arg, css_class=css_class, default=default, hidden=hidden)
             elif isinstance(arg, dict):
-                if 'html_class' not in args:
-                    arg['html_class'] = html_class
+                if 'css_class' not in args:
+                    arg['css_class'] = css_class
                 if 'default' not in args:
                     arg['default'] = default
                 if 'hidden' not in args:
