@@ -1,39 +1,33 @@
 from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 
 from cards.base import CardBase
 
 
 class Card(CardBase):
-    template_types = {'default': 'cards/standard/default.html'}
 
-    def __init__(self, request, details_object=None, title=None, menu=None, template_name='default',
-                 group_type=CardBase.GROUP_TYPE_STANDARD, show_created_modified_dates=False):
-        super().__init__()
+    def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name='default',
+                 group_type=CardBase.CARD_TYPE_STANDARD,
+                 show_created_modified_dates=False, extra_card_context=None, **kwargs):
+        super().__init__(view=view)
         self.details_object = details_object
         self.request = request
-        self.template_name = template_name
         self.group_type = group_type
         self.show_created_modified_dates = show_created_modified_dates
 
         created_modified_dates = self.get_created_modified_dates(details_object=details_object)
-        self.add_detail_group(code=None,
+        self.add_detail_group(code=code,
                               title=title,
                               menu=menu,
                               created_modified_dates=created_modified_dates,
                               group_type=group_type,
-                              details_object=details_object)
+                              details_object=details_object,
+                              extra_card_context=extra_card_context,
+                              template_name=template_name,
+                              **kwargs)
 
     def render(self):
-        template = self.template_types.get(self.template_name, self.template_name)
         self.get_details_data(details_object=self.details_object, group_type=self.group_type)
-        data = render_to_string(template, {'groups': self.detail_groups,
-                                           'request': self.request,
-                                           'group_types': {'standard': self.GROUP_TYPE_STANDARD,
-                                                           'datatable': self.GROUP_TYPE_DATATABLE,
-                                                           'ordered_datatable': self.GROUP_TYPE_ORDERED_DATATABLE,
-                                                           'html': self.GROUP_TYPE_HTML}})
-        return mark_safe(data)
+        return self._render_cards()
 
     def get_created_modified_dates(self, details_object):
         if self.show_created_modified_dates:
@@ -53,10 +47,12 @@ class CardMixin:
         request = getattr(self, 'request', None)
 
         if 'details_object' in kwargs:
-            self.cards[card_name] = self.card_cls(request=request, **kwargs)
+            self.cards[card_name] = self.card_cls(request=request, view=self,
+                                                  code=card_name, **kwargs)
         else:
             details_object = getattr(self, 'object', None)
-            self.cards[card_name] = self.card_cls(request=request, details_object=details_object, **kwargs)
+            self.cards[card_name] = self.card_cls(request=request, view=self,
+                                                  code=card_name, details_object=details_object, **kwargs)
 
         return self.cards[card_name]
 

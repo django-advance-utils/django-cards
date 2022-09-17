@@ -11,13 +11,14 @@ from cards.base import CardBase
 
 class CardListMixin(CardBase, TemplateView):
     template_name = 'cards/list/list.html'
-    details_template_name = 'cards/standard/default.html'
     list_class = 'col-sm-5 col-md-4 col-lg-3 float-left'
     details_class = 'col-sm-7 col-md-8 col-lg-9 float-left'
 
     list_type = None
     list_title = ''
     menu_display = ''
+
+    datatable_model = None
 
     model = None
 
@@ -100,7 +101,7 @@ class CardListMixin(CardBase, TemplateView):
     def get_list_menu(self):
         return []
 
-    def button_details_html(self, **kwargs):
+    def button_details_html(self, extra_card_context=None, **kwargs):
         details_object = self.get_details_object(pk=kwargs['entry_id'])
 
         menu = self.get_details_menu(details_object=details_object)
@@ -112,24 +113,26 @@ class CardListMixin(CardBase, TemplateView):
                               title=title,
                               menu=menu,
                               created_modified_dates=created_modified_dates,
-                              group_type=group_type)
+                              group_type=group_type,
+                              details_object=details_object,
+                              datatable_model=self.datatable_model,
+                              extra_card_context=extra_card_context,
+                              template_name=self.template_name)
 
         self.get_details_data(details_object=details_object, group_type=group_type)
 
-        data = render_to_string(self.details_template_name,
-                                {'groups': self.detail_groups,
-                                 'request': self.request,
-                                 'group_types': {'standard': self.GROUP_TYPE_STANDARD,
-                                                 'datatable': self.GROUP_TYPE_DATATABLE,
-                                                 'ordered_datatable': self.GROUP_TYPE_ORDERED_DATATABLE,
-                                                 'html': self.GROUP_TYPE_HTML}})
+        data = self._render_cards()
         return self.command_response('html', selector='#details_card', html=data)
 
-    def add_html_group(self, code, title, template_name, context, menu=None):
-        self.add_detail_group(code=code, title=title, menu=menu, group_type=self.GROUP_TYPE_HTML)
+    def add_html_group(self, code, title, template_name, context, extra_card_context=None, menu=None):
+        self.add_detail_group(code=code,
+                              title=title,
+                              menu=menu,
+                              group_type=self.CARD_TYPE_HTML,
+                              extra_card_context=extra_card_context,
+                              template_name=self.template_name)
         html = render_to_string(template_name, context)
-        self.detail_groups[code]['html'] = html
-
+        self.detail_cards[code]['html'] = html
 
 
 class CardList(AjaxHelpers, MenuMixin, CardListMixin):

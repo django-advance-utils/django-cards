@@ -1,0 +1,44 @@
+{% load datatable_tags %}
+
+    <div class="card django-card {{ card.card_css_class }}" id="list" data-title="">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <h5 class="mr-auto">{{ card.title }}</h5>
+                {{ card.menu.render }}
+            </div>
+        </div>
+        <div class="card-body cards-list {{ card_body_css_class }}">
+            {% if card.type == card_types.datatable or card.type == card_types.ordered_datatable %}
+                {{ card.datatable.render|safe }}
+            {% elif card.type == card_types.standard %}
+                <div class="list-group">
+                    <table class="table {{ table_css_class }}">
+                    {% for row in card.rows %}
+                        <tr>
+                        {% for entry in row.entries %}
+                            <td>{{ entry.label }}</td>
+                            <td>{% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
+                            {% if entry.multiple_lines %}
+                                {% for x in entry.html %}
+                                    {{ entry.css_class }}">{{ x|safe }}<br/>
+                                {% endfor %}
+                            {% else %}
+                                {{ entry.html|safe }}
+                            {% endif %}
+                            {% if entry.link %}</a>{% endif %}</td></tr>
+                        {% endfor %}
+                    {% endfor %}
+                </table>
+                </div>
+            {% elif card.type == card_types.html %}
+                {{ card.html }}
+            {% endif %}
+        </div>
+        {% if card.created_modified_dates %}
+            <div class="card-footer">
+                <small style="text-align: left">Date modified: {{ card.created_modified_dates.0 }}<br>Date
+                    created: {{ card.created_modified_dates.1 }}
+                </small>
+            </div>
+        {% endif %}
+    </div>
