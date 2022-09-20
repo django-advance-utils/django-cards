@@ -270,7 +270,7 @@ class CardBase:
                 if 'default' not in args:
                     arg['default'] = default
                 if 'hidden' not in args:
-                    arg['hidden'] = default
+                    arg['hidden'] = hidden
                 self.add_entry(**arg)
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
