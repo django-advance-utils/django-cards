@@ -87,6 +87,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                           'surname',
                           )
 
+
 class ExampleCompanyCardList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
@@ -97,6 +98,3 @@ class ExampleCompanyCardList(MainMenu, CardList):
                       'importance',
                       {'field': 'importance'},
                       'get_display_name')
-
-
-

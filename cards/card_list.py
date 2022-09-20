@@ -18,8 +18,6 @@ class CardListMixin(CardBase, TemplateView):
     list_title = ''
     menu_display = ''
 
-    datatable_model = None
-
     model = None
 
     def split_slug(self, kwargs):
@@ -101,6 +99,9 @@ class CardListMixin(CardBase, TemplateView):
     def get_list_menu(self):
         return []
 
+    def set_card_template(self, template_name):
+        self.detail_cards[self.current_card]['template_name'] = template_name
+
     def button_details_html(self, extra_card_context=None, **kwargs):
         details_object = self.get_details_object(pk=kwargs['entry_id'])
 
@@ -116,10 +117,17 @@ class CardListMixin(CardBase, TemplateView):
                               group_type=group_type,
                               details_object=details_object,
                               datatable_model=self.datatable_model,
-                              extra_card_context=extra_card_context,
-                              template_name=self.template_name)
+                              extra_card_context=extra_card_context)
+
+        self.set_card_template('default')
 
         self.get_details_data(details_object=details_object, group_type=group_type)
+
+        # data = render_to_string(self.details_template_name, {'groups': self.detail_groups,
+        #                                                      'request': self.request,
+        #                                                      'group_types': {'standard': self.GROUP_TYPE_STANDARD,
+        #                                                                      'datatable': self.GROUP_TYPE_DATATABLE,
+        #                                                                      'html': self.GROUP_TYPE_HTML}})
 
         data = self._render_cards()
         return self.command_response('html', selector='#details_card', html=data)

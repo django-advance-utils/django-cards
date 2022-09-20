@@ -19,6 +19,7 @@ class CardBase:
     ajax_commands = ['datatable']
 
     datatable_order_field = 'order'
+    datatable_model = None
 
     def __init__(self, view=None):
         self.detail_cards = {}
@@ -38,9 +39,6 @@ class CardBase:
                          extra_card_context=None,
                          template_name=None,
                          **kwargs):
-
-        if template_name is None and hasattr(self, 'template_name'):
-            template_name = self.template_name
 
         if menu is not None:
             details_menu = HtmlMenu(self.request, 'button_group').add_items(*menu)
