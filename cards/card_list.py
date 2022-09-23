@@ -110,14 +110,14 @@ class CardListMixin(CardBase, TemplateView):
 
         group_type = self.get_group_type(details_object=details_object)
         created_modified_dates = self.get_created_modified_dates(details_object=details_object)
-        self.add_detail_group(code=None,
-                              title=title,
-                              menu=menu,
-                              created_modified_dates=created_modified_dates,
-                              group_type=group_type,
-                              details_object=details_object,
-                              datatable_model=self.datatable_model,
-                              extra_card_context=extra_card_context)
+        self.add_detail_card(code=None,
+                             title=title,
+                             menu=menu,
+                             created_modified_dates=created_modified_dates,
+                             group_type=group_type,
+                             details_object=details_object,
+                             datatable_model=self.datatable_model,
+                             extra_card_context=extra_card_context)
 
         self.set_card_template('default')
 
@@ -133,12 +133,12 @@ class CardListMixin(CardBase, TemplateView):
         return self.command_response('html', selector='#details_card', html=data)
 
     def add_html_group(self, code, title, template_name, context, extra_card_context=None, menu=None):
-        self.add_detail_group(code=code,
-                              title=title,
-                              menu=menu,
-                              group_type=self.CARD_TYPE_HTML,
-                              extra_card_context=extra_card_context,
-                              template_name=self.template_name)
+        self.add_detail_card(code=code,
+                             title=title,
+                             menu=menu,
+                             group_type=self.CARD_TYPE_HTML,
+                             extra_card_context=extra_card_context,
+                             template_name=self.template_name)
         html = render_to_string(template_name, context)
         self.detail_cards[code]['html'] = html
 

@@ -98,3 +98,7 @@ class ExampleCompanyCardList(MainMenu, CardList):
                       'importance',
                       {'field': 'importance'},
                       'get_display_name')
+
+        self.add_detail_card(code='another_card',
+                             title='Another Card')
+        self.add_entry(True, label='Working')

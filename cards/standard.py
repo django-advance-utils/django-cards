@@ -15,15 +15,15 @@ class Card(CardBase):
         self.show_created_modified_dates = show_created_modified_dates
 
         created_modified_dates = self.get_created_modified_dates(details_object=details_object)
-        self.add_detail_group(code=code,
-                              title=title,
-                              menu=menu,
-                              created_modified_dates=created_modified_dates,
-                              group_type=group_type,
-                              details_object=details_object,
-                              extra_card_context=extra_card_context,
-                              template_name=template_name,
-                              **kwargs)
+        self.add_detail_card(code=code,
+                             title=title,
+                             menu=menu,
+                             created_modified_dates=created_modified_dates,
+                             group_type=group_type,
+                             details_object=details_object,
+                             extra_card_context=extra_card_context,
+                             template_name=template_name,
+                             **kwargs)
 
     def render(self):
         self.get_details_data(details_object=self.details_object, group_type=self.group_type)

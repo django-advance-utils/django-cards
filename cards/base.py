@@ -32,13 +32,13 @@ class CardBase:
             self.view = view
         super().__init__()
 
-    def add_detail_group(self, code, title, menu=None,
-                         created_modified_dates=None,
-                         group_type=CARD_TYPE_STANDARD,
-                         details_object=None,
-                         extra_card_context=None,
-                         template_name=None,
-                         **kwargs):
+    def add_detail_card(self, code, title, menu=None,
+                        created_modified_dates=None,
+                        group_type=CARD_TYPE_STANDARD,
+                        details_object=None,
+                        extra_card_context=None,
+                        template_name='default',
+                        **kwargs):
 
         if menu is not None:
             details_menu = HtmlMenu(self.request, 'button_group').add_items(*menu)
