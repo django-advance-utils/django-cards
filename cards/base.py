@@ -178,9 +178,15 @@ class CardBase:
             multiple_lines = isinstance(value, (list, tuple))
 
             if value_method is not None:
-                value = value_method(value)
+                if multiple_lines:
+                    value = [value_method(v) for v in value]
+                else:
+                    value = value_method(value)
             if html_override is not None:
-                value = html_override.replace('%1%', str(value))
+                if multiple_lines:
+                    value = [html_override.replace('%1%', str(v)) for v in value]
+                else:
+                    value = html_override.replace('%1%', str(value))
 
             entry = {'label': label, 'html': value, 'html_class': html_class,
                      'multiple_lines': multiple_lines, 'link': link}

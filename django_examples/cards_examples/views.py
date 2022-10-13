@@ -74,7 +74,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
             card.add_entry(field='name', value_method=self.test_method)
 
-
+            card.add_entry(value=['a', 'b'], label='test', html_override="<b>%1%</b>")
 
     def add_companies_card(self):
         self.add_card('companies', title='Company', group_type=CardBase.CARD_TYPE_DATATABLE, datatable_model=Company)
