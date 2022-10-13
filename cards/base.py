@@ -117,7 +117,7 @@ class CardBase:
             self.detail_cards[self.current_card]['rows'].append(entry)
 
     def add_entry(self, value=None, field=None, label=None, css_class=None, default='N/A', link=None,
-                  hidden=False, hidden_if_blank_or_none=False, html_override=None):
+                  hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -128,6 +128,7 @@ class CardBase:
                                          hidden=hidden,
                                          hidden_if_blank_or_none=hidden_if_blank_or_none,
                                          html_override=html_override,
+                                         value_method=value_method,
                                          )
         if entry is not None:
             self.detail_cards[self.current_card]['rows'].append({'type': 'standard', 'entries': [entry]})
@@ -161,7 +162,7 @@ class CardBase:
         return value, label
 
     def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=False, html_override=None):
+                            hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None):
 
         value, label = self.get_field_value(value=value, field=field, label=label)
 
@@ -176,6 +177,8 @@ class CardBase:
                 value = default
             multiple_lines = isinstance(value, (list, tuple))
 
+            if value_method is not None:
+                value = value_method(value)
             if html_override is not None:
                 value = html_override.replace('%1%', str(value))
 

@@ -54,18 +54,27 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('welcome', title='Welcome')
         card.add_entry(value='sample text', label='Sample')
 
+    @staticmethod
+    def test_method(value):
+        return f'<i>{value}</i>'
+
     def add_company_card(self):
         company = Company.objects.first()
         if company is None:
             card = self.add_card('company', title='Company')
-            card.add_entry(value='Warning No Companies in the system', label='Warning')
+            card.add_entry(value='Warning No Companies in the system', label=None,
+                           html_override='<div class="alert alert-warning">%1%</div>')
         else:
             card = self.add_card('company', title='Company', details_object=company, show_created_modified_dates=True)
             card.add_rows(['name', 'active'],
                           [{'field': 'company_category__name', 'label': 'category'}],
                           'importance',
                           {'field': 'importance'},
-                          'get_display_name')
+                          {'field': 'get_display_name', 'label': 'Display Name'})
+
+            card.add_entry(field='name', value_method=self.test_method)
+
+
 
     def add_companies_card(self):
         self.add_card('companies', title='Company', group_type=CardBase.CARD_TYPE_DATATABLE, datatable_model=Company)
@@ -79,7 +88,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         person = Person.objects.first()
         if person is None:
             card = self.add_card('person', title='Person')
-            card.add_entry(value='Warning No People in the system', label='Warning')
+            card.add_entry(value='Warning No People in the system', label=None,
+                           html_override='<div class="alert alert-warning">%1%</div>')
         else:
             card = self.add_card('person', title='Person', details_object=person, show_created_modified_dates=True)
             card.add_rows('title',
