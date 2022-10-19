@@ -6,7 +6,7 @@ from django.views.generic import TemplateView
 from django_menus.menu import MenuMixin
 from django_modals.modals import ModalException
 
-from cards.base import CardBase
+from cards.base import CardBase, CARD_TYPE_HTML
 
 
 class CardListMixin(CardBase, TemplateView):
@@ -121,7 +121,7 @@ class CardListMixin(CardBase, TemplateView):
 
         self.set_card_template('default')
 
-        self.get_details_data(details_object=details_object, group_type=group_type)
+        self.process_data()
 
         # data = render_to_string(self.details_template_name, {'groups': self.detail_groups,
         #                                                      'request': self.request,
@@ -136,7 +136,7 @@ class CardListMixin(CardBase, TemplateView):
         self.add_detail_card(code=code,
                              title=title,
                              menu=menu,
-                             group_type=self.CARD_TYPE_HTML,
+                             group_type=CARD_TYPE_HTML,
                              extra_card_context=extra_card_context,
                              template_name=self.template_name)
         html = render_to_string(template_name, context)

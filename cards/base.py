@@ -7,14 +7,15 @@ from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
+CARD_TYPE_STANDARD = 1
+CARD_TYPE_DATATABLE = 2
+CARD_TYPE_ORDERED_DATATABLE = 3
+CARD_TYPE_HTML = 4
+
 
 class CardBase:
     template_types = {'default': 'cards/standard/default.html',
                       'table': 'cards/standard/table.html'}
-    CARD_TYPE_STANDARD = 1
-    CARD_TYPE_DATATABLE = 2
-    CARD_TYPE_ORDERED_DATATABLE = 3
-    CARD_TYPE_HTML = 4
 
     ajax_commands = ['datatable']
 
@@ -45,7 +46,7 @@ class CardBase:
         else:
             details_menu = None
 
-        if group_type == self.CARD_TYPE_STANDARD:
+        if group_type == CARD_TYPE_STANDARD:
             self.detail_cards[code] = {'rows': [],
                                        'title': title,
                                        'created_modified_dates': created_modified_dates,
@@ -55,7 +56,7 @@ class CardBase:
                                        'extra_card_context': extra_card_context,
                                        'group_type': group_type,
                                        'template_name': template_name}
-        elif group_type in (self.CARD_TYPE_DATATABLE, self.CARD_TYPE_ORDERED_DATATABLE):
+        elif group_type in (CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE):
             datatable = kwargs.get('datatable')
             datatable_model = kwargs.get('datatable_model')
             self.detail_cards[code] = {'title': title,
@@ -68,7 +69,7 @@ class CardBase:
                                        'datatable': datatable,
                                        'datatable_model': datatable_model,
                                        'template_name': template_name}
-        elif group_type == self.CARD_TYPE_HTML:
+        elif group_type == CARD_TYPE_HTML:
             html = kwargs.get('html')
             self.detail_cards[code] = {'html': html,
                                        'title': title,
@@ -192,15 +193,21 @@ class CardBase:
                      'multiple_lines': multiple_lines, 'link': link}
             return entry
 
-    def get_details_data(self, details_object, group_type):
-        if (group_type in (self.CARD_TYPE_DATATABLE, self.CARD_TYPE_ORDERED_DATATABLE) and
+    def process_data(self):
+        group_type = self.detail_cards[self.current_card]['group_type']
+        details_object = self.detail_cards[self.current_card]['details_object']
+        if (group_type in (CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE) and
                 self.detail_cards[self.current_card]['datatable'] is None):
 
             datatable_model = self.detail_cards[self.current_card]['datatable_model']
-            if group_type == self.CARD_TYPE_ORDERED_DATATABLE:
-                table = self.add_ordered_table(model=datatable_model, order_field=self.datatable_order_field)
+            table_id = self.current_card
+            if group_type == CARD_TYPE_ORDERED_DATATABLE:
+                table = self.add_ordered_table(table_id=table_id,
+                                               model=datatable_model,
+                                               order_field=self.datatable_order_field)
             else:
-                table = self.add_table(model=datatable_model)
+                table = self.add_table(table_id=table_id, model=datatable_model)
+            self.tables[table_id] = table
             setup_table_field = 'setup_table'
             if self.current_card is not None:
                 field_setup_table_field = f'setup_table_{self.current_card}'
@@ -209,6 +216,11 @@ class CardBase:
 
             getattr(self.view, setup_table_field)(details_object=details_object, table=table)
             self.detail_cards[self.current_card]['datatable'] = table
+        else:
+            self.get_details_data(details_object=details_object)
+
+    def get_details_data(self, details_object):
+        pass
 
     def get_details_menu(self, details_object):
         return []
@@ -217,12 +229,12 @@ class CardBase:
         return "Details"
 
     def get_group_type(self, details_object):
-        return self.CARD_TYPE_STANDARD
+        return CARD_TYPE_STANDARD
 
     def add_table(self, model, table_id=None):
         table = DatatableTable(table_id=table_id, model=model, view=self.view)
         self.tables[table_id] = table
-        table.ajax_data = False
+        # table.ajax_data = False
         return self.tables[table_id]
 
     def add_ordered_table(self, model, order_field, table_id=None):
@@ -231,7 +243,7 @@ class CardBase:
                                  view=self.view,
                                  order_field=order_field)
         table.add_plugin(Reorder)
-        table.ajax_data = False
+        # table.ajax_data = False
         self.tables[table_id] = table
         return self.tables[table_id]
 
@@ -253,7 +265,7 @@ class CardBase:
                 o = self.datatable_model.objects.get(id=s[1])
                 setattr(o, order_field, s[0])
                 o.save()
-        return self.command_response('')
+        return self.command_response('null')
 
     @staticmethod
     def label_from_field(field):
@@ -292,10 +304,10 @@ class CardBase:
 
             context = {'card': card,
                        'request': self.request,
-                       'card_types': {'standard': self.CARD_TYPE_STANDARD,
-                                      'datatable': self.CARD_TYPE_DATATABLE,
-                                      'ordered_datatable': self.CARD_TYPE_ORDERED_DATATABLE,
-                                      'html': self.CARD_TYPE_HTML}}
+                       'card_types': {'standard': CARD_TYPE_STANDARD,
+                                      'datatable': CARD_TYPE_DATATABLE,
+                                      'ordered_datatable': CARD_TYPE_ORDERED_DATATABLE,
+                                      'html': CARD_TYPE_HTML}}
 
             if extra_card_context is not None:
                 context = {**context, **extra_card_context}

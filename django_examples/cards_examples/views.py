@@ -1,11 +1,11 @@
 from ajax_helpers.mixins import AjaxHelpers
+from cards_examples.models import Company, Person
 from django.views.generic import TemplateView
 from django_menus.menu import MenuMixin, MenuItem
 
-from cards.base import CardBase
+from cards.base import CARD_TYPE_DATATABLE
 from cards.card_list import CardList
 from cards.standard import CardMixin
-from cards_examples.models import Company, Person
 
 
 class MainMenu(AjaxHelpers, MenuMixin):
@@ -18,7 +18,6 @@ class MainMenu(AjaxHelpers, MenuMixin):
             MenuItem(url='admin:index',
                      menu_display='Admin',
                      visible=self.request.user.is_superuser),
-
         )
 
 
@@ -46,9 +45,10 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_person_card()
         self.add_company_card()
         self.add_companies_card()
+        self.add_no_modal_card()
 
         self.add_card_group('welcome', 'person', div_css_class='col-6 float-left')
-        self.add_card_group('company', 'companies', div_css_class='col-6 float-right')
+        self.add_card_group('company', 'companies', 'no_model', div_css_class='col-6 float-right')
 
     def add_welcome_card(self):
         card = self.add_card('welcome', title='Welcome')
@@ -77,12 +77,27 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_entry(value=['a', 'b'], label='test', html_override="<b>%1%</b>")
 
     def add_companies_card(self):
-        self.add_card('companies', title='Company', group_type=CardBase.CARD_TYPE_DATATABLE, datatable_model=Company)
+        self.add_card('companies', title='Company', group_type=CARD_TYPE_DATATABLE, datatable_model=Company)
 
+    # noinspection PyMethodMayBeStatic
     def setup_table_companies(self, table, details_object):
         table.add_columns(
             'id',
             'name')
+
+    def add_no_modal_card(self):
+        self.add_card('no_model', title='No Model', group_type=CARD_TYPE_DATATABLE, datatable_model=None)
+
+    # noinspection PyUnusedLocal
+    def setup_table_no_model(self, table, details_object):
+        table.add_columns(
+            'id',
+            'name')
+
+    @staticmethod
+    def get_no_model_query(table, **kwargs):
+        return [{'id': 1, 'name': 'Tom Turner'},
+         ]
 
     def add_person_card(self):
         person = Person.objects.first()
@@ -102,7 +117,7 @@ class ExampleCompanyCardList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
 
-    def get_details_data(self, details_object, group_type):
+    def get_details_data(self, details_object):
         self.add_rows(['name', 'active'],
                       [{'field': 'company_category__name', 'label': 'category'}],
                       'importance',

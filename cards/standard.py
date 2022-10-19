@@ -1,12 +1,13 @@
+from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase
+from cards.base import CardBase, CARD_TYPE_STANDARD
 
 
 class Card(CardBase):
 
     def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name='default',
-                 group_type=CardBase.CARD_TYPE_STANDARD,
+                 group_type=CARD_TYPE_STANDARD,
                  show_created_modified_dates=False, extra_card_context=None, **kwargs):
         super().__init__(view=view)
         self.details_object = details_object
@@ -26,7 +27,8 @@ class Card(CardBase):
                              **kwargs)
 
     def render(self):
-        self.get_details_data(details_object=self.details_object, group_type=self.group_type)
+        self.process_data()
+        self.process_data()
         return self._render_cards()
 
     def get_created_modified_dates(self, details_object):
@@ -39,6 +41,34 @@ class CardMixin:
 
     card_cls = Card
 
+    def __init__(self, *args, **kwargs):
+        self.tables = {}
+        self.cards = {}
+        self.card_groups = []
+        super().__init__(*args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('datatable_data'):
+            table_id = request.POST['table_id']
+
+            field_setup_table_field = f'setup_table_{table_id}'
+            if hasattr(self, field_setup_table_field):
+                self.setup_cards()
+                card = self.cards[table_id]
+                card.current_card = table_id
+                card.process_data()
+                table = card.tables[request.POST['table_id']]
+
+                field_query = f'get_{table_id}_query'
+                if hasattr(self, field_query):
+                    results = getattr(self, field_query)(table, **kwargs)
+                else:
+                    results = table.get_query(**kwargs)
+                table_data = table.get_json(request, results)
+                return HttpResponse(table_data, content_type='application/json')
+        # noinspection PyUnresolvedReferences
+        return super().post(request, *args, **kwargs)
+
     def add_card_group(self, *args, div_css_class):
         cards = [self.cards[card] for card in args]
         self.card_groups.append({'div_css_class': div_css_class, 'cards': cards})
@@ -47,13 +77,17 @@ class CardMixin:
         request = getattr(self, 'request', None)
 
         if 'details_object' in kwargs:
-            self.cards[card_name] = self.card_cls(request=request, view=self,
-                                                  code=card_name, **kwargs)
+            self.cards[card_name] = self.card_cls(request=request,
+                                                  view=self,
+                                                  code=card_name,
+                                                  **kwargs)
         else:
             details_object = getattr(self, 'object', None)
-            self.cards[card_name] = self.card_cls(request=request, view=self,
-                                                  code=card_name, details_object=details_object, **kwargs)
-
+            self.cards[card_name] = self.card_cls(request=request,
+                                                  view=self,
+                                                  code=card_name,
+                                                  details_object=details_object,
+                                                  **kwargs)
         return self.cards[card_name]
 
     def get_context_data(self, **kwargs):
@@ -73,8 +107,3 @@ class CardMixin:
 
     def setup_cards(self):
         return
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.cards = {}
-        self.card_groups = []
