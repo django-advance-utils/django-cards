@@ -8,9 +8,9 @@
             </div>
         </div>
         <div class="card-body cards-list {{ card_body_css_class }}">
-            {% if card.type == card_types.datatable or card.type == card_types.ordered_datatable %}
-                {{ card.datatable.render|safe }}
-            {% elif card.type == card_types.standard %}
+            {% if card.group_type == card_types.datatable or card.group_type == card_types.ordered_datatable %}
+                {{ card.extra_card_info.datatable.render|safe }}
+            {% elif card.group_type == card_types.standard %}
                 <div class="list-group">
                     {% for row in card.rows %}
                         {% if row.type == 'multiple' %}<div class="row">{% endif %}

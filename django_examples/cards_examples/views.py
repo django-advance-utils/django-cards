@@ -15,6 +15,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:index', 'Home'),
             ('cards_examples:groups', 'Groups'),
             ('cards_examples:list,-', 'List'),
+            ('cards_examples:list_adv,-', 'List Adv'),
             MenuItem(url='admin:index',
                      menu_display='Admin',
                      visible=self.request.user.is_superuser),
@@ -30,10 +31,10 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='Welcome using the default template', label='Sample')
         card.add_entry(value='This is some sample text', label='Text')
 
-        card = self.add_card('welcome2', title='Welcome',
+        card = self.add_card('welcome2', title='Welcome Two',
                              template_name='table', extra_card_context={'table_css_class': 'table-bordered'})
-        card.add_entry(value='Welcome using the table template', label='Sample')
-        card.add_entry(value='This is some sample text', label='Text')
+        card.add_entry(value='Welcome using the table template2', label='Sample')
+        card.add_entry(value='This is some sample text2', label='Text')
 
 
 class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
@@ -93,11 +94,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         table.add_columns(
             'id',
             'name')
-
-    @staticmethod
-    def get_no_model_query(table, **kwargs):
-        return [{'id': 1, 'name': 'Tom Turner'},
-         ]
+        table.table_data = [{'id': 1, 'name': 'Tom Turner'}, ]
 
     def add_person_card(self):
         person = Person.objects.first()
@@ -117,13 +114,29 @@ class ExampleCompanyCardList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
 
-    def get_details_data(self, details_object):
-        self.add_rows(['name', 'active'],
+    def get_details_title(self, details_object):
+        return f'Details {details_object.pk}'
+
+    def get_details_data(self, card, details_object):
+        card.add_rows(['name', 'active'],
                       [{'field': 'company_category__name', 'label': 'category'}],
                       'importance',
                       {'field': 'importance'},
                       'get_display_name')
 
-        self.add_detail_card(code='another_card',
-                             title='Another Card')
-        self.add_entry(True, label='Working')
+
+class ExampleCompanyCardAdvancedList(MainMenu, CardList):
+    list_title = 'Companies'
+    model = Company
+
+    def setup_cards(self, details_object):
+        card = self.add_card(details_object=details_object, title='Details')
+        card.add_rows(['name', 'active'],
+                      [{'field': 'company_category__name', 'label': 'category'}],
+                      'importance',
+                      {'field': 'importance'},
+                      'get_display_name')
+        card2 = self.add_card(show_created_modified_dates=False, details_object=details_object, title='Just Name')
+        card2.add_rows('name')
+
+

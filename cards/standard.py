@@ -1,45 +1,12 @@
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_STANDARD
-
-
-class Card(CardBase):
-
-    def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name='default',
-                 group_type=CARD_TYPE_STANDARD,
-                 show_created_modified_dates=False, extra_card_context=None, **kwargs):
-        super().__init__(view=view)
-        self.details_object = details_object
-        self.request = request
-        self.group_type = group_type
-        self.show_created_modified_dates = show_created_modified_dates
-
-        created_modified_dates = self.get_created_modified_dates(details_object=details_object)
-        self.add_detail_card(code=code,
-                             title=title,
-                             menu=menu,
-                             created_modified_dates=created_modified_dates,
-                             group_type=group_type,
-                             details_object=details_object,
-                             extra_card_context=extra_card_context,
-                             template_name=template_name,
-                             **kwargs)
-
-    def render(self):
-        self.process_data()
-        self.process_data()
-        return self._render_cards()
-
-    def get_created_modified_dates(self, details_object):
-        if self.show_created_modified_dates:
-            return super().get_created_modified_dates(details_object=details_object)
-        return None
+from cards.base import CardBase
 
 
 class CardMixin:
 
-    card_cls = Card
+    card_cls = CardBase
 
     def __init__(self, *args, **kwargs):
         self.tables = {}

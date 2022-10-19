@@ -7,6 +7,7 @@
                 </div>
             </div>
             <div class="card-body django-list">
+
                 {% for entry in entries %}
                     <a class="list-group-item django-list-group-item" id="list_{{ entry.pk }}"
                        href="javascript:load_details({{ entry.pk }})">
