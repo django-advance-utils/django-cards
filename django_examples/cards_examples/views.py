@@ -2,6 +2,7 @@ from ajax_helpers.mixins import AjaxHelpers
 from cards_examples.models import Company, Person
 from django.views.generic import TemplateView
 from django_menus.menu import MenuMixin, MenuItem
+from django_modals.modals import Modal
 
 from cards.base import CARD_TYPE_DATATABLE, CARD_TYPE_HTML
 from cards.card_list import CardList
@@ -118,6 +119,10 @@ class ExampleCompanyCardList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
 
+    def get_details_menu(self, details_object):
+        return [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal'),
+                MenuItem('cards_examples:hello_modal', menu_display='Hello Modal2')]
+
     def get_details_title(self, details_object):
         return f'Details {details_object.pk}'
 
@@ -133,14 +138,24 @@ class ExampleCompanyCardAdvancedList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
 
+    def get_details_title(self, details_object):
+        return f'Details {details_object.pk} adv'
+
     def setup_details_cards(self, details_object):
-        card = self.add_details_card(details_object=details_object, title='Details')
+        card = self.add_main_card(details_object=details_object)
         card.add_rows(['name', 'active'],
                       [{'field': 'company_category__name', 'label': 'category'}],
                       'importance',
                       {'field': 'importance'},
                       'get_display_name')
-        card2 = self.add_card(show_created_modified_dates=False, details_object=details_object, title='Just Name')
+        card2 = self.add_detail_card(show_created_modified_dates=False,
+                                     details_object=details_object,
+                                     title='Just Name')
         card2.add_rows('name')
 
 
+class HelloModal(Modal):
+    button_container_class = 'text-center'
+
+    def modal_content(self):
+        return 'Hello<br>Message no title default OK button '

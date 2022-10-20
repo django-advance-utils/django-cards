@@ -5,6 +5,7 @@ from django.utils.safestring import mark_safe
 from django_datatables.datatables import DatatableTable
 from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
+from django_menus.menu import HtmlMenu
 
 CARD_TYPE_STANDARD = 1
 CARD_TYPE_DATATABLE = 2
@@ -13,10 +14,19 @@ CARD_TYPE_HTML = 4
 
 
 class CardBase:
-    template_types = {'default': 'cards/standard/default.html',
-                      'table': 'cards/standard/table.html',
-                      'datatable': 'cards/standard/datatable.html',
-                      'html': 'cards/standard/html.html'}
+    templates = {'default': {'name': 'cards/standard/default.html',
+                             'context': {'card_css_class': 'card django-card',
+                                         'card_body_css_class': 'card-body cards-list'}},
+                 'table': {'name': 'cards/standard/table.html',
+                           'context': {'card_css_class': 'card django-card',
+                                       'card_body_css_class': 'card-body cards-list',
+                                       'table_css_class': 'table'}},
+                 'datatable': {'name': 'cards/standard/datatable.html',
+                               'context': {'card_css_class': 'card django-card',
+                                           'card_body_css_class': 'card-body cards-list'}},
+                 'html': {'name': 'cards/standard/html.html',
+                          'context': {'card_css_class': 'card django-card',
+                                      'card_body_css_class': 'card-body cards-list'}}}
 
     ajax_commands = ['datatable']
 
@@ -39,6 +49,9 @@ class CardBase:
         self.rows = []
         self.title = title
         self.created_modified_dates = self.get_created_modified_dates(details_object=details_object)
+        if isinstance(menu, (list, tuple)):
+            menu = HtmlMenu(self.request, 'button_group').add_items(*menu)
+
         self.menu = menu
         self.extra_card_context = extra_card_context
         self.template_name = template_name
@@ -273,6 +286,12 @@ class CardBase:
         if template_name is None:
             template_name = self.template_defaults.get(self.group_type)
 
-        template = self.template_types.get(template_name, template_name)
+        if template_name in self.templates:
+            template = self.templates[template_name]['name']
+            if 'context' in self.templates[template_name]:
+                context = {**context, **self.templates[template_name]['context']}
+        else:
+            template = template_name
+
         data = render_to_string(template, context)
         return mark_safe(data)

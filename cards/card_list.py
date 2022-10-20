@@ -1,12 +1,13 @@
 from ajax_helpers.mixins import AjaxHelpers
 from ajax_helpers.utils import random_string
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.views.generic import TemplateView
 from django_menus.menu import MenuMixin
 from django_modals.modals import ModalException
 
-from cards.base import CardBase, CARD_TYPE_STANDARD
+from cards.base import CardBase, CARD_TYPE_STANDARD, CARD_TYPE_HTML
 
 
 class CardListMixin(TemplateView):
@@ -133,28 +134,30 @@ class CardListMixin(TemplateView):
         data = self._render_cards()
         return self.command_response('html', selector='#details_card', html=data)
 
-    def add_main_card(self, details_object, extra_card_context, code='main'):
+    def add_main_card(self, details_object, extra_card_context=None, code='main'):
+        if extra_card_context is None:
+            extra_card_context = {}
         menu = self.get_details_menu(details_object=details_object)
         title = self.get_details_title(details_object=details_object)
         group_type = self.get_group_type(details_object=details_object)
         show_created_modified_dates = self.get_show_created_modified_dates(details_object=details_object)
         extra_card_kwargs = self.get_extra_card_kwargs(details_object=details_object)
         template_name = self.get_card_template()
-        card = self.add_details_card(title=title,
-                                     code=code,
-                                     details_object=details_object,
-                                     menu=menu,
-                                     show_created_modified_dates=show_created_modified_dates,
-                                     group_type=group_type,
-                                     datatable_model=self.datatable_model,
-                                     extra_card_context=extra_card_context,
-                                     template_name=template_name,
-                                     **extra_card_kwargs)
+        card = self.add_detail_card(title=title,
+                                    code=code,
+                                    details_object=details_object,
+                                    menu=menu,
+                                    show_created_modified_dates=show_created_modified_dates,
+                                    group_type=group_type,
+                                    datatable_model=self.datatable_model,
+                                    extra_card_context=extra_card_context,
+                                    template_name=template_name,
+                                    **extra_card_kwargs)
         return card
 
-    def add_details_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
-                         group_type=CARD_TYPE_STANDARD,
-                         show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
+    def add_detail_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
+                        group_type=CARD_TYPE_STANDARD,
+                        show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
         if code is None:
             code = random_string()
 
@@ -174,6 +177,12 @@ class CardListMixin(TemplateView):
         if group_type == CARD_TYPE_STANDARD:
             self.get_details_data(card=card, details_object=details_object)
         return card
+
+    def add_html_group(self, context_template_name, context, **kwargs):
+        html = render_to_string(context_template_name, context)
+        self.add_detail_card(group_type=CARD_TYPE_HTML,
+                             html=html,
+                             **kwargs)
 
     def _render_cards(self):
         data = ""

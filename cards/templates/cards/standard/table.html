@@ -7,9 +7,9 @@
                 {{ card.menu.render }}
             </div>
         </div>
-        <div class="card-body cards-list {{ card_body_css_class }}">
+        <div class="{{ card_body_css_class }}">
             <div class="list-group">
-                <table class="table {{ table_css_class }}">
+                <table class="{{ table_css_class }}">
                 {% for row in card.rows %}
                     <tr>
                     {% for entry in row.entries %}
