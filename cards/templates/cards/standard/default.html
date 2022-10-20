@@ -8,36 +8,30 @@
             </div>
         </div>
         <div class="card-body cards-list {{ card_body_css_class }}">
-            {% if card.group_type == card_types.datatable or card.group_type == card_types.ordered_datatable %}
-                {{ card.extra_card_info.datatable.render|safe }}
-            {% elif card.group_type == card_types.standard %}
-                <div class="list-group">
-                    {% for row in card.rows %}
-                        {% if row.type == 'multiple' %}<div class="row">{% endif %}
-                        {% for entry in row.entries %}
-                            {% if row.type == 'multiple' %}<div class="{{ row.css_class }}">{% endif %}
-                            {% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% else %}<div class="list-group-item">{% endif %}
-                                {% if entry.label %}
-                                    <label>{{ entry.label }}</label>
-                                    {% if entry.multiple_lines %}
-                                        {% for x in entry.html %}
-                                            <h4 class="list-group-item-heading {{ entry.css_class }}">{{ x|safe }}</h4>
-                                        {% endfor %}
-                                    {% else %}
-                                        <h4 class="list-group-item-heading {{ entry.css_class }}">{{ entry.html|safe }}</h4>
-                                    {% endif %}
+            <div class="list-group">
+                {% for row in card.rows %}
+                    {% if row.type == 'multiple' %}<div class="row">{% endif %}
+                    {% for entry in row.entries %}
+                        {% if row.type == 'multiple' %}<div class="{{ row.css_class }}">{% endif %}
+                        {% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% else %}<div class="list-group-item">{% endif %}
+                            {% if entry.label %}
+                                <label>{{ entry.label }}</label>
+                                {% if entry.multiple_lines %}
+                                    {% for x in entry.html %}
+                                        <h4 class="list-group-item-heading {{ entry.css_class }}">{{ x|safe }}</h4>
+                                    {% endfor %}
                                 {% else %}
-                                    {{ entry.html|safe }}
+                                    <h4 class="list-group-item-heading {{ entry.css_class }}">{{ entry.html|safe }}</h4>
                                 {% endif %}
-                            {% if entry.link %}</a>{% else %}</div>{% endif %}
-                         {% if row.type == 'multiple' %}</div>{% endif %}
-                        {% endfor %}
-                        {% if row.type == 'multiple' %}</div>{% endif %}
+                            {% else %}
+                                {{ entry.html|safe }}
+                            {% endif %}
+                        {% if entry.link %}</a>{% else %}</div>{% endif %}
+                     {% if row.type == 'multiple' %}</div>{% endif %}
                     {% endfor %}
-                </div>
-            {% elif card.type == card_types.html %}
-                {{ card.html }}
-            {% endif %}
+                    {% if row.type == 'multiple' %}</div>{% endif %}
+                {% endfor %}
+            </div>
         </div>
         {% if card.created_modified_dates %}
             <div class="card-footer">

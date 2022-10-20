@@ -114,7 +114,7 @@ class CardListMixin(TemplateView):
         return []
 
     def get_card_template(self):
-        return 'default'
+        return None
 
     def get_show_created_modified_dates(self, details_object):
         return True
@@ -128,27 +128,31 @@ class CardListMixin(TemplateView):
         if hasattr(self, 'setup_cards'):
             self.setup_cards(details_object=details_object)
         else:
-            menu = self.get_details_menu(details_object=details_object)
-            title = self.get_details_title(details_object=details_object)
-            group_type = self.get_group_type(details_object=details_object)
-            show_created_modified_dates = self.get_show_created_modified_dates(details_object=details_object)
-            extra_card_kwargs = self.get_extra_card_kwargs(details_object=details_object)
-            template_name = self.get_card_template()
-            code = 'main'
-            self.add_card(title=title,
-                          code='main',
-                          details_object=details_object,
-                          menu=menu,
-                          show_created_modified_dates=show_created_modified_dates,
-                          group_type=group_type,
-                          datatable_model=self.datatable_model,
-                          extra_card_context=extra_card_context,
-                          template_name=template_name,
-                          **extra_card_kwargs)
+            self.add_main_card(details_object=details_object, extra_card_context=extra_card_context)
+
         data = self._render_cards()
         return self.command_response('html', selector='#details_card', html=data)
 
-    def add_card(self, code=None, details_object=None, title=None, menu=None, template_name='default',
+    def add_main_card(self, details_object, extra_card_context, code='main'):
+        menu = self.get_details_menu(details_object=details_object)
+        title = self.get_details_title(details_object=details_object)
+        group_type = self.get_group_type(details_object=details_object)
+        show_created_modified_dates = self.get_show_created_modified_dates(details_object=details_object)
+        extra_card_kwargs = self.get_extra_card_kwargs(details_object=details_object)
+        template_name = self.get_card_template()
+        card = self.add_card(title=title,
+                             code=code,
+                             details_object=details_object,
+                             menu=menu,
+                             show_created_modified_dates=show_created_modified_dates,
+                             group_type=group_type,
+                             datatable_model=self.datatable_model,
+                             extra_card_context=extra_card_context,
+                             template_name=template_name,
+                             **extra_card_kwargs)
+        return card
+
+    def add_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD,
                  show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
         if code is None:

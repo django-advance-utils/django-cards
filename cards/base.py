@@ -14,13 +14,21 @@ CARD_TYPE_HTML = 4
 
 class CardBase:
     template_types = {'default': 'cards/standard/default.html',
-                      'table': 'cards/standard/table.html'}
+                      'table': 'cards/standard/table.html',
+                      'datatable': 'cards/standard/datatable.html',
+                      'html': 'cards/standard/html.html'}
 
     ajax_commands = ['datatable']
 
-    def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name='default',
+    template_defaults = {CARD_TYPE_STANDARD: 'default',
+                         CARD_TYPE_DATATABLE: 'datatable',
+                         CARD_TYPE_ORDERED_DATATABLE: 'datatable',
+                         CARD_TYPE_HTML: 'html'}
+
+    def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD,
                  show_created_modified_dates=False, extra_card_context=None, **kwargs):
+
         self.code = code
         self.view = view
         self.details_object = details_object
@@ -262,6 +270,9 @@ class CardBase:
             context = {**context, **extra_card_context}
 
         template_name = self.template_name
+        if template_name is None:
+            template_name = self.template_defaults.get(self.group_type)
+
         template = self.template_types.get(template_name, template_name)
         data = render_to_string(template, context)
         return mark_safe(data)

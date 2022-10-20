@@ -8,31 +8,25 @@
             </div>
         </div>
         <div class="card-body cards-list {{ card_body_css_class }}">
-            {% if card.group_type == card_types.datatable or group_type.type == card_types.ordered_datatable %}
-                {{ card.extra_card_info.datatable.render|safe }}
-            {% elif card.group_type == card_types.standard %}
-                <div class="list-group">
-                    <table class="table {{ table_css_class }}">
-                    {% for row in card.rows %}
-                        <tr>
-                        {% for entry in row.entries %}
-                            <td>{{ entry.label }}</td>
-                            <td>{% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
-                            {% if entry.multiple_lines %}
-                                {% for x in entry.html %}
-                                    {{ entry.css_class }}">{{ x|safe }}<br/>
-                                {% endfor %}
-                            {% else %}
-                                {{ entry.html|safe }}
-                            {% endif %}
-                            {% if entry.link %}</a>{% endif %}</td></tr>
-                        {% endfor %}
+            <div class="list-group">
+                <table class="table {{ table_css_class }}">
+                {% for row in card.rows %}
+                    <tr>
+                    {% for entry in row.entries %}
+                        <td>{{ entry.label }}</td>
+                        <td>{% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
+                        {% if entry.multiple_lines %}
+                            {% for x in entry.html %}
+                                {{ entry.css_class }}">{{ x|safe }}<br/>
+                            {% endfor %}
+                        {% else %}
+                            {{ entry.html|safe }}
+                        {% endif %}
+                        {% if entry.link %}</a>{% endif %}</td></tr>
                     {% endfor %}
-                </table>
-                </div>
-            {% elif card.type == card_types.html %}
-                {{ card.html }}
-            {% endif %}
+                {% endfor %}
+            </table>
+            </div>
         </div>
         {% if card.created_modified_dates %}
             <div class="card-footer">

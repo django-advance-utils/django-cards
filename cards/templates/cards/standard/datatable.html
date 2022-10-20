@@ -1,0 +1,20 @@
+{% load datatable_tags %}
+
+    <div class="card django-card {{ card_css_class }}" id="list" data-title="">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <h5 class="mr-auto">{{ card.title }}</h5>
+                {{ card.menu.render }}
+            </div>
+        </div>
+        <div class="card-body cards-list {{ card_body_css_class }}">
+            {{ card.extra_card_info.datatable.render|safe }}
+        </div>
+        {% if card.created_modified_dates %}
+            <div class="card-footer">
+                <small style="text-align: left">Date modified: {{ card.created_modified_dates.0 }}<br>Date
+                    created: {{ card.created_modified_dates.1 }}
+                </small>
+            </div>
+        {% endif %}
+    </div>
