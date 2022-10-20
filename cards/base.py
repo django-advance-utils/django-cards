@@ -63,6 +63,7 @@ class CardBase:
     # noinspection PyMethodMayBeStatic
     def add_extra_card_info(self, extra_info, group_type,  **kwargs):
         if group_type in (CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE):
+            extra_info['datatable_id'] = kwargs.get('datatable_id', self.code)
             extra_info['datatable'] = kwargs.get('datatable')
             extra_info['datatable_model'] = kwargs.get('datatable_model')
             if group_type == CARD_TYPE_ORDERED_DATATABLE:
@@ -186,10 +187,9 @@ class CardBase:
                 self.extra_card_info['datatable'] is None):
 
             datatable_model = self.extra_card_info['datatable_model']
-            table_id = self.code
+            table_id = self.extra_card_info['datatable_id']
             if self.extra_card_info['datatable'] is None:
                 if self.group_type == CARD_TYPE_ORDERED_DATATABLE:
-
                     table = self.add_ordered_table(table_id=table_id,
                                                    model=datatable_model,
                                                    order_field=self.extra_card_info['order_field'])
