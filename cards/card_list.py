@@ -125,8 +125,8 @@ class CardListMixin(TemplateView):
     def button_details_html(self, extra_card_context=None, **kwargs):
         details_object = self.get_details_object(pk=kwargs['entry_id'])
 
-        if hasattr(self, 'setup_cards'):
-            self.setup_cards(details_object=details_object)
+        if hasattr(self, 'setup_details_cards'):
+            self.setup_details_cards(details_object=details_object)
         else:
             self.add_main_card(details_object=details_object, extra_card_context=extra_card_context)
 

@@ -133,7 +133,7 @@ class ExampleCompanyCardAdvancedList(MainMenu, CardList):
     list_title = 'Companies'
     model = Company
 
-    def setup_cards(self, details_object):
+    def setup_details_cards(self, details_object):
         card = self.add_card(details_object=details_object, title='Details')
         card.add_rows(['name', 'active'],
                       [{'field': 'company_category__name', 'label': 'category'}],
