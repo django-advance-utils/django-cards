@@ -140,21 +140,21 @@ class CardListMixin(TemplateView):
         show_created_modified_dates = self.get_show_created_modified_dates(details_object=details_object)
         extra_card_kwargs = self.get_extra_card_kwargs(details_object=details_object)
         template_name = self.get_card_template()
-        card = self.add_card(title=title,
-                             code=code,
-                             details_object=details_object,
-                             menu=menu,
-                             show_created_modified_dates=show_created_modified_dates,
-                             group_type=group_type,
-                             datatable_model=self.datatable_model,
-                             extra_card_context=extra_card_context,
-                             template_name=template_name,
-                             **extra_card_kwargs)
+        card = self.add_details_card(title=title,
+                                     code=code,
+                                     details_object=details_object,
+                                     menu=menu,
+                                     show_created_modified_dates=show_created_modified_dates,
+                                     group_type=group_type,
+                                     datatable_model=self.datatable_model,
+                                     extra_card_context=extra_card_context,
+                                     template_name=template_name,
+                                     **extra_card_kwargs)
         return card
 
-    def add_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
-                 group_type=CARD_TYPE_STANDARD,
-                 show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
+    def add_details_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
+                         group_type=CARD_TYPE_STANDARD,
+                         show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
         if code is None:
             code = random_string()
 
