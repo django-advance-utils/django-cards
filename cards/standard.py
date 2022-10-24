@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase
+from cards.base import CardBase, CARD_TYPE_HTML
 
 
 class CardMixin:
@@ -74,3 +74,7 @@ class CardMixin:
 
     def setup_cards(self):
         return
+
+    def add_html_card(self, card_name, context_template_name, context, **kwargs):
+        html = render_to_string(context_template_name, context)
+        return self.add_card(card_name=card_name, group_type=CARD_TYPE_HTML, html=html, **kwargs)

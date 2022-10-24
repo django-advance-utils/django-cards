@@ -48,17 +48,25 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_company_card()
         self.add_companies_card()
         self.add_no_modal_card()
-        self.add_html_card()
+        self.add_html_string_card()
+        self.add_html_file_card()
 
         self.add_card_group('welcome', 'person', div_css_class='col-6 float-left')
-        self.add_card_group('company', 'companies', 'no_model', 'html', div_css_class='col-6 float-right')
+        self.add_card_group('company', 'companies',
+                            'no_model', div_css_class='col-6 float-right')
+        self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
 
     def add_welcome_card(self):
         card = self.add_card('welcome', title='Welcome')
         card.add_entry(value='sample text', label='Sample')
 
-    def add_html_card(self):
-        self.add_card('html', title='HTML sample', group_type=CARD_TYPE_HTML, html='<h1>Hello</h2>')
+    def add_html_string_card(self):
+        self.add_card('html_string', title='HTML string sample', group_type=CARD_TYPE_HTML, html='<h1>Hello</h2>')
+
+    def add_html_file_card(self):
+        self.add_html_card('html_file', title='HTML string sample',
+                           context_template_name='cards_examples/hello_world.html',
+                           context={'from_view': 'this is from the view'})
 
     @staticmethod
     def test_method(value):
