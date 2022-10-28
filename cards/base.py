@@ -111,7 +111,7 @@ class CardBase:
             self.rows.append(entry)
 
     def add_entry(self, value=None, field=None, label=None, css_class=None, default='N/A', link=None,
-                  hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None):
+                  hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -123,7 +123,7 @@ class CardBase:
                                          hidden_if_blank_or_none=hidden_if_blank_or_none,
                                          html_override=html_override,
                                          value_method=value_method,
-                                         )
+                                         **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
 
@@ -147,16 +147,39 @@ class CardBase:
                         value = getattr(old_value, f'get_{parts[-1]}_display')
                     except AttributeError:
                         pass
-
-                if callable(value):
+                if not hasattr(value, 'through') and callable(value):
                     value = value()
 
                 if label is None:
                     label = self.label_from_field(field=field)
         return value, label
 
+    def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
+                                html_barge, default='N/A', html_override=None):
+        if html_barge is None:
+            html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
+
+        if query_filter is None:
+            results = query.all()
+        else:
+            results = query.filter(**query_filter)
+        html = ''
+        for result in results:
+            if m2m_field is None:
+                value = result
+            else:
+                value = hasattr(result, m2m_field)
+                value = callable(value)
+            html += html_barge.replace('%1%', str(value))
+
+        return self._add_entry_internal(label=label,
+                                        value=html,
+                                        default=default,
+                                        html_override=html_override)
+
     def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None):
+                            hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None,
+                            **kwargs):
 
         value, label = self.get_field_value(value=value, field=field, label=label)
 
@@ -166,6 +189,14 @@ class CardBase:
             return self.add_boolean_entry(value=value, label=label, hidden=hidden, html_override=html_override)
         elif isinstance(value, datetime.date):
             return self.add_date_entry(value=value, label=label, hidden=hidden, html_override=html_override)
+        elif hasattr(value, 'through'):
+            return self._add_many_to_many_field(label=label,
+                                                query=value,
+                                                query_filter=kwargs.get('query_filter'),
+                                                html_barge=kwargs.get('html_barge'),
+                                                m2m_field=kwargs.get('m2m_field'),
+                                                default=default,
+                                                html_override=html_override)
         else:
             if value is None or value == '':
                 value = default

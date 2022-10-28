@@ -42,7 +42,6 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
-
         self.add_welcome_card()
         self.add_person_card()
         self.add_company_card()
@@ -89,6 +88,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_entry(field='name', value_method=self.test_method)
 
             card.add_entry(value=['a', 'b'], label='test', html_override="<b>%1%</b>")
+
+            card.add_entry(field='sectors')
 
     def add_companies_card(self):
         self.add_card('companies', title='Company', group_type=CARD_TYPE_DATATABLE, datatable_model=Company)
