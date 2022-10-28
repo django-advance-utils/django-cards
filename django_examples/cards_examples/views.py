@@ -119,7 +119,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card = self.add_card('person', title='Person', details_object=person, show_created_modified_dates=True)
             card.add_rows('title',
                           'first_name',
-                          'surname',
+                          {'field': 'surname', 'hidden': True},
                           )
 
 

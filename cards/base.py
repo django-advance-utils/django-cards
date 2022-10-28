@@ -259,11 +259,11 @@ class CardBase:
             if isinstance(arg, str):
                 self.add_entry(field=arg, css_class=css_class, default=default, hidden=hidden)
             elif isinstance(arg, dict):
-                if 'css_class' not in args:
+                if 'css_class' not in arg:
                     arg['css_class'] = css_class
-                if 'default' not in args:
+                if 'default' not in arg:
                     arg['default'] = default
-                if 'hidden' not in args:
+                if 'hidden' not in arg:
                     arg['hidden'] = hidden
                 self.add_entry(**arg)
             elif isinstance(arg, (list, tuple)):
