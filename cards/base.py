@@ -71,18 +71,22 @@ class CardBase:
         elif group_type == CARD_TYPE_HTML:
             extra_info['html'] = kwargs.get('html')
 
-    def add_boolean_entry(self, value, label=None):
+    def add_boolean_entry(self, value, label=None, hidden=False, html_override=None):
         if value:
             entry = self._add_entry_internal(value='<i class="fas fa-check" style="color:green;"></i>',
-                                             label=label)
+                                             label=label,
+                                             hidden=hidden,
+                                             html_override=html_override)
         else:
             entry = self._add_entry_internal(value='<i class="fas fa-times" style="color:red;"></i>',
-                                             label=label)
+                                             label=label,
+                                             hidden=hidden,
+                                             html_override=html_override)
         return entry
 
-    def add_date_entry(self, value, label=None):
+    def add_date_entry(self, value, label=None, hidden=False, html_override=None):
         new_value = value.strftime('%d/%m/%y')
-        return self._add_entry_internal(value=new_value, label=label)
+        return self._add_entry_internal(value=new_value, label=label, hidden=hidden, html_override=html_override)
 
     def add_row(self, *args, css_class=None):
 
@@ -159,9 +163,9 @@ class CardBase:
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
         if isinstance(value, bool):
-            return self.add_boolean_entry(value=value, label=label)
+            return self.add_boolean_entry(value=value, label=label, hidden=hidden, html_override=html_override)
         elif isinstance(value, datetime.date):
-            return self.add_date_entry(value=value, label=label)
+            return self.add_date_entry(value=value, label=label, hidden=hidden, html_override=html_override)
         else:
             if value is None or value == '':
                 value = default

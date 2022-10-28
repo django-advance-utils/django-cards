@@ -120,6 +120,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_rows('title',
                           'first_name',
                           {'field': 'surname', 'hidden': True},
+                          {'field': 'surname', 'html_override': '<div class="alert alert-warning">%1%</div>'},
+
                           )
 
 
