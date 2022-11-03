@@ -71,24 +71,34 @@ class CardBase:
         elif group_type == CARD_TYPE_HTML:
             extra_info['html'] = kwargs.get('html')
 
-    def add_boolean_entry(self, value, label=None, hidden=False, html_override=None):
+    def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
+                          entry_css_class=None, css_class=None):
         if value:
             entry = self._add_entry_internal(value='<i class="fas fa-check" style="color:green;"></i>',
                                              label=label,
                                              hidden=hidden,
-                                             html_override=html_override)
+                                             html_override=html_override,
+                                             entry_css_class=entry_css_class,
+                                             css_class=css_class)
         else:
             entry = self._add_entry_internal(value='<i class="fas fa-times" style="color:red;"></i>',
                                              label=label,
                                              hidden=hidden,
-                                             html_override=html_override)
+                                             html_override=html_override,
+                                             entry_css_class=entry_css_class,
+                                             css_class=css_class)
         return entry
 
-    def add_date_entry(self, value, label=None, hidden=False, html_override=None):
+    def add_date_entry(self, value, label=None, hidden=False, html_override=None, entry_css_class=None, css_class=None):
         new_value = value.strftime('%d/%m/%y')
-        return self._add_entry_internal(value=new_value, label=label, hidden=hidden, html_override=html_override)
+        return self._add_entry_internal(value=new_value,
+                                        label=label,
+                                        hidden=hidden,
+                                        html_override=html_override,
+                                        entry_css_class=entry_css_class,
+                                        css_class=css_class)
 
-    def add_row(self, *args, css_class=None):
+    def add_row(self, *args):
 
         entries = []
         for arg in args:
@@ -100,23 +110,28 @@ class CardBase:
                 entries.append(entry)
 
         if (entry_len := len(entries)) > 0:
-            if entry_len == 1 and css_class is None:
-                entry = {'type': 'standard', 'entries': entries}
+            if entry_len == 1:
+                row = {'type': 'standard', 'entries': entries}
             else:
-                if css_class is None:
-                    css_types = {2: 'col-sm-6', 3: 'col-sm-4', 4: 'col-sm-3'}
-                    css_class = css_types.get(entry_len, 'col-sm-6')
+                css_types = {2: 'col-sm-6', 3: 'col-sm-4', 4: 'col-sm-3'}
+                entry_css_class = css_types.get(entry_len, 'col-sm-6')
 
-                entry = {'type': 'multiple', 'entries': entries, 'css_class': css_class}
-            self.rows.append(entry)
+                for entry in entries:
+                    if entry.get('entry_css_class') is None:
+                        entry['entry_css_class'] = entry_css_class
 
-    def add_entry(self, value=None, field=None, label=None, css_class=None, default='N/A', link=None,
-                  hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None, **kwargs):
+                row = {'type': 'multiple', 'entries': entries}
+            self.rows.append(row)
+
+    def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
+                  default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
+                  html_override=None, value_method=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
                                          label=label,
-                                         html_class=css_class,
+                                         entry_css_class=entry_css_class,
+                                         css_class=css_class,
                                          default=default,
                                          link=link,
                                          hidden=hidden,
@@ -155,7 +170,8 @@ class CardBase:
         return value, label
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
-                                html_barge, default='N/A', html_override=None):
+                                html_barge, default='N/A', html_override=None,
+                                entry_css_class=None, css_class=None):
         if html_barge is None:
             html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
 
@@ -175,10 +191,13 @@ class CardBase:
         return self._add_entry_internal(label=label,
                                         value=html,
                                         default=default,
-                                        html_override=html_override)
+                                        html_override=html_override,
+                                        entry_css_class=entry_css_class,
+                                        css_class=css_class)
 
-    def _add_entry_internal(self, value=None, field=None, label=None, html_class=None, default='N/A', link=None,
+    def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None,
+                            entry_css_class=None, css_class=None,
                             **kwargs):
 
         value, label = self.get_field_value(value=value, field=field, label=label)
@@ -186,7 +205,12 @@ class CardBase:
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
         if isinstance(value, bool):
-            return self.add_boolean_entry(value=value, label=label, hidden=hidden, html_override=html_override)
+            return self.add_boolean_entry(value=value,
+                                          label=label,
+                                          hidden=hidden,
+                                          html_override=html_override,
+                                          entry_css_class=entry_css_class,
+                                          css_class=entry_css_class)
         elif isinstance(value, datetime.date):
             return self.add_date_entry(value=value, label=label, hidden=hidden, html_override=html_override)
         elif hasattr(value, 'through'):
@@ -196,7 +220,9 @@ class CardBase:
                                                 html_barge=kwargs.get('html_barge'),
                                                 m2m_field=kwargs.get('m2m_field'),
                                                 default=default,
-                                                html_override=html_override)
+                                                html_override=html_override,
+                                                entry_css_class=entry_css_class,
+                                                css_class=entry_css_class)
         else:
             if value is None or value == '':
                 value = default
@@ -213,8 +239,12 @@ class CardBase:
                 else:
                     value = html_override.replace('%1%', str(value))
 
-            entry = {'label': label, 'html': value, 'html_class': html_class,
-                     'multiple_lines': multiple_lines, 'link': link}
+            entry = {'label': label,
+                     'html': value,
+                     'entry_css_class': entry_css_class,
+                     'css_class': css_class,
+                     'multiple_lines': multiple_lines,
+                     'link': link}
             return entry
 
     def process_data(self):
@@ -289,13 +319,11 @@ class CardBase:
                     title += letter
                 return title
 
-    def add_rows(self, *args, css_class=None, default='N/A', hidden=False):
+    def add_rows(self, *args, default='N/A', hidden=False):
         for arg in args:
             if isinstance(arg, str):
-                self.add_entry(field=arg, css_class=css_class, default=default, hidden=hidden)
+                self.add_entry(field=arg, default=default, hidden=hidden)
             elif isinstance(arg, dict):
-                if 'css_class' not in arg:
-                    arg['css_class'] = css_class
                 if 'default' not in arg:
                     arg['default'] = default
                 if 'hidden' not in arg:

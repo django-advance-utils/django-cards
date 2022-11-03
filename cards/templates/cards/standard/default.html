@@ -12,7 +12,7 @@
                 {% for row in card.rows %}
                     {% if row.type == 'multiple' %}<div class="row">{% endif %}
                     {% for entry in row.entries %}
-                        {% if row.type == 'multiple' %}<div class="{{ row.css_class }}">{% endif %}
+                        {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
                         {% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% else %}<div class="list-group-item">{% endif %}
                             {% if entry.label %}
                                 <label>{{ entry.label }}</label>
@@ -27,7 +27,7 @@
                                 {{ entry.html|safe }}
                             {% endif %}
                         {% if entry.link %}</a>{% else %}</div>{% endif %}
-                     {% if row.type == 'multiple' %}</div>{% endif %}
+                     {% if entry.entry_css_class %}</div>{% endif %}
                     {% endfor %}
                     {% if row.type == 'multiple' %}</div>{% endif %}
                 {% endfor %}

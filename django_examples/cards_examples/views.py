@@ -43,6 +43,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
     def setup_cards(self):
         self.add_welcome_card()
+        self.add_split_card()
+        self.add_other_card()
         self.add_person_card()
         self.add_company_card()
         self.add_companies_card()
@@ -50,7 +52,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_html_string_card()
         self.add_html_file_card()
 
-        self.add_card_group('welcome', 'person', div_css_class='col-6 float-left')
+        self.add_card_group('welcome', 'split', 'other', 'person', div_css_class='col-6 float-left')
         self.add_card_group('company', 'companies',
                             'no_model', div_css_class='col-6 float-right')
         self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
@@ -58,6 +60,23 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     def add_welcome_card(self):
         card = self.add_card('welcome', title='Welcome')
         card.add_entry(value='sample text', label='Sample')
+
+    def add_split_card(self):
+        card = self.add_card('split', title='Split Column')
+        card.add_rows(({'value': 'Hello'}, {'value': 'World'}),
+                      ({'value': 'Hello'}, {'value': 'World'}, {'value': ':)'}),
+                      ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},
+                       {'value': 'World', 'entry_css_class': 'col-sm-3'}))
+
+    def add_other_card(self):
+        card = self.add_card('other', title='Other')
+        card.add_rows({'value': 'This should be in uppercase',
+                       'label': 'CSS Class',
+                       'css_class': 'text-uppercase'},
+                      {'value': 'I am not shown', 'label': 'Hidden', 'hidden': True},
+                      {'value': 'What message!!',
+                       'label': 'Html Override',
+                       'html_override': '<div class="alert alert-warning">%1%</div>'})
 
     def add_html_string_card(self):
         self.add_card('html_string', title='HTML string sample', group_type=CARD_TYPE_HTML, html='<h1>Hello</h2>')
@@ -92,7 +111,10 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_entry(field='sectors')
 
     def add_companies_card(self):
-        self.add_card('companies', title='Company', group_type=CARD_TYPE_DATATABLE, datatable_model=Company)
+        self.add_card('companies',
+                      title='Company (Datatables)',
+                      group_type=CARD_TYPE_DATATABLE,
+                      datatable_model=Company)
 
     # noinspection PyMethodMayBeStatic
     def setup_table_companies(self, table, details_object):
@@ -120,9 +142,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card = self.add_card('person', title='Person', details_object=person, show_created_modified_dates=True)
             card.add_rows('title',
                           'first_name',
-                          {'field': 'surname', 'hidden': True},
-                          {'field': 'surname', 'html_override': '<div class="alert alert-warning">%1%</div>'},
-
+                          'surname',
                           )
 
 
