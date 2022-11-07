@@ -36,8 +36,8 @@ class CardBase:
                          CARD_TYPE_HTML: 'html'}
 
     def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name=None,
-                 group_type=CARD_TYPE_STANDARD,
-                 show_created_modified_dates=False, extra_card_context=None, **kwargs):
+                 group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
+                 footer=None, extra_card_context=None, **kwargs):
 
         self.code = code
         self.view = view
@@ -45,6 +45,7 @@ class CardBase:
         self.request = request
         self.group_type = group_type
         self.show_created_modified_dates = show_created_modified_dates
+        self.footer = footer
 
         self.rows = []
         self.title = title

@@ -156,8 +156,8 @@ class CardListMixin(TemplateView):
         return card
 
     def add_detail_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
-                        group_type=CARD_TYPE_STANDARD,
-                        show_created_modified_dates=False, extra_card_context=None, **extra_card_kwargs):
+                        group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
+                        footer=None, extra_card_context=None, **extra_card_kwargs):
         if code is None:
             code = random_string()
 
@@ -167,6 +167,7 @@ class CardListMixin(TemplateView):
                              title=title,
                              menu=menu,
                              show_created_modified_dates=show_created_modified_dates,
+                             footer=footer,
                              group_type=group_type,
                              details_object=details_object,
                              extra_card_context=extra_card_context,

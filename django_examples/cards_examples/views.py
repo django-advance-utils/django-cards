@@ -28,7 +28,7 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
 
     def setup_cards(self):
 
-        card = self.add_card('welcome', title='Welcome')
+        card = self.add_card('welcome', title='Welcome', footer='This is a footer')
         card.add_entry(value='Welcome using the default template', label='Sample')
         card.add_entry(value='This is some sample text', label='Text')
 

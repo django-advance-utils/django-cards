@@ -10,6 +10,11 @@
         <div class="{{ card_body_css_class }}">
             {{ card.extra_card_info.html|safe }}
         </div>
+        {% if card.footer %}
+            <div class="card-footer">
+                <small style="text-align: left">{{ card.footer }}</small>
+            </div>
+        {% endif %}
         {% if card.created_modified_dates %}
             <div class="card-footer">
                 <small style="text-align: left">Date modified: {{ card.created_modified_dates.0 }}<br>Date
