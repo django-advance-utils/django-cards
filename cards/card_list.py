@@ -117,6 +117,9 @@ class CardListMixin(TemplateView):
     def get_card_template(self):
         return None
 
+    def get_card_footer(self, details_object):
+        return ''
+
     def get_show_created_modified_dates(self, details_object):
         return True
 
@@ -140,6 +143,7 @@ class CardListMixin(TemplateView):
         menu = self.get_details_menu(details_object=details_object)
         title = self.get_details_title(details_object=details_object)
         group_type = self.get_group_type(details_object=details_object)
+        footer = self.get_card_footer(details_object=details_object)
         show_created_modified_dates = self.get_show_created_modified_dates(details_object=details_object)
         extra_card_kwargs = self.get_extra_card_kwargs(details_object=details_object)
         template_name = self.get_card_template()
@@ -149,6 +153,7 @@ class CardListMixin(TemplateView):
                                     menu=menu,
                                     show_created_modified_dates=show_created_modified_dates,
                                     group_type=group_type,
+                                    footer=footer,
                                     datatable_model=self.datatable_model,
                                     extra_card_context=extra_card_context,
                                     template_name=template_name,

@@ -12,7 +12,7 @@
         </div>
         {% if card.footer %}
             <div class="card-footer">
-                <small style="text-align: left">{{ card.footer }}</small>
+                <small style="text-align: left">{{ card.footer|safe }}</small>
             </div>
         {% endif %}
         {% if card.created_modified_dates %}
