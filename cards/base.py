@@ -126,7 +126,7 @@ class CardBase:
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
-                  html_override=None, value_method=None, **kwargs):
+                  html_override=None, value_method=None, value_type=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -139,6 +139,7 @@ class CardBase:
                                          hidden_if_blank_or_none=hidden_if_blank_or_none,
                                          html_override=html_override,
                                          value_method=value_method,
+                                         value_type=value_type,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -197,7 +198,8 @@ class CardBase:
                                         css_class=css_class)
 
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=False, html_override=None, value_method=None,
+                            hidden=False, hidden_if_blank_or_none=False, html_override=None,
+                            value_method=None, value_type=None,
                             entry_css_class=None, css_class=None,
                             **kwargs):
 
@@ -234,6 +236,11 @@ class CardBase:
                     value = [value_method(v) for v in value]
                 else:
                     value = value_method(value)
+            if value_type is not None:
+                if multiple_lines:
+                    value = [self.get_value_from_type(v, value_type, **kwargs) for v in value]
+                else:
+                    value = self.get_value_from_type(value, value_type, **kwargs)
             if html_override is not None:
                 if multiple_lines:
                     value = [html_override.replace('%1%', str(v)) for v in value]
@@ -247,6 +254,10 @@ class CardBase:
                      'multiple_lines': multiple_lines,
                      'link': link}
             return entry
+
+    def get_value_from_type(self, value, value_type, **kwargs):
+        # used if you override the class and want to do something with certain type of fields
+        return value
 
     def process_data(self):
         if (self.group_type in (CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE) and
