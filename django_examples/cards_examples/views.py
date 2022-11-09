@@ -159,7 +159,7 @@ class ExampleCompanyCardList(MainMenu, CardList):
 
     def get_details_data(self, card, details_object):
         card.add_rows(['name', 'active'],
-                      [{'field': 'company_category__name', 'label': 'category'}],
+                      [{'field': 'company_category__name', 'label': 'Category'}],
                       'importance',
                       {'field': 'importance'},
                       'get_display_name')

@@ -174,7 +174,7 @@ class CardBase:
                     value = value()
 
                 if label is None:
-                    label = self.label_from_field(field=field)
+                    label = self.label_from_field(field=field, field_type=field_type)
         return value, label, field_type
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
@@ -324,8 +324,10 @@ class CardBase:
         return self.command_response('null')
 
     @staticmethod
-    def label_from_field(field):
-        if type(field) == str and len(field) > 0:
+    def label_from_field(field, field_type):
+        if field_type is not None and hasattr(field_type, 'verbose_name') and field_type.verbose_name is not None:
+            return field_type.verbose_name.capitalize()
+        elif type(field) == str and len(field) > 0:
             field_no_path = field.split('/')[-1].split('__')[-1]
             if field_no_path.find('_') > 0:
                 return field_no_path.replace('_', ' ').title()
