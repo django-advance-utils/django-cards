@@ -1,5 +1,7 @@
 import datetime
 
+from django.core.exceptions import FieldDoesNotExist
+from django.db.models import IntegerField
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django_datatables.datatables import DatatableTable
@@ -145,7 +147,7 @@ class CardBase:
             self.rows.append({'type': 'standard', 'entries': [entry]})
 
     def get_field_value(self, value, field, label):
-
+        field_type = None
         if value is None and field is not None:
             details_object = self.details_object
             if details_object is not None:
@@ -161,6 +163,10 @@ class CardBase:
 
                 if old_value is not None and len(parts) > 0:
                     try:
+                        field_type = old_value._meta.get_field(parts[-1])
+                    except FieldDoesNotExist:
+                        field_type = None
+                    try:
                         value = getattr(old_value, f'get_{parts[-1]}_display')
                     except AttributeError:
                         pass
@@ -169,7 +175,7 @@ class CardBase:
 
                 if label is None:
                     label = self.label_from_field(field=field)
-        return value, label
+        return value, label, field_type
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
                                 html_barge, default='N/A', html_override=None,
@@ -203,7 +209,7 @@ class CardBase:
                             entry_css_class=None, css_class=None,
                             **kwargs):
 
-        value, label = self.get_field_value(value=value, field=field, label=label)
+        value, label, field_type = self.get_field_value(value=value, field=field, label=label)
 
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
@@ -236,11 +242,11 @@ class CardBase:
                     value = [value_method(v) for v in value]
                 else:
                     value = value_method(value)
-            if value_type is not None:
+            if value_type is not None or field_type is not None:
                 if multiple_lines:
-                    value = [self.get_value_from_type(v, value_type, **kwargs) for v in value]
+                    value = [self.get_value_from_type(v, value_type, field_type, **kwargs) for v in value]
                 else:
-                    value = self.get_value_from_type(value, value_type, **kwargs)
+                    value = self.get_value_from_type(value, value_type, field_type, **kwargs)
             if html_override is not None:
                 if multiple_lines:
                     value = [html_override.replace('%1%', str(v)) for v in value]
@@ -255,7 +261,7 @@ class CardBase:
                      'link': link}
             return entry
 
-    def get_value_from_type(self, value, value_type, **kwargs):
+    def get_value_from_type(self, value, value_type, field_type,  **kwargs):
         # used if you override the class and want to do something with certain type of fields
         return value
 
