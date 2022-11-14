@@ -4,7 +4,6 @@ from ajax_helpers.mixins import AjaxHelpers
 from ajax_helpers.utils import random_string
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 from django_menus.menu import MenuMixin
 from django_modals.modals import ModalException
 
@@ -25,16 +24,27 @@ class CardTreeMixin:
 
     model = None
 
+    def get_default_selected_id(self):
+        return ''
+
+
     def add_tree_card(self):
         list_menu = self.get_list_menu()
         selected_id = self.slug.get('pk')
-        tree_data = self.get_tree_data()
-        if (not selected_id or selected_id == '-') and tree_data:
-            for row in tree_data:
-                if row.get('selected'):
-                    selected_id = row['id']
+
+        if not selected_id or selected_id == '-':
+            selected_id = self.get_default_selected_id()
+
+        tree_data = self.get_tree_data(selected_id=selected_id)
+
+        for row in tree_data:
+            if row['id'] == selected_id:
+                if 'state' in row:
+                    row['state']['selected'] = True
+                else:
+                    row['state'] = {'selected': True}
+                    self.open_parent(tree_data=tree_data, parent_id=row['parent'])
                     break
-        #
 
         context = {'list_title': self.list_title,
                    'data': json.dumps(tree_data),
@@ -47,6 +57,18 @@ class CardTreeMixin:
                       group_type=CARD_TYPE_HTML,
                       template_name='tree_selection',
                       extra_card_context=context)
+
+    def open_parent(self, tree_data, parent_id):
+        if parent_id == '#':
+            return
+        for row in tree_data:
+            if row['id'] == parent_id:
+                if 'state' in row:
+                    row['state']['opened'] = True
+                else:
+                    row['state'] = {'opened': True}
+                    self.open_parent(tree_data=tree_data, parent_id=row['parent'])
+                    break
 
     def setup_cards(self):
         self.add_tree_card()
@@ -90,6 +112,8 @@ class CardTreeMixin:
             raise ModalException('User does not have permission')
 
     def get_details_object(self, pk):
+        if self.model is None:
+            return pk
         return get_object_or_404(self.model, pk=pk)
 
     def get_details_menu(self, details_object):
@@ -189,7 +213,7 @@ class CardTreeMixin:
     def get_details_data(self, card, details_object):
         pass
 
-    def get_tree_data(self):
+    def get_tree_data(self, selected_id):
         return []
 
 

@@ -35,7 +35,8 @@
                         let has_children = data.node.children.length > 0;
                         if (!has_children) {
                             $('#fitting_heading').html(data.node['text']);
-                            alert(data.selected);
+                            load_details(data.selected[0])
+
                         }
 
                         $('#folder_has_child').text(has_children);
@@ -44,7 +45,7 @@
                 }
          });
 
-            $('#{{ card.code }}_tree').jstree('select_node', '{{ selected_id }}');
+            load_details('{{ selected_id }}')
 
 
         </script>
