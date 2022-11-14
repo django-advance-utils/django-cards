@@ -1,0 +1,174 @@
+
+
+.django-card .card-header {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    min-height: 45px;
+}
+
+.card-header h5 {
+    padding-top: 8px;
+    padding-bottom: 4px;
+    font-size: 16px;
+}
+
+.django-card .card-header .cards-title {
+    color: red;
+    margin-top: 12px;
+    background-color: blue;
+}
+
+.report-card .card-header .cards-title {
+    color: red;
+    margin-top: 12px;
+    background-color: blue;
+}
+
+
+.cards-list {
+    padding: 0;
+}
+
+a.cards-list-group-item:hover {
+    background-color: #f1f4f1;
+    text-decoration: none;
+
+}
+
+
+.cards-list-group-item {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    /*padding-bottom: 0;*/
+}
+
+.cards-list-group-item .cards-list-group-item-text {
+    line-height: 18px;
+    margin-bottom: 5px;
+    overflow: hidden;
+}
+
+.cards-list-group-item .cards-list-group-item-heading:last-child,
+.cards-list-group-item .cards-list-group-item-text:last-child {
+    margin-bottom: 0;
+}
+
+.cards-list-group-item .row div > .cards-list-group-item-heading:last-child,
+.cards-list-group-item .row div > .cards-list-group-item-text:last-child {
+    margin-bottom: 5px;
+}
+
+.cards-list-group-item .row div:last-child > .cards-list-group-item-heading:last-child,
+.cards-list-group-item .row div:last-child > .cards-list-group-item-text:last-child {
+    margin-bottom: 0;
+}
+
+.cards-list-group-item img {
+    height: 40px;
+    width: 40px;
+    margin-right: 10px;
+}
+
+.cards-list-group-item i {
+    opacity: 0.3;
+    width: 40px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+a.cards-list-group-item {
+    cursor: pointer;
+    color: black;
+}
+
+a.cards-list-group-item:hover,
+a.cards-list-group-item:active,
+a.cards-list-group-item.active,
+a.cards-list-group-item.active:hover,
+a.cards-list-group-item.active:focus {
+}
+
+.panel > .list-group .cards-list-group-item:last-child {
+    border-bottom: 0;
+}
+
+/* List Images */
+.bootcards-list-group-item-content {
+    overflow: hidden;
+}
+
+/* Disclosure Indicators */
+a.cards-list-group-item:before {
+    font-family: 'Font Awesome 5';
+    content: '';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    font-size: 14px;
+    line-height: 14px;
+    margin-top: -7px;
+    color: #ccc;
+}
+
+.list-group.bootcards-no-indicators a.cards-list-group-item:before {
+    display: none;
+}
+
+
+.list-group-item {
+    padding-bottom: 0px;
+    padding-top: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-top-width: 0px;
+    border-bottom-width: 1px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+}
+/* List - Subheadings */
+.cards-list-group-item.bootcards-list-subheading {
+    margin-left: 0;
+    z-index: 6;
+
+}
+
+a.cards-list-group-item.bootcards-list-subheading {
+    padding-left: 40px;
+}
+
+a.cards-list-group-item.bootcards-list-subheading:before {
+    font-family: 'Font Awesome 5';
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    font-size: 14px;
+    line-height: 14px;
+    margin-top: -7px;
+    color: #ccc;
+}
+
+a.cards-list-group-item.bootcards-list-subheading.collapsed:before {
+    content: '';
+}
+
+
+a.list-group-item.active:before {
+    color: #e1edf7;
+    font-weight: normal;
+
+}
+
+a.list-group-item.active {
+    background: #09136b;
+    border-color: #0c0f1c;
+}
+
+.row_link tr td {
+    cursor: pointer;
+}
+
+.row_link + tbody tr td {
+    cursor: pointer;
+}

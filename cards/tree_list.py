@@ -1,3 +1,5 @@
+import json
+
 from ajax_helpers.mixins import AjaxHelpers
 from ajax_helpers.utils import random_string
 from django.shortcuts import get_object_or_404
@@ -10,11 +12,10 @@ from cards.base import CardBase, CARD_TYPE_STANDARD, CARD_TYPE_HTML
 from cards.standard import CardMixin
 
 
-class CardListMixin:
+class CardTreeMixin:
     list_class = 'col-sm-5 col-md-4 col-lg-3 float-left'
     details_class = 'col-sm-7 col-md-8 col-lg-9 float-left'
 
-    list_type = None
     list_title = ''
     menu_display = ''
 
@@ -24,36 +25,36 @@ class CardListMixin:
 
     model = None
 
-    def add_list_card(self):
+    def add_tree_card(self):
         list_menu = self.get_list_menu()
         selected_id = self.slug.get('pk')
-        self.display_list_entries()
-        if (not selected_id or selected_id == '-') and self.list_entries:
-            selected_id = self.list_entries[0]['pk']
-
-        if selected_id:
-            selected_id = int(selected_id)
+        tree_data = self.get_tree_data()
+        if (not selected_id or selected_id == '-') and tree_data:
+            for row in tree_data:
+                if row.get('selected'):
+                    selected_id = row['id']
+                    break
+        #
 
         context = {'list_title': self.list_title,
-                   'list_type': self.list_type if self.list_type is not None else self.list_title,
-                   'entries': self.list_entries,
+                   'data': json.dumps(tree_data),
                    'selected_id': selected_id,
                    'details_button_action_name': 'details_html'}
 
-        self.add_card('list_card',
+        self.add_card('tree_card',
                       title=self.list_title,
                       menu=list_menu,
                       group_type=CARD_TYPE_HTML,
-                      template_name='list_selection',
+                      template_name='tree_selection',
                       extra_card_context=context)
 
     def setup_cards(self):
-        self.add_list_card()
+        self.add_tree_card()
         self.add_card('details_card',
                       group_type=CARD_TYPE_HTML,
                       template_name='blank')
 
-        self.add_card_group('list_card', div_css_class=self.list_class)
+        self.add_card_group('tree_card', div_css_class=self.list_class)
         self.add_card_group('details_card', div_css_class=self.details_class)
 
     def split_slug(self, kwargs):
@@ -72,7 +73,6 @@ class CardListMixin:
                     self.kwargs['pk'] = self.slug['pk']
 
     def __init__(self):
-        self.list_entries = []
         super().__init__()
         self.slug = {}
         self.cards = {}
@@ -88,22 +88,6 @@ class CardListMixin:
             return super().dispatch(request, *args, **self.kwargs)
         else:
             raise ModalException('User does not have permission')
-
-    def add_list_entry(self, pk, name, colour=None, row_class=None):
-        self.list_entries.append({'pk': pk, 'name': mark_safe(name),
-                                  'colour': colour, 'class': row_class if row_class else ''})
-
-    def get_list_entry_name(self, entry_object):
-        return entry_object.name
-
-    def get_list_entries(self):
-        return self.model.objects.all()
-
-    def display_list_entries(self):
-        for entry_object in self.get_list_entries():
-            name = self.get_list_entry_name(entry_object=entry_object)
-            self.add_list_entry(pk=entry_object.pk,
-                                name=name)
 
     def get_details_object(self, pk):
         return get_object_or_404(self.model, pk=pk)
@@ -205,6 +189,9 @@ class CardListMixin:
     def get_details_data(self, card, details_object):
         pass
 
+    def get_tree_data(self):
+        return []
 
-class CardList(AjaxHelpers, MenuMixin, CardMixin, CardListMixin):
+
+class CardTree(AjaxHelpers, MenuMixin, CardMixin, CardTreeMixin):
     pass

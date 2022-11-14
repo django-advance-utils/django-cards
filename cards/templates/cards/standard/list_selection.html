@@ -1,0 +1,43 @@
+<script>
+    function load_details(entry_id) {
+        $('.cards-list-group-item.active').removeClass('active');
+        $('#list_' + entry_id).addClass('active');
+        $(document).ready(function () {
+            ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+        });
+    }
+</script>
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{{ card.title }}</h5>
+            {{ card.menu.render }}
+        </div>
+    </div>
+    {% for entry in entries %}
+        <a class="list-group-item cards-list-group-item" id="list_{{ entry.pk }}"
+           href="javascript:load_details({{ entry.pk }})">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h4 class="list-group-item-heading {{ entry.class }}">
+                        {% if entry.colour %}<i class="fa fa-square"
+                                                style="color: #{{ entry.colour }};opacity: 1;"></i>{% endif %}{{ entry.name }}
+                    </h4>
+                </div>
+            </div>
+        </a>
+        {% if selected_id == entry.pk %}
+            <script>load_details({{ entry.pk }})</script>
+        {% endif %}
+        {% empty %}
+        <div class="list-group-item">
+            <div class="alert alert-warning">No {{ list_type }} setup yet!.</div>
+        </div>
+    {% endfor %}
+{% if card.footer %}
+    <div class="card-footer">
+        <small style="text-align: left">{{ card.footer|safe }}</small>
+    </div>
+{% endif %}
+
+</div>

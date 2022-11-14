@@ -1,7 +1,6 @@
 import datetime
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import IntegerField
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django_datatables.datatables import DatatableTable
@@ -13,6 +12,7 @@ CARD_TYPE_STANDARD = 1
 CARD_TYPE_DATATABLE = 2
 CARD_TYPE_ORDERED_DATATABLE = 3
 CARD_TYPE_HTML = 4
+CARD_TYPE_LIST_SELECTION = 5
 
 
 class CardBase:
@@ -28,14 +28,22 @@ class CardBase:
                                            'card_body_css_class': 'card-body cards-list'}},
                  'html': {'name': 'cards/standard/html.html',
                           'context': {'card_css_class': 'card django-card',
-                                      'card_body_css_class': 'card-body cards-list'}}}
+                                      'card_body_css_class': 'card-body cards-list'}},
+                 'list_selection': {'name': 'cards/standard/list_selection.html',
+                                    'context': {'card_css_class': 'card django-card',
+                                                'card_body_css_class': 'card-body cards-list'}},
+                 'tree_selection': {'name': 'cards/standard/tree_selection.html',
+                                    'context': {'card_css_class': 'card django-card',
+                                                'card_body_css_class': 'card-body cards-list'}},
+                 'blank': {'name': 'cards/standard/blank.html'}}
 
     ajax_commands = ['datatable']
 
     template_defaults = {CARD_TYPE_STANDARD: 'default',
                          CARD_TYPE_DATATABLE: 'datatable',
                          CARD_TYPE_ORDERED_DATATABLE: 'datatable',
-                         CARD_TYPE_HTML: 'html'}
+                         CARD_TYPE_HTML: 'html',
+                         CARD_TYPE_LIST_SELECTION: 'list_selection'}
 
     def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,

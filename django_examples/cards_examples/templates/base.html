@@ -9,16 +9,8 @@
     {% lib_include module='django_menus.includes' %}
     {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' 'ColourPicker' module='django_modals.includes' %}
     {% lib_include 'datatable' module='django_datatables.includes' %}
-    <style>
-        .row_link tr td {
-            cursor: pointer;
-        }
-
-        .row_link + tbody tr td {
-            cursor: pointer;
-        }
-
-    </style>
+    {% lib_include 'standard' module='cards_examples.includes' %}
+    {% lib_include 'jstree_default' module='cards.includes' %}
 
     {% block head %}{% endblock %}
 </head>

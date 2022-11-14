@@ -1,0 +1,59 @@
+<script>
+    function load_details(entry_id) {
+        $('.cards-list-group-item.active').removeClass('active');
+        $('#list_' + entry_id).addClass('active');
+        $(document).ready(function () {
+            ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+        });
+    }
+</script>
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{{ card.title }}</h5>
+            {{ card.menu.render }}
+        </div>
+    </div>
+    <div class="{{ card_body_css_class }}">
+        <div id="{{ card.code }}_tree"></div>
+
+        <script>
+            $('#{{ card.code }}_tree').jstree({
+                'core': {
+                    'data': {{ data|safe }}
+                }
+            });
+
+
+            $('#{{ card.code }}_tree').on("changed.jstree", function (e, data) {
+                {#console.log(data.selected);#}
+
+
+                if (data.selected.length > 0) {
+
+                    if (data.node !== undefined) {
+                        let has_children = data.node.children.length > 0;
+                        if (!has_children) {
+                            $('#fitting_heading').html(data.node['text']);
+                            alert(data.selected);
+                        }
+
+                        $('#folder_has_child').text(has_children);
+
+                    }
+                }
+         });
+
+            $('#{{ card.code }}_tree').jstree('select_node', '{{ selected_id }}');
+
+
+        </script>
+    </div>
+
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+{% endif %}
+
+</div>

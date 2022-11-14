@@ -73,7 +73,7 @@ class CardMixin:
         return render_to_string('cards/groups/groups.html', context={'groups': self.card_groups})
 
     def setup_cards(self):
-        return
+        super().setup_cards()
 
     def add_html_card(self, card_name, context_template_name, context, **kwargs):
         html = render_to_string(context_template_name, context)
