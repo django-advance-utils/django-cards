@@ -47,6 +47,3 @@ class ExampleCompanyCardAdvancedList(DjangoCardList):
                                      details_object=details_object,
                                      title='Just Name')
         card2.add_rows('name')
-
-
-

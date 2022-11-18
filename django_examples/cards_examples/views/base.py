@@ -12,6 +12,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:list,-', 'List'),
             ('cards_examples:list_adv,-', 'List Adv'),
             ('cards_examples:tree,-', 'Tree'),
+            ('cards_examples:datatable', 'Datatable'),
             MenuItem(url='admin:index',
                      menu_display='Admin',
                      visible=self.request.user.is_superuser),

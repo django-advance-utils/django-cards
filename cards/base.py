@@ -303,6 +303,8 @@ class CardBase:
                     setup_table_field = field_setup_table_field
 
             getattr(self.view, setup_table_field)(details_object=self.details_object, table=table)
+            if hasattr(self.view, 'tables'):
+                self.view.tables[self.code] = table
 
     def add_table(self, model, table_id=None):
         table = DatatableTable(table_id=table_id, model=model, view=self.view)
