@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="django-cards",
-    version="0.6.6",
+    version="0.7.0",
     author="Thomas Turner",
     description="Django app that allows you make cards",
     long_description=long_description,
