@@ -17,16 +17,12 @@ class CardTreeMixin:
 
     list_title = ''
     menu_display = ''
-
     datatable_model = None
-
     card_cls = CardBase
-
     model = None
 
     def get_default_selected_id(self):
         return ''
-
 
     def add_tree_card(self):
         list_menu = self.get_list_menu()

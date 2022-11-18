@@ -1,5 +1,6 @@
 from cards_examples.models import Company, Person
 from django.views.generic import TemplateView
+from django_menus.menu import MenuItem
 
 from cards.base import CARD_TYPE_DATATABLE, CARD_TYPE_HTML
 from cards.standard import CardMixin
@@ -41,7 +42,10 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
 
     def add_welcome_card(self):
-        card = self.add_card('welcome', title='Welcome')
+        menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]
+        tab_menu = [('cards_examples:index', 'Home'),
+                    ('cards_examples:groups', 'Groups')]
+        card = self.add_card('welcome', title='Welcome', menu=menu, tab_menu=tab_menu)
         card.add_entry(value='sample text', label='Sample')
 
     def add_split_card(self):

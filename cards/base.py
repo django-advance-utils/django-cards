@@ -45,7 +45,11 @@ class CardBase:
                          CARD_TYPE_HTML: 'html',
                          CARD_TYPE_LIST_SELECTION: 'list_selection'}
 
-    def __init__(self, request, code, view=None, details_object=None, title=None, menu=None, template_name=None,
+    button_menu_type = 'button_group'
+    tab_menu_type = 'tabs'
+
+    def __init__(self, request, code, view=None, details_object=None, title=None,
+                 menu=None, tab_menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None, **kwargs):
 
@@ -61,9 +65,12 @@ class CardBase:
         self.title = title
         self.created_modified_dates = self.get_created_modified_dates(details_object=details_object)
         if isinstance(menu, (list, tuple)):
-            menu = HtmlMenu(self.request, 'button_group').add_items(*menu)
-
+            menu = HtmlMenu(self.request, self.button_menu_type).add_items(*menu)
         self.menu = menu
+        if isinstance(tab_menu, (list, tuple)):
+            tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*tab_menu)
+        self.tab_menu = tab_menu
+
         self.extra_card_context = extra_card_context
         self.template_name = template_name
         self.extra_card_info = {}

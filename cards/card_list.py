@@ -166,7 +166,7 @@ class CardListMixin:
                                     **extra_card_kwargs)
         return card
 
-    def add_detail_card(self, code=None, details_object=None, title=None, menu=None, template_name=None,
+    def add_detail_card(self, code=None, details_object=None, title=None, menu=None, tab_menu=None, template_name=None,
                         group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                         footer=None, extra_card_context=None, **extra_card_kwargs):
         if code is None:
@@ -177,6 +177,7 @@ class CardListMixin:
                              code=code,
                              title=title,
                              menu=menu,
+                             tab_menu=tab_menu,
                              show_created_modified_dates=show_created_modified_dates,
                              footer=footer,
                              group_type=group_type,
