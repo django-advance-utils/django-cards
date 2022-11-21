@@ -37,8 +37,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_html_file_card()
 
         self.add_card_group('welcome', 'split', 'other', 'person', div_css_class='col-6 float-left')
-        self.add_card_group('company', 'companies',
-                            'no_model', div_css_class='col-6 float-right')
+        self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
+                            div_css_class='col-6 float-right', error_if_not_found=False)
         self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
 
     def add_welcome_card(self):

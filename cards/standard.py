@@ -41,8 +41,15 @@ class CardMixin:
             raise Exception(f'May need to use AjaxHelpers Mixin or'
                             f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class):
-        cards = [self.cards[card] for card in args]
+    def add_card_group(self, *args, div_css_class, error_if_not_found=True):
+        if error_if_not_found:
+            cards = [self.cards[card] for card in args]
+        else:
+            cards = []
+            for card in args:
+                if card in self.cards:
+                    cards.append(card)
+
         self.card_groups.append({'div_css_class': div_css_class, 'cards': cards})
 
     def add_card(self, card_name, **kwargs):
