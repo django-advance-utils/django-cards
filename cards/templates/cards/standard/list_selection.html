@@ -15,7 +15,7 @@
         </div>
     </div>
     {% for entry in entries %}
-        <a class="list-group-item cards-list-group-item" id="list_{{ entry.pk }}"
+        <a class="{{ card_link_css_class }}" id="list_{{ entry.pk }}"
            href="javascript:load_details({{ entry.pk }})">
             <div class="row">
                 <div class="col-sm-12">
