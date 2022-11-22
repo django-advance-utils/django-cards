@@ -6,6 +6,10 @@
             ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
         });
     }
+
+    $(document).ready(function () {
+         $( "#list_{{ selected_id }}" ).focus();
+    });
 </script>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
     <div class="card-header">
@@ -14,6 +18,7 @@
             {{ card.menu.render }}
         </div>
     </div>
+    <div class="{{ card_body_css_class }}" style="{{ card_body_css_style }}">
     {% for entry in entries %}
         <a class="{{ card_link_css_class }}" id="list_{{ entry.pk }}"
            href="javascript:load_details({{ entry.pk }})">
@@ -34,6 +39,7 @@
             <div class="alert alert-warning">No {{ list_type }} setup yet!.</div>
         </div>
     {% endfor %}
+    </div>
 {% if card.footer %}
     <div class="card-footer">
         <small style="text-align: left">{{ card.footer|safe }}</small>

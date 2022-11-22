@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
@@ -31,11 +32,15 @@ class CardBase:
                                       'card_body_css_class': 'card-body cards-list'}},
                  'list_selection': {'name': 'cards/standard/list_selection.html',
                                     'context': {'card_css_class': 'card django-card',
-                                                'card_body_css_class': 'card-body cards-list',
-                                                'card_link_css_class': 'list-group-item cards-list-group-item'}},
+                                                'card_link_css_class': 'list-group-item cards-list-group-item',
+                                                'card_body_css_class': 'overflow-auto',
+                                                'card_body_css_style': 'height: calc(100vh - 150px);'}},
                  'tree_selection': {'name': 'cards/standard/tree_selection.html',
                                     'context': {'card_css_class': 'card django-card',
-                                                'card_body_css_class': 'card-body cards-list'}},
+                                                'card_body_css_class': 'card-body cards-list overflow-auto',
+                                                'card_body_css_style': 'height: calc(100vh - 150px);',
+                                                'tree_themes': json.dumps({'name': 'proton', 'responsive': True}),
+                                                'tree_plugins': json.dumps(['wholerow'])}},
                  'blank': {'name': 'cards/standard/blank.html'}}
 
     ajax_commands = ['datatable']
