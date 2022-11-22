@@ -25,16 +25,16 @@
                 }{% if tree_plugins %}, 'plugins':{{ tree_plugins|safe }}{% endif %}
             });
             $('#{{ card.code }}_tree').on("changed.jstree", function (e, data) {
-                {#console.log(data.selected);#}
                 if (data.selected.length > 0) {
-
                     if (data.node !== undefined) {
+                        {% if show_details_for_parents %}
+                            load_details(data.selected[0])
+                        {% else %}
                         let has_children = data.node.children.length > 0;
                         if (!has_children) {
-                            $('#fitting_heading').html(data.node['text']);
                             load_details(data.selected[0])
                         }
-                        $('#folder_has_child').text(has_children);
+                        {% endif %}
                     }
                 }
          });

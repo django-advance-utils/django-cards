@@ -3,12 +3,14 @@ import json
 from ajax_helpers.mixins import AjaxHelpers
 from django_menus.menu import MenuMixin
 
-from cards.base import CardBase, CARD_TYPE_HTML
+from cards.base import CARD_TYPE_HTML
 from cards.card_list.base import CardListBaseMixin
 from cards.standard import CardMixin
 
 
 class CardTreeMixin(CardListBaseMixin):
+
+    show_details_for_parents = False
 
     def get_default_selected_id(self):
         return ''
@@ -34,7 +36,8 @@ class CardTreeMixin(CardListBaseMixin):
         context = {'list_title': self.list_title,
                    'data': json.dumps(tree_data),
                    'selected_id': selected_id,
-                   'details_button_action_name': 'details_html'}
+                   'details_button_action_name': 'details_html',
+                   'show_details_for_parents': self.show_details_for_parents}
 
         self.add_card('tree_card',
                       title=self.list_title,
