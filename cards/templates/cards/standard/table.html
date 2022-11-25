@@ -1,4 +1,3 @@
-{% load datatable_tags %}
 
     <div class="{{ card_css_class }}" id="list" data-title="">
         <div class="card-header">
@@ -7,28 +6,9 @@
                 {{ card.menu.render }}
             </div>
         </div>
-        {{ card.tab_menu.render }}
-        <div class="{{ card_body_css_class }}">
-            <div class="list-group">
-                <table class="{{ table_css_class }}">
-                {% for row in card.rows %}
-                    <tr>
-                    {% for entry in row.entries %}
-                        <td>{{ entry.label }}</td>
-                        <td>{% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
-                        {% if entry.multiple_lines %}
-                            {% for x in entry.html %}
-                                {{ entry.css_class }}">{{ x|safe }}<br/>
-                            {% endfor %}
-                        {% else %}
-                            {{ entry.html|safe }}
-                        {% endif %}
-                        {% if entry.link %}</a>{% endif %}</td></tr>
-                    {% endfor %}
-                {% endfor %}
-            </table>
-            </div>
-        </div>
+
+    {% include 'cards/standard/table_body.html' %}
+
         {% if card.footer %}
             <div class="card-footer">
                 <small style="text-align: left">{{ card.footer|safe }}</small>

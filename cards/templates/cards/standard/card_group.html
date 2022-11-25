@@ -1,0 +1,33 @@
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{{ card.title }}</h5>
+            {{ card.menu.render }}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row {{ card_body_css_class }}">
+            {% for group in card.child_card_groups %}
+                <div class="{{ group.div_css_class }}">
+                    {% for card in group.cards %}
+                        <div style="{{ group.div_inner_css }}" class="{{ group.div_inner_css_class }}">
+                            {{ card.render }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+    {% if card.created_modified_dates %}
+        <div class="card-footer">
+            <small style="text-align: left">Date modified: {{ card.created_modified_dates.0 }}<br>Date
+                created: {{ card.created_modified_dates.1 }}
+            </small>
+        </div>
+    {% endif %}
+</div>

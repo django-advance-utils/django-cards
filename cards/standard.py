@@ -41,33 +41,37 @@ class CardMixin:
             raise Exception(f'May need to use AjaxHelpers Mixin or'
                             f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class, error_if_not_found=True):
-        if error_if_not_found:
-            cards = [self.cards[card] for card in args]
-        else:
-            cards = []
-            for card in args:
-                if card in self.cards:
-                    cards.append(card)
+    def add_card_group(self, *args, div_css_class='', div_css='', error_if_not_found=True):
+        cards = []
+        for card in args:
+            if isinstance(card, str):
+                if error_if_not_found or card in self.cards:
+                    cards.append(self.cards[card])
+            else:
+                cards.append(card)
 
-        self.card_groups.append({'div_css_class': div_css_class, 'cards': cards})
+        self.card_groups.append({'div_css_class': div_css_class,
+                                 'div_css': div_css,
+                                 'cards': cards})
 
-    def add_card(self, card_name, **kwargs):
+    def add_card(self, card_name=None, **kwargs):
         request = getattr(self, 'request', None)
 
         if 'details_object' in kwargs:
-            self.cards[card_name] = self.card_cls(request=request,
-                                                  view=self,
-                                                  code=card_name,
-                                                  **kwargs)
+            card = self.card_cls(request=request,
+                                 view=self,
+                                 code=card_name,
+                                 **kwargs)
         else:
             details_object = getattr(self, 'object', None)
-            self.cards[card_name] = self.card_cls(request=request,
-                                                  view=self,
-                                                  code=card_name,
-                                                  details_object=details_object,
-                                                  **kwargs)
-        return self.cards[card_name]
+            card = self.card_cls(request=request,
+                                 view=self,
+                                 code=card_name,
+                                 details_object=details_object,
+                                 **kwargs)
+        if card_name is not None:
+            self.cards[card_name] = card
+        return card
 
     def get_context_data(self, **kwargs):
         self.setup_datatable_cards()
@@ -108,3 +112,5 @@ class CardMixin:
             getattr(self, field_setup_table_field)(table=table, details_object=self.cards[table_id].details_object)
         table.columns[kwargs['changed'][0]].alter_object(row_object, row_data[kwargs['changed'][0]])
         return table.refresh_row(self.request, kwargs['row_no'])
+
+

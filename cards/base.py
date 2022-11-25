@@ -14,6 +14,7 @@ CARD_TYPE_DATATABLE = 2
 CARD_TYPE_ORDERED_DATATABLE = 3
 CARD_TYPE_HTML = 4
 CARD_TYPE_LIST_SELECTION = 5
+CARD_TYPE_CARD_GROUP = 6
 
 
 class CardBase:
@@ -24,12 +25,16 @@ class CardBase:
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list',
                                        'table_css_class': 'table'}},
+                 'table_body': {'name': 'cards/standard/table_body.html'},
                  'datatable': {'name': 'cards/standard/datatable.html',
                                'context': {'card_css_class': 'card django-card',
                                            'card_body_css_class': 'card-body cards-list'}},
                  'html': {'name': 'cards/standard/html.html',
                           'context': {'card_css_class': 'card django-card',
                                       'card_body_css_class': 'card-body cards-list'}},
+                 'card_group': {'name': 'cards/standard/card_group.html',
+                                'context': {'card_css_class': 'card django-card',
+                                            'card_body_css_class': 'card-body cards-list'}},
                  'list_selection': {'name': 'cards/standard/list_selection.html',
                                     'context': {'card_css_class': 'card django-card',
                                                 'card_link_css_class': 'list-group-item cards-list-group-item',
@@ -49,7 +54,8 @@ class CardBase:
                          CARD_TYPE_DATATABLE: 'datatable',
                          CARD_TYPE_ORDERED_DATATABLE: 'datatable',
                          CARD_TYPE_HTML: 'html',
-                         CARD_TYPE_LIST_SELECTION: 'list_selection'}
+                         CARD_TYPE_LIST_SELECTION: 'list_selection',
+                         CARD_TYPE_CARD_GROUP: 'card_group'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -83,6 +89,7 @@ class CardBase:
         self.add_extra_card_info(extra_info=self.extra_card_info, group_type=self.group_type, **kwargs)
 
         self.process_data()
+        self.child_card_groups = []
 
     # noinspection PyMethodMayBeStatic
     def add_extra_card_info(self, extra_info, group_type,  **kwargs):
@@ -401,3 +408,11 @@ class CardBase:
 
         data = render_to_string(template, context)
         return mark_safe(data)
+
+    def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='', div_inner_css=''):
+        if self.group_type != CARD_TYPE_CARD_GROUP:
+            raise Exception('This will only work for card group')
+        self.child_card_groups.append({'div_css_class': div_css_class,
+                                       'div_inner_css_class': div_inner_css_class,
+                                       'div_inner_css': div_inner_css,
+                                       'cards': args})

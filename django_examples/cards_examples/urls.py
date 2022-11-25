@@ -6,6 +6,8 @@ from cards_examples.views.main import ExampleIndex, ExampleCardsIndex
 from cards_examples.views.tree import ExampleCompanyTree
 from cards_examples.views.datatable import DatatableExample
 
+from cards_examples.views.child_cards import ChildCardExampleIndex
+
 app_name = 'cards_examples'
 
 
@@ -21,6 +23,8 @@ urlpatterns = [
     path('list/adv/<card_list:slug>', ExampleCompanyCardAdvancedList.as_view(), name='list_adv'),
 
     path('tree/<card_list:slug>', ExampleCompanyTree.as_view(), name='tree'),
+
+    path('child-cards/', ChildCardExampleIndex.as_view(), name='child_cards'),
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
 ]
