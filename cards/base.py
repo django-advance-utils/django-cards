@@ -300,7 +300,7 @@ class CardBase:
             if multiple_parts and kwargs.get('merge', False):
                 merge_string = kwargs.get('merge_string', ' ')
                 multiple_parts = False
-                value = merge_string.join(value)
+                merge_string.join(['' if x is None else str(x) for x in value])
 
             entry = {'label': label,
                      'html': value,

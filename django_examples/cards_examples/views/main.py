@@ -150,4 +150,5 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                           {'field': ['title', 'first_name', 'surname'],
                            'label': 'Full name (with merge=True, merge_string=" - ")',
                            'merge': True, 'merge_string': ' - '},
+                          {'field': ['age', 'id'], 'merge': True},
                           )
