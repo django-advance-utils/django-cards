@@ -5,8 +5,8 @@
             {{ card.menu.render }}
         </div>
     </div>
-    <div class="card-body">
-        <div class="row {{ card_body_css_class }}">
+    <div class="{{ card_body_css_outer_class }}">
+        <div class="{{ card_body_css_inner_class }}">
             {% for group in card.child_card_groups %}
                 <div class="{{ group.div_css_class }}">
                     {% for card in group.cards %}

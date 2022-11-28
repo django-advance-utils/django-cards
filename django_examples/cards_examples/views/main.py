@@ -30,13 +30,15 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_split_card()
         self.add_other_card()
         self.add_person_card()
+        self.add_multi_fields_card()
         self.add_company_card()
         self.add_companies_card()
         self.add_no_modal_card()
         self.add_html_string_card()
         self.add_html_file_card()
 
-        self.add_card_group('welcome', 'split', 'other', 'person', div_css_class='col-6 float-left')
+        self.add_card_group('welcome', 'split', 'other', 'person', 'multi_fields_example',
+                            div_css_class='col-6 float-left')
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
         self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
@@ -130,4 +132,22 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_rows('title',
                           'first_name',
                           'surname',
+                          )
+
+    def add_multi_fields_card(self):
+        person = Person.objects.first()
+        if person is None:
+            card = self.add_card('multi_fields_example', title='Multi fields example')
+            card.add_entry(value='Warning No People in the system', label=None,
+                           html_override='<div class="alert alert-warning">%1%</div>')
+        else:
+            card = self.add_card('multi_fields_example', title='Multi fields example',
+                                 details_object=person, show_created_modified_dates=True)
+            card.add_rows({'field': ['title', 'first_name', 'surname'],
+                           'label': 'Full name (multiline)'},
+                          {'field': ['title', 'first_name', 'surname'],
+                           'label': 'Full name (with merge=True)', 'merge': True},
+                          {'field': ['title', 'first_name', 'surname'],
+                           'label': 'Full name (with merge=True, merge_string=" - ")',
+                           'merge': True, 'merge_string': ' - '},
                           )

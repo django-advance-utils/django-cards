@@ -34,7 +34,8 @@ class CardBase:
                                       'card_body_css_class': 'card-body cards-list'}},
                  'card_group': {'name': 'cards/standard/card_group.html',
                                 'context': {'card_css_class': 'card django-card',
-                                            'card_body_css_class': 'card-body cards-list'}},
+                                            'card_body_css_outer_class': 'card-body',
+                                            'card_body_css_inner_class': 'row cards-list'}},
                  'list_selection': {'name': 'cards/standard/list_selection.html',
                                     'context': {'card_css_class': 'card django-card',
                                                 'card_link_css_class': 'list-group-item cards-list-group-item',
@@ -177,32 +178,43 @@ class CardBase:
     def get_field_value(self, value, field, label):
         field_type = None
         if value is None and field is not None:
-            details_object = self.details_object
-            if details_object is not None:
-                value = details_object
-                old_value = None
-                parts = field.split('__')
-                try:
-                    for part in parts:
-                        old_value = value
-                        value = getattr(value, part)
-                except AttributeError:
-                    value = None
-
-                if old_value is not None and len(parts) > 0:
+            if isinstance(field, (list, tuple)):
+                values = []
+                field_type = []
+                for _field in field:
+                    _value, _label, _field_type = self.get_field_value(value=None, field=_field, label=label)
+                    if not label:
+                        label = _label
+                    values.append(_value)
+                    field_type.append(_field_type)
+                value = values
+            else:
+                details_object = self.details_object
+                if details_object is not None:
+                    value = details_object
+                    old_value = None
+                    parts = field.split('__')
                     try:
-                        field_type = old_value._meta.get_field(parts[-1])
-                    except FieldDoesNotExist:
-                        field_type = None
-                    try:
-                        value = getattr(old_value, f'get_{parts[-1]}_display')
+                        for part in parts:
+                            old_value = value
+                            value = getattr(value, part)
                     except AttributeError:
-                        pass
-                if not hasattr(value, 'through') and callable(value):
-                    value = value()
+                        value = None
 
-                if label is None:
-                    label = self.label_from_field(field=field, field_type=field_type)
+                    if old_value is not None and len(parts) > 0:
+                        try:
+                            field_type = old_value._meta.get_field(parts[-1])
+                        except FieldDoesNotExist:
+                            field_type = None
+                        try:
+                            value = getattr(old_value, f'get_{parts[-1]}_display')
+                        except AttributeError:
+                            pass
+                    if not hasattr(value, 'through') and callable(value):
+                        value = value()
+
+                    if label is None:
+                        label = self.label_from_field(field=field, field_type=field_type)
         return value, label, field_type
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
@@ -263,29 +275,38 @@ class CardBase:
         else:
             if value is None or value == '':
                 value = default
-            multiple_lines = isinstance(value, (list, tuple))
+            multiple_parts = isinstance(value, (list, tuple))
 
             if value_method is not None:
-                if multiple_lines:
+                if multiple_parts:
                     value = [value_method(v) for v in value]
                 else:
                     value = value_method(value)
             if value_type is not None or field_type is not None:
-                if multiple_lines:
-                    value = [self.get_value_from_type(v, value_type, field_type, **kwargs) for v in value]
+                if multiple_parts:
+                    if isinstance(field_type, (list, tuple)):
+                        value = [self.get_value_from_type(v, value_type, ft, **kwargs)
+                                 for v, ft in zip(value, field_type)]
+                    else:
+                        value = [self.get_value_from_type(v, value_type, field_type, **kwargs) for v in value]
                 else:
                     value = self.get_value_from_type(value, value_type, field_type, **kwargs)
             if html_override is not None:
-                if multiple_lines:
+                if multiple_parts:
                     value = [html_override.replace('%1%', str(v)) for v in value]
                 else:
                     value = html_override.replace('%1%', str(value))
+
+            if multiple_parts and kwargs.get('merge', False):
+                merge_string = kwargs.get('merge_string', ' ')
+                multiple_parts = False
+                value = merge_string.join(value)
 
             entry = {'label': label,
                      'html': value,
                      'entry_css_class': entry_css_class,
                      'css_class': css_class,
-                     'multiple_lines': multiple_lines,
+                     'multiple_lines': multiple_parts,
                      'link': link}
             return entry
 
