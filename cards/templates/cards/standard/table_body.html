@@ -5,7 +5,7 @@
             {% for row in card.rows %}
                 <tr>
                     {% for entry in row.entries %}
-                        <td>{{ entry.label }}</td>
+                        <td>{{ entry.label|safe }}</td>
                         <td>{% if entry.link %}
                             <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
                             {% if entry.multiple_lines %}
