@@ -8,7 +8,7 @@
                 {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
                 {% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% else %}<div class="list-group-item">{% endif %}
                     {% if entry.label %}
-                        <label>{{ entry.label }}</label>
+                        <label>{{ entry.label|safe }}</label>
                         {% if entry.multiple_lines %}
                             {% for x in entry.html %}
                                 <h4 class="list-group-item-heading {{ entry.css_class }}">{{ x|safe }}</h4>
