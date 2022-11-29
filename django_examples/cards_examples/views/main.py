@@ -71,7 +71,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_card('html_string', title='HTML string sample', group_type=CARD_TYPE_HTML, html='<h1>Hello</h2>')
 
     def add_html_file_card(self):
-        self.add_html_card('html_file', title='HTML string sample',
+        self.add_html_card(card_name='html_file',
+                           title='HTML string sample',
                            context_template_name='cards_examples/hello_world.html',
                            context={'from_view': 'this is from the view'})
 

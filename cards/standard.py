@@ -97,9 +97,14 @@ class CardMixin:
         if hasattr(super(), 'setup_datatable_cards'):
             super().setup_datatable_cards()
 
-    def add_html_card(self, card_name, context_template_name, context, **kwargs):
+    def add_html_card(self, context_template_name, context=None, **kwargs):
+        if context is None:
+            context = {}
+        if 'details_object' in kwargs:
+            context['object'] = kwargs['details_object']
+
         html = render_to_string(context_template_name, context)
-        return self.add_card(card_name=card_name, group_type=CARD_TYPE_HTML, html=html, **kwargs)
+        return self.add_card(group_type=CARD_TYPE_HTML, html=html, **kwargs)
 
     def row_edit(self, **kwargs):
         row_data = json.loads(kwargs.pop('row_data'))
