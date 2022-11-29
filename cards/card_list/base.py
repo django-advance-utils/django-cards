@@ -120,9 +120,10 @@ class CardListBaseMixin:
 
     def add_html_group(self, context_template_name, context, **kwargs):
         html = render_to_string(context_template_name, context)
-        self.add_detail_card(group_type=CARD_TYPE_HTML,
-                             html=html,
-                             **kwargs)
+        card = self.add_detail_card(group_type=CARD_TYPE_HTML,
+                                    html=html,
+                                    **kwargs)
+        return card
 
     def _render_cards(self):
         data = ""
