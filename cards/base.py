@@ -425,7 +425,7 @@ class CardBase:
         if template_name in self.templates:
             template = self.templates[template_name]['name']
             if 'context' in self.templates[template_name]:
-                context = {**context, **self.templates[template_name]['context']}
+                context = {**self.templates[template_name]['context'], **context}
         else:
             template = template_name
 

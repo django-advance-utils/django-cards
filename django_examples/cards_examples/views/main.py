@@ -16,8 +16,10 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='Welcome using the default template', label='Sample')
         card.add_entry(value='This is some sample text', label='Text')
 
-        card = self.add_card('welcome2', title='Welcome Two',
-                             template_name='table', extra_card_context={'table_css_class': 'table-bordered'})
+        card = self.add_card('welcome2',
+                             title='Welcome Two',
+                             template_name='table',
+                             extra_card_context={'table_css_class': 'table table-bordered'})
         card.add_entry(value='Welcome using the table template2', label='Sample')
         card.add_entry(value='This is some sample text2', label='Text')
 
