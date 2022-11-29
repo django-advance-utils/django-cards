@@ -21,6 +21,8 @@ class CardBase:
     templates = {'default': {'name': 'cards/standard/default.html',
                              'context': {'card_css_class': 'card django-card',
                                          'card_body_css_class': 'card-body cards-list'}},
+                 'default_body': {'name': 'cards/standard/default_body.html',
+                                  'context': {'card_body_css_class': 'card-body cards-list'}},
                  'table': {'name': 'cards/standard/table.html',
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list',
