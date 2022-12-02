@@ -277,6 +277,9 @@ class CardBase:
         else:
             if value is None or value == '':
                 value = default
+                is_default = True
+            else:
+                is_default = False
             multiple_parts = isinstance(value, (list, tuple))
 
             if value_method is not None:
@@ -287,12 +290,12 @@ class CardBase:
             if value_type is not None or field_type is not None:
                 if multiple_parts:
                     if isinstance(field_type, (list, tuple)):
-                        value = [self.get_value_from_type(v, value_type, ft, **kwargs)
+                        value = [self.get_value_from_type(v, value_type, ft, is_default, **kwargs)
                                  for v, ft in zip(value, field_type)]
                     else:
-                        value = [self.get_value_from_type(v, value_type, field_type, **kwargs) for v in value]
+                        value = [self.get_value_from_type(v, value_type, field_type, is_default, **kwargs) for v in value]
                 else:
-                    value = self.get_value_from_type(value, value_type, field_type, **kwargs)
+                    value = self.get_value_from_type(value, value_type, field_type, is_default, **kwargs)
             if html_override is not None:
                 if multiple_parts:
                     value = [html_override.replace('%1%', str(v)) for v in value]
@@ -312,7 +315,7 @@ class CardBase:
                      'link': link}
             return entry
 
-    def get_value_from_type(self, value, value_type, field_type,  **kwargs):
+    def get_value_from_type(self, value, value_type, field_type, is_default, **kwargs):
         # used if you override the class and want to do something with certain type of fields
         return value
 
