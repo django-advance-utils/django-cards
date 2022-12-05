@@ -49,7 +49,10 @@ class CardBase:
                                                 'card_body_css_style': 'height: calc(100vh - 150px);',
                                                 'tree_themes': json.dumps({'name': 'proton', 'responsive': True}),
                                                 'tree_plugins': json.dumps(['wholerow'])}},
-                 'blank': {'name': 'cards/standard/blank.html'}}
+                 'blank': {'name': 'cards/standard/blank.html'},
+                 'message': {'name': 'cards/standard/message.html',
+                             'context': {'card_css_class': 'card django-card',
+                                         'alert_css_class': 'alert-warning'}}}
 
     ajax_commands = ['datatable']
 
@@ -62,17 +65,19 @@ class CardBase:
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
+    default_empty_template = 'message'
 
     def __init__(self, request, code, view=None, details_object=None, title=None,
                  menu=None, tab_menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
-                 footer=None, extra_card_context=None, **kwargs):
+                 footer=None, extra_card_context=None,
+                 is_empty=False, empty_template_name=None, empty_message='N/A', **kwargs):
 
         self.code = code
         self.view = view
         self.details_object = details_object
         self.request = request
-        self.group_type = group_type
+
         self.show_created_modified_dates = show_created_modified_dates
         self.footer = footer
 
@@ -86,8 +91,17 @@ class CardBase:
             tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*tab_menu)
         self.tab_menu = tab_menu
 
-        self.extra_card_context = extra_card_context
-        self.template_name = template_name
+        if is_empty:
+            self.group_type = CARD_TYPE_STANDARD
+            self.extra_card_context = {'message': empty_message}
+            if empty_template_name is None:
+                self.template_name = self.default_empty_template
+            else:
+                self.template_name = empty_template_name
+        else:
+            self.extra_card_context = extra_card_context
+            self.template_name = template_name
+            self.group_type = group_type
         self.extra_card_info = {}
         self.add_extra_card_info(extra_info=self.extra_card_info, group_type=self.group_type, **kwargs)
 

@@ -38,12 +38,13 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_no_modal_card()
         self.add_html_string_card()
         self.add_html_file_card()
+        self.add_empty_message_card()
 
         self.add_card_group('welcome', 'split', 'other', 'person', 'multi_fields_example',
                             div_css_class='col-6 float-left')
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
-        self.add_card_group('html_string', 'html_file',  div_css_class='col-12 float-right')
+        self.add_card_group('html_string', 'html_file', 'empty_message',  div_css_class='col-12 float-right')
 
     def add_welcome_card(self):
         menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]
@@ -77,6 +78,16 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                            title='HTML string sample',
                            context_template_name='cards_examples/hello_world.html',
                            context={'from_view': 'this is from the view'})
+
+    def add_empty_message_card(self):
+        card = self.add_card('empty_message',
+                             title='Empty Message',
+                             is_empty=True,
+                             empty_message='This is empty with is_empty=True')
+        card.add_rows(({'value': 'Hello'}, {'value': 'World'}),
+                      ({'value': 'Hello'}, {'value': 'World'}, {'value': ':)'}),
+                      ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},
+                       {'value': 'World', 'entry_css_class': 'col-sm-3'}))
 
     @staticmethod
     def test_method(value):

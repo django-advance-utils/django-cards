@@ -1,0 +1,15 @@
+{% load datatable_tags %}
+
+    <div class="{{ card_css_class }}" id="list" data-title="">
+        {% if card.title %}
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <h5 class="mr-auto">{{ card.title|safe }}</h5>
+                    {{ card.menu.render }}
+                </div>
+            </div>
+        {% endif %}
+        <div class="card-body jms-list {{ card_body_css_class }}">
+            <div class="alert {{ alert_css_class }} mb-0 small">{{ message|safe }}</div>
+        </div>
+    </div>
