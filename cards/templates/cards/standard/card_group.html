@@ -5,6 +5,7 @@
             {{ card.menu.render }}
         </div>
     </div>
+    {{ card.tab_menu.render }}
     <div class="{{ card_body_css_outer_class }}">
         <div class="{{ card_body_css_inner_class }}">
             {% for group in card.child_card_groups %}
