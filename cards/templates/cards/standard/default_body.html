@@ -6,7 +6,7 @@
             {% if row.type == 'multiple' %}<div class="row">{% endif %}
             {% for entry in row.entries %}
                 {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
-                {% if entry.link %}<a class="{{ card.item_css_class }} cards-list-group-item" href="{{ entry.link }}" style="{{ card.item_css }}">{% else %}<div class="{{ card.item_css_class }}" style="{{ card.item_css }}">{% endif %}
+                {% if entry.link %}<a class="{{ item_css_class }} cards-list-group-item" href="{{ entry.link }}" style="{{ item_css }}">{% else %}<div class="{{ item_css_class }}" style="{{ item_css }}">{% endif %}
                     {% if entry.label %}
                         {% if entry.menu %}<div class="d-flex"><label class="mr-auto">{{ entry.label|safe }}</label>
                             {{ entry.menu.render }}</div>{% else %}
