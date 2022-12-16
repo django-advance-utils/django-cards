@@ -122,7 +122,7 @@ class CardBase:
             extra_info['html'] = kwargs.get('html')
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
-                          entry_css_class=None, css_class=None, menu=None):
+                          entry_css_class=None, css_class=None, menu=None, default_if=None):
         if value:
             entry = self._add_entry_internal(value='<i class="fas fa-check" style="color:green;"></i>',
                                              label=label,
@@ -130,7 +130,8 @@ class CardBase:
                                              html_override=html_override,
                                              entry_css_class=entry_css_class,
                                              css_class=css_class,
-                                             menu=menu)
+                                             menu=menu,
+                                             default_if=default_if)
         else:
             entry = self._add_entry_internal(value='<i class="fas fa-times" style="color:red;"></i>',
                                              label=label,
@@ -138,11 +139,12 @@ class CardBase:
                                              html_override=html_override,
                                              entry_css_class=entry_css_class,
                                              css_class=css_class,
-                                             menu=menu)
+                                             menu=menu,
+                                             default_if=default_if)
         return entry
 
     def add_date_entry(self, value, label=None, hidden=False, html_override=None,
-                       entry_css_class=None, css_class=None, menu=None):
+                       entry_css_class=None, css_class=None, menu=None, default_if=None):
         new_value = value.strftime('%d/%m/%y')
         return self._add_entry_internal(value=new_value,
                                         label=label,
@@ -150,7 +152,8 @@ class CardBase:
                                         html_override=html_override,
                                         entry_css_class=entry_css_class,
                                         css_class=css_class,
-                                        menu=menu)
+                                        menu=menu,
+                                        default_if=default_if)
 
     def add_row(self, *args):
         entries = []
@@ -178,7 +181,7 @@ class CardBase:
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
-                  html_override=None, value_method=None, value_type=None, **kwargs):
+                  html_override=None, value_method=None, value_type=None, default_if=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -192,6 +195,7 @@ class CardBase:
                                          html_override=html_override,
                                          value_method=value_method,
                                          value_type=value_type,
+                                         default_if=default_if,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -240,7 +244,7 @@ class CardBase:
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
                                 html_barge, default='N/A', html_override=None,
-                                entry_css_class=None, css_class=None, menu=None):
+                                entry_css_class=None, css_class=None, menu=None, default_if=None):
         if html_barge is None:
             html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
 
@@ -263,12 +267,13 @@ class CardBase:
                                         html_override=html_override,
                                         entry_css_class=entry_css_class,
                                         css_class=css_class,
-                                        menu=menu)
+                                        menu=menu,
+                                        default_if=default_if)
 
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=False, html_override=None,
                             value_method=None, value_type=None,
-                            entry_css_class=None, css_class=None, menu=None,
+                            entry_css_class=None, css_class=None, menu=None, default_if=None,
                             **kwargs):
 
         value, label, field_type = self.get_field_value(value=value, field=field, label=label)
@@ -282,13 +287,15 @@ class CardBase:
                                           html_override=html_override,
                                           entry_css_class=entry_css_class,
                                           css_class=entry_css_class,
-                                          menu=menu)
+                                          menu=menu,
+                                          default_if=default_if)
         elif isinstance(value, datetime.date):
             return self.add_date_entry(value=value,
                                        label=label,
                                        hidden=hidden,
                                        html_override=html_override,
-                                       menu=menu)
+                                       menu=menu,
+                                       default_if=default_if)
         elif hasattr(value, 'through'):
             return self._add_many_to_many_field(label=label,
                                                 query=value,
@@ -299,9 +306,10 @@ class CardBase:
                                                 html_override=html_override,
                                                 entry_css_class=entry_css_class,
                                                 css_class=entry_css_class,
-                                                menu=menu)
+                                                menu=menu,
+                                                default_if=default_if)
         else:
-            if value is None or value == '':
+            if value is None or value == '' or default_if:
                 value = default
                 is_default = True
             else:
