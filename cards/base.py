@@ -438,9 +438,8 @@ class CardBase:
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
-    def render(self):
+    def render(self, override_card_context=None):
         extra_card_context = self.extra_card_context
-
         context = {'card': self,
                    'request': self.request,
                    'card_types': {'standard': CARD_TYPE_STANDARD,
@@ -450,6 +449,8 @@ class CardBase:
 
         if extra_card_context is not None:
             context = {**context, **extra_card_context}
+        if override_card_context is not None:
+            context = {**context, **override_card_context}
 
         template_name = self.template_name
         if template_name is None:
@@ -465,10 +466,12 @@ class CardBase:
         data = render_to_string(template, context)
         return mark_safe(data)
 
-    def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='', div_inner_css=''):
+    def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='',
+                             div_inner_css='', override_card_context=None):
         if self.group_type != CARD_TYPE_CARD_GROUP:
             raise Exception('This will only work for card group')
         self.child_card_groups.append({'div_css_class': div_css_class,
                                        'div_inner_css_class': div_inner_css_class,
                                        'div_inner_css': div_inner_css,
-                                       'cards': args})
+                                       'cards': args,
+                                       'override_card_context': override_card_context})

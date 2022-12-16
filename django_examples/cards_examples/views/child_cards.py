@@ -37,7 +37,7 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
         child_menu = [MenuItem('cards_examples:hello_modal', menu_display='Child Menu')]
         main_menu = [MenuItem('cards_examples:hello_modal', menu_display='Main Menu')]
 
-        child_1_card = self.add_card(title='Card 1 Card', template_name='table', menu=child_menu)
+        child_1_card = self.add_card(title='Card 1 Card', menu=child_menu)
         child_1_card.add_rows({'label': 'Label', 'value': 'Hello World'},
                               {'label': 'Description', 'value': 'This is a child card with a meny'})
 
@@ -49,7 +49,8 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
                              menu=main_menu)
         card.add_child_card_group(child_1_card,
                                   div_css_class='col-6 float-left',
-                                  div_inner_css='border-style: solid;border-color: red')
+                                  div_inner_css='border-style: solid;border-color: red',
+                                  override_card_context={'item_css': 'color: blue'})
         card.add_child_card_group(child_2_card,
                                   div_css_class='col-6 float-left',
                                   div_inner_css='border-style: solid;border-color: #9a59b5')

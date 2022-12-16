@@ -1,3 +1,4 @@
+{% load django_cards_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
     <div class="card-header">
         <div class="d-flex align-items-center">
@@ -12,7 +13,11 @@
                 <div class="{{ group.div_css_class }}">
                     {% for card in group.cards %}
                         <div style="{{ group.div_inner_css }}" class="{{ group.div_inner_css_class }}">
-                            {{ card.render }}
+                            {% if group.override_card_context %}
+                                {% show_card card override_card_context=group.override_card_context %}
+                            {% else %}
+                                {{ card.render }}
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
