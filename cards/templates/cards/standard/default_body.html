@@ -6,9 +6,12 @@
             {% if row.type == 'multiple' %}<div class="row">{% endif %}
             {% for entry in row.entries %}
                 {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
-                {% if entry.link %}<a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% else %}<div class="list-group-item">{% endif %}
+                {% if entry.link %}<a class="{{ card.item_css_class }} cards-list-group-item" href="{{ entry.link }}" style="{{ card.item_css }}">{% else %}<div class="{{ card.item_css_class }}" style="{{ card.item_css }}">{% endif %}
                     {% if entry.label %}
+                        {% if entry.menu %}<div class="d-flex"><label class="mr-auto">{{ entry.label|safe }}</label>
+                            {{ entry.menu.render }}</div>{% else %}
                         <label>{{ entry.label|safe }}</label>
+                        {% endif %}
                         {% if entry.multiple_lines %}
                             {% for x in entry.html %}
                                 <h4 class="list-group-item-heading {{ entry.css_class }}">{{ x|safe }}</h4>
@@ -19,7 +22,7 @@
                     {% else %}
                         {{ entry.html|safe }}
                     {% endif %}
-                {% if entry.link %}</a>{% else %}</div>{% endif %}
+            {% if entry.link %}</a>{% else %}</div>{% endif %}
              {% if entry.entry_css_class %}</div>{% endif %}
             {% endfor %}
             {% if row.type == 'multiple' %}</div>{% endif %}

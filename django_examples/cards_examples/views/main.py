@@ -142,9 +142,11 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_entry(value='Warning No People in the system', label=None,
                            html_override='<div class="alert alert-warning">%1%</div>')
         else:
+            menu = [MenuItem('cards_examples:hello_modal', menu_display='',
+                             font_awesome='fas fa-edit', css_classes='btn btn-link')]
             card = self.add_card('person', title='Person', details_object=person, show_created_modified_dates=True)
             card.add_rows('title',
-                          'first_name',
+                          {'field': 'first_name', 'menu': menu},
                           'surname',
                           )
 
