@@ -7,6 +7,14 @@
         });
     }
 
+    function load_empty_details() {
+        $('.cards-list-group-item.active').removeClass('active');
+        $(document).ready(function () {
+            ajax_helpers.post_json({'data': {'button': '{{ details_empty_button_action_name }}'}});
+        });
+    }
+
+
     $(document).ready(function () {
          $( "#list_{{ selected_id }}" ).focus();
     });
@@ -36,8 +44,13 @@
         {% endif %}
         {% empty %}
         <div class="list-group-item">
-            <div class="alert alert-warning">No {{ list_type }} setup yet!.</div>
+            <div class="alert alert-warning">{{ empty_list_message }}</div>
         </div>
+
+        <script>
+            $(document).ready(function () {load_empty_details();});
+        </script>
+
     {% endfor %}
     </div>
 {% if card.footer %}

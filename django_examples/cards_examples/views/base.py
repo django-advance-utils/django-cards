@@ -10,6 +10,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:index', 'Home'),
             ('cards_examples:groups', 'Groups'),
             ('cards_examples:list,-', 'List'),
+            ('cards_examples:list_empty,-', 'List Empty'),
             ('cards_examples:list_adv,-', 'List Adv'),
             ('cards_examples:tree,-', 'Tree'),
             ('cards_examples:datatable', 'Datatable'),

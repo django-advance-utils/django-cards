@@ -29,6 +29,11 @@ class ExampleCompanyCardList(DjangoCardList):
                       'get_display_name')
 
 
+class ExampleCompanyCardEmptyList(ExampleCompanyCardList):
+    def get_list_entries(self):
+        return self.model.objects.all().filter(pk=999999)
+
+
 class ExampleCompanyCardAdvancedList(DjangoCardList):
     list_title = 'Companies'
     model = Company
