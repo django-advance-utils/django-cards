@@ -85,14 +85,19 @@ class CardListMixin(CardListBaseMixin):
     def get_list_entry_name(self, entry_object):
         return entry_object.name
 
+    def get_list_colour(self, entry_object):
+        return None
+
     def get_list_entries(self):
         return self.model.objects.all()
 
     def display_list_entries(self):
         for entry_object in self.get_list_entries():
             name = self.get_list_entry_name(entry_object=entry_object)
+            colour = self.get_list_colour(entry_object=entry_object)
             self.add_list_entry(pk=entry_object.pk,
-                                name=name)
+                                name=name,
+                                colour=colour)
 
 
 class CardList(AjaxHelpers, MenuMixin, CardMixin, CardListMixin):

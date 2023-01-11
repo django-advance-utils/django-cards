@@ -95,7 +95,7 @@ class CardListBaseMixin:
 
     def add_detail_card(self, code=None, details_object=None, title=None, menu=None, tab_menu=None, template_name=None,
                         group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
-                        footer=None, extra_card_context=None, **extra_card_kwargs):
+                        footer=None, extra_card_context=None, call_details_data=True, **extra_card_kwargs):
 
         card = self.card_cls(request=self.request,
                              view=self,
@@ -109,6 +109,7 @@ class CardListBaseMixin:
                              details_object=details_object,
                              extra_card_context=extra_card_context,
                              template_name=template_name,
+                             call_details_data=call_details_data,
                              **extra_card_kwargs)
 
         self.cards[code] = card
