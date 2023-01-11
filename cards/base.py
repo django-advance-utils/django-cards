@@ -69,7 +69,7 @@ class CardBase:
     tab_menu_type = 'tabs'
     default_empty_template = 'message'
 
-    def __init__(self, request, code, view=None, details_object=None, title=None,
+    def __init__(self, request, code=None, view=None, details_object=None, title=None,
                  menu=None, tab_menu=None, template_name=None,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
@@ -382,6 +382,11 @@ class CardBase:
             getattr(self.view, setup_table_field)(details_object=self.details_object, table=table)
             if hasattr(self.view, 'tables'):
                 self.view.tables[self.code] = table
+        elif self.group_type == CARD_TYPE_STANDARD:
+            if self.code is not None and hasattr(self, f'get_{self.code}_data'):
+                getattr(self, f'get_{self.code}_data')(card=self, details_object=self.details_object)
+            elif hasattr(self, 'get_details_data'):
+                getattr(self, 'get_details_data')(card=self, details_object=self.details_object)
 
     def add_table(self, model, table_id=None):
         table = DatatableTable(table_id=table_id, model=model, view=self.view)

@@ -96,8 +96,6 @@ class CardListBaseMixin:
     def add_detail_card(self, code=None, details_object=None, title=None, menu=None, tab_menu=None, template_name=None,
                         group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                         footer=None, extra_card_context=None, **extra_card_kwargs):
-        if code is None:
-            code = random_string()
 
         card = self.card_cls(request=self.request,
                              view=self,
@@ -114,8 +112,6 @@ class CardListBaseMixin:
                              **extra_card_kwargs)
 
         self.cards[code] = card
-        if group_type == CARD_TYPE_STANDARD:
-            self.get_details_data(card=card, details_object=details_object)
         return card
 
     def add_html_group(self, context_template_name, context, **kwargs):
