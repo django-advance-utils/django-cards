@@ -14,7 +14,7 @@ class CardMixin:
     def __init__(self, *args, **kwargs):
         self.tables = {}
         self.cards = {}
-        self.card_groups = []
+        self.card_groups = {}
         super().__init__(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -41,7 +41,7 @@ class CardMixin:
             raise Exception(f'May need to use AjaxHelpers Mixin or'
                             f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class='', div_css='', error_if_not_found=True):
+    def add_card_group(self, *args, div_css_class='', div_css='', error_if_not_found=True, group_code='main'):
         cards = []
         for card in args:
             if isinstance(card, str):
@@ -50,9 +50,13 @@ class CardMixin:
             else:
                 cards.append(card)
 
-        self.card_groups.append({'div_css_class': div_css_class,
-                                 'div_css': div_css,
-                                 'cards': cards})
+
+        if group_code not in self.card_groups:
+            self.card_groups[group_code] = []
+
+        self.card_groups[group_code].append({'div_css_class': div_css_class,
+                                             'div_css': div_css,
+                                             'cards': cards})
 
     def add_card(self, card_name=None, **kwargs):
         request = getattr(self, 'request', None)
@@ -82,12 +86,16 @@ class CardMixin:
         else:
             context = {}
         context['cards'] = self.cards
-        if len(self.card_groups) > 0:
-            context['card_groups'] = self.render_card_groups()
+        rendered_card_groups = {}
+        for code, card_groups in self.card_groups.items():
+            if len(card_groups) > 0:
+                rendered_card_groups[code] = self.render_card_groups(card_groups)
+
+        context['card_groups'] = rendered_card_groups
         return context
 
-    def render_card_groups(self):
-        return render_to_string('cards/groups/groups.html', context={'groups': self.card_groups})
+    def render_card_groups(self, card_groups):
+        return render_to_string('cards/groups/groups.html', context={'groups': card_groups})
 
     def setup_cards(self):
         if hasattr(super(), 'setup_cards'):

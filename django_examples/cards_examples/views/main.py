@@ -41,7 +41,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_empty_message_card()
 
         self.add_card_group('welcome', 'split', 'other', 'person', 'multi_fields_example',
-                            div_css_class='col-6 float-left')
+                            div_css_class='col-6 float-left', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
         self.add_card_group('html_string', 'html_file', 'empty_list_message',  div_css_class='col-12 float-right')
