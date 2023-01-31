@@ -257,11 +257,14 @@ class CardBase:
         for result in results:
             if m2m_field is None:
                 value = result
+                html += html_barge.replace('%1%', str(value))
             else:
-                value = hasattr(result, m2m_field)
-                value = callable(value)
-            html += html_barge.replace('%1%', str(value))
-
+                if hasattr(result, m2m_field):
+                    value = getattr(result, m2m_field)
+                    if callable(value):
+                        value = value()
+                    html += html_barge.replace('%1%', str(value))
+                
         return self._add_entry_internal(label=label,
                                         value=html,
                                         default=default,
