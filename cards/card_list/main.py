@@ -10,6 +10,8 @@ from cards.standard import CardMixin
 class CardListMixin(CardListBaseMixin):
     list_class = 'col-sm-5 col-md-4 col-lg-3 float-left'
     details_class = 'col-sm-7 col-md-8 col-lg-9 float-left'
+    list_css_style = ''
+    details_css_style = ''
 
     list_type = None
     list_title = ''
@@ -51,8 +53,8 @@ class CardListMixin(CardListBaseMixin):
                       template_name='blank',
                       html='')
 
-        self.add_card_group('list_card', div_css_class=self.list_class)
-        self.add_card_group('details_card', div_css_class=self.details_class)
+        self.add_card_group('list_card', div_css_class=self.list_class, div_css=self.list_css_style)
+        self.add_card_group('details_card', div_css_class=self.details_class, div_css=self.details_css_style)
 
     def empty_list_message(self):
         list_type = self.list_type if self.list_type is not None else self.list_title
