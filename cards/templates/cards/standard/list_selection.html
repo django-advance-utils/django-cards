@@ -3,17 +3,24 @@
         $('.cards-list-group-item.active').removeClass('active');
         $('#list_' + entry_id).addClass('active');
         $(document).ready(function () {
-            ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+            {% if modal %}
+                django_modal.send_inputs({'button': '{{ details_button_action_name }}', 'entry_id': entry_id})
+            {% else %}
+                ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+            {% endif %}
         });
     }
 
     function load_empty_details() {
         $('.cards-list-group-item.active').removeClass('active');
         $(document).ready(function () {
-            ajax_helpers.post_json({'data': {'button': '{{ details_empty_button_action_name }}'}});
+            {% if modal %}
+                django_modal.send_inputs({'button': '{{ details_empty_button_action_name }}'})
+            {% else %}
+                ajax_helpers.post_json({'data': {'button': '{{ details_empty_button_action_name }}'}});
+            {% endif %}
         });
     }
-
 
     $(document).ready(function () {
          $( "#list_{{ selected_id }}" ).focus();
