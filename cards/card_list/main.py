@@ -14,6 +14,7 @@ class CardListMixin(CardListBaseMixin):
     list_type = None
     list_title = ''
     menu_display = ''
+    list_template_name = 'list_selection'
 
     model = None
 
@@ -40,7 +41,7 @@ class CardListMixin(CardListBaseMixin):
                       title=self.list_title,
                       menu=list_menu,
                       group_type=CARD_TYPE_HTML,
-                      template_name='list_selection',
+                      template_name=self.list_template_name,
                       extra_card_context=context)
 
     def setup_cards(self):
