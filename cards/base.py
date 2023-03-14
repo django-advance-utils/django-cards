@@ -124,7 +124,7 @@ class CardBase:
             extra_info['html'] = kwargs.get('html')
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
-                          entry_css_class=None, css_class=None, menu=None, default_if=None):
+                          entry_css_class=None, css_class=None, menu=None, default_if=None, **kwargs):
         if value:
             entry = self._add_entry_internal(value='<i class="fas fa-check" style="color:green;"></i>',
                                              label=label,
@@ -133,7 +133,8 @@ class CardBase:
                                              entry_css_class=entry_css_class,
                                              css_class=css_class,
                                              menu=menu,
-                                             default_if=default_if)
+                                             default_if=default_if,
+                                             **kwargs)
         else:
             entry = self._add_entry_internal(value='<i class="fas fa-times" style="color:red;"></i>',
                                              label=label,
@@ -142,11 +143,12 @@ class CardBase:
                                              entry_css_class=entry_css_class,
                                              css_class=css_class,
                                              menu=menu,
-                                             default_if=default_if)
+                                             default_if=default_if,
+                                             **kwargs)
         return entry
 
     def add_date_entry(self, value, label=None, hidden=False, html_override=None,
-                       entry_css_class=None, css_class=None, menu=None, default_if=None):
+                       entry_css_class=None, css_class=None, menu=None, default_if=None, **kwargs):
         new_value = value.strftime('%d/%m/%y')
         return self._add_entry_internal(value=new_value,
                                         label=label,
@@ -155,7 +157,8 @@ class CardBase:
                                         entry_css_class=entry_css_class,
                                         css_class=css_class,
                                         menu=menu,
-                                        default_if=default_if)
+                                        default_if=default_if,
+                                        **kwargs)
 
     def add_row(self, *args):
         entries = []
@@ -246,7 +249,7 @@ class CardBase:
 
     def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
                                 html_barge, default='N/A', html_override=None,
-                                entry_css_class=None, css_class=None, menu=None, default_if=None):
+                                entry_css_class=None, css_class=None, menu=None, default_if=None, **kwargs):
         if html_barge is None:
             html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
 
@@ -273,7 +276,8 @@ class CardBase:
                                         entry_css_class=entry_css_class,
                                         css_class=css_class,
                                         menu=menu,
-                                        default_if=default_if)
+                                        default_if=default_if,
+                                        **kwargs)
 
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=False, html_override=None,
@@ -293,14 +297,16 @@ class CardBase:
                                           entry_css_class=entry_css_class,
                                           css_class=entry_css_class,
                                           menu=menu,
-                                          default_if=default_if)
+                                          default_if=default_if,
+                                          **kwargs)
         elif isinstance(value, datetime.date):
             return self.add_date_entry(value=value,
                                        label=label,
                                        hidden=hidden,
                                        html_override=html_override,
                                        menu=menu,
-                                       default_if=default_if)
+                                       default_if=default_if,
+                                       **kwargs)
         elif hasattr(value, 'through'):
             return self._add_many_to_many_field(label=label,
                                                 query=value,
@@ -312,7 +318,8 @@ class CardBase:
                                                 entry_css_class=entry_css_class,
                                                 css_class=entry_css_class,
                                                 menu=menu,
-                                                default_if=default_if)
+                                                default_if=default_if,
+                                                **kwargs)
         else:
             if value is None or value == '' or default_if:
                 value = default
@@ -332,7 +339,8 @@ class CardBase:
                         value = [self.get_value_from_type(v, value_type, ft, is_default, **kwargs)
                                  for v, ft in zip(value, field_type)]
                     else:
-                        value = [self.get_value_from_type(v, value_type, field_type, is_default, **kwargs) for v in value]
+                        value = [self.get_value_from_type(v, value_type, field_type,
+                                                          is_default, **kwargs) for v in value]
                 else:
                     value = self.get_value_from_type(value, value_type, field_type, is_default, **kwargs)
             if html_override is not None:
@@ -355,7 +363,8 @@ class CardBase:
                      'css_class': css_class,
                      'multiple_lines': multiple_parts,
                      'link': link,
-                     'menu': menu}
+                     'menu': menu,
+                     **kwargs}
             return entry
 
     def get_value_from_type(self, value, value_type, field_type, is_default, **kwargs):

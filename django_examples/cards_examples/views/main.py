@@ -30,6 +30,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     def setup_cards(self):
         self.add_welcome_card()
         self.add_split_card()
+        self.add_table_multiple_columns()
         self.add_other_card()
         self.add_person_card()
         self.add_multi_fields_card()
@@ -40,7 +41,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_html_file_card()
         self.add_empty_message_card()
 
-        self.add_card_group('welcome', 'split', 'other', 'person', 'multi_fields_example',
+        self.add_card_group('welcome', 'split', 'table_multiple_columns', 'other', 'person', 'multi_fields_example',
                             div_css_class='col-6 float-left', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
@@ -59,6 +60,13 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                       ({'value': 'Hello'}, {'value': 'World'}, {'value': ':)'}),
                       ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},
                        {'value': 'World', 'entry_css_class': 'col-sm-3'}))
+
+    def add_table_multiple_columns(self):
+        card = self.add_card('table_multiple_columns', title='Table Multiple Columns', template_name='table')
+        card.add_rows(({'value': 'Value 1-0', 'label': 'Row 1'}, {'value': 'Value 1-1', 'colspan': 2}),
+                      ({'value': 'Value 2-0', 'label': 'Row 2'}, {'value': 'Value 2-1'}, {'value': 'Value 2-2'}),
+                      {'value': 'Value 3-0', 'label': 'Row 3', 'colspan': 3},
+                      {'value': 'Value 4-0', 'label': 'Row 4', 'colspan': 3})
 
     def add_other_card(self):
         card = self.add_card('other', title='Other')

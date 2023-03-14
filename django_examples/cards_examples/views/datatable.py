@@ -1,16 +1,11 @@
-import json
-
+from cards_examples.models import Company
+from cards_examples.models import CompanyCategory
+from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
-from django_datatables.columns import ColumnBase, DatatableColumnError, EDIT_SEND, EDIT_CELL_HTML
-from django_datatables.helpers import render_replace
+from django_datatables.columns import ColumnBase
 
 from cards.base import CARD_TYPE_DATATABLE
 from cards.standard import CardMixin
-from cards_examples.views.base import MainMenu
-
-from cards_examples.models import Company
-
-from cards_examples.models import CompanyCategory
 
 
 class DatatableExample(MainMenu, CardMixin, TemplateView):

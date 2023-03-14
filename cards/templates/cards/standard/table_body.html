@@ -5,8 +5,8 @@
             {% for row in card.rows %}
                 <tr>
                     {% for entry in row.entries %}
-                        <th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>
-                        <td class="{{ table_td_css_class }}">{% if entry.link %}
+                        {% if forloop.first %}<th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>{% endif %}
+                        <td class="{{ table_td_css_class }}"{% if entry.colspan %} colspan="{{ entry.colspan }}"{% endif %}{% if entry.rowspan %} rowspan="{{ entry.rowspan }}"{% endif %}>{% if entry.link %}
                             <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
                             {% if entry.multiple_lines %}
                                 {% for x in entry.html %}
@@ -15,8 +15,8 @@
                             {% else %}
                                 {{ entry.html|safe }}
                             {% endif %}
-                            {% if entry.link %}</a>{% endif %}</td></tr>
-                    {% endfor %}
+                            {% if entry.link %}</a>{% endif %}</td>
+                    {% endfor %}</tr>
             {% endfor %}
         </table>
     </div>

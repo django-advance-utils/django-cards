@@ -50,7 +50,6 @@ class CardMixin:
             else:
                 cards.append(card)
 
-
         if group_code not in self.card_groups:
             self.card_groups[group_code] = []
 
