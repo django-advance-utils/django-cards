@@ -64,9 +64,10 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     def add_table_multiple_columns(self):
         card = self.add_card('table_multiple_columns', title='Table Multiple Columns', template_name='table')
         card.add_rows(({'value': 'Value 1-0', 'label': 'Row 1'}, {'value': 'Value 1-1', 'colspan': 2}),
-                      ({'value': 'Value 2-0', 'label': 'Row 2'}, {'value': 'Value 2-1'}, {'value': 'Value 2-2'}),
-                      {'value': 'Value 3-0', 'label': 'Row 3', 'colspan': 3},
-                      {'value': 'Value 4-0', 'label': 'Row 4', 'colspan': 3})
+                      ({'value': 'Value 2-0', 'label': 'Row 2'}, {'value': 'Value 2-1'}, {'value': 'Value 2-2'}))
+
+        card.add_rows({'value': 'Value 3-0', 'label': 'Row 3'},
+                      {'value': 'Value 4-0', 'label': 'Row 4'}, extra_row_kwargs={'colspan': 3})
 
     def add_other_card(self):
         card = self.add_card('other', title='Other')

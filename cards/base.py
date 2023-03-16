@@ -160,13 +160,15 @@ class CardBase:
                                         default_if=default_if,
                                         **kwargs)
 
-    def add_row(self, *args):
+    def add_row(self, *args, extra_row_kwargs=None):
+        if extra_row_kwargs is None:
+            extra_row_kwargs = {}
         entries = []
         for arg in args:
             if isinstance(arg, str):
-                entry = self._add_entry_internal(field=arg)
+                entry = self._add_entry_internal(field=arg, **extra_row_kwargs)
             else:
-                entry = self._add_entry_internal(**arg)
+                entry = self._add_entry_internal(**arg, **extra_row_kwargs)
             if entry is not None:
                 entries.append(entry)
 
@@ -247,8 +249,8 @@ class CardBase:
                         label = self.label_from_field(field=field, field_type=field_type)
         return value, label, field_type
 
-    def _add_many_to_many_field(self, label, query, query_filter, m2m_field,
-                                html_barge, default='N/A', html_override=None,
+    def _add_many_to_many_field(self, label, query, query_filter=None, m2m_field=None,
+                                html_barge=None, default='N/A', html_override=None,
                                 entry_css_class=None, css_class=None, menu=None, default_if=None, **kwargs):
         if html_barge is None:
             html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
@@ -310,9 +312,6 @@ class CardBase:
         elif hasattr(value, 'through'):
             return self._add_many_to_many_field(label=label,
                                                 query=value,
-                                                query_filter=kwargs.get('query_filter'),
-                                                html_barge=kwargs.get('html_barge'),
-                                                m2m_field=kwargs.get('m2m_field'),
                                                 default=default,
                                                 html_override=html_override,
                                                 entry_css_class=entry_css_class,
@@ -452,16 +451,18 @@ class CardBase:
                     title += letter
                 return title
 
-    def add_rows(self, *args, default='N/A', hidden=False):
+    def add_rows(self, *args, default='N/A', hidden=False, extra_row_kwargs=None):
+        if extra_row_kwargs is None:
+            extra_row_kwargs = {}
         for arg in args:
             if isinstance(arg, str):
-                self.add_entry(field=arg, default=default, hidden=hidden)
+                self.add_entry(field=arg, default=default, hidden=hidden, **extra_row_kwargs)
             elif isinstance(arg, dict):
                 if 'default' not in arg:
                     arg['default'] = default
                 if 'hidden' not in arg:
                     arg['hidden'] = hidden
-                self.add_entry(**arg)
+                self.add_entry(**arg, **extra_row_kwargs)
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
