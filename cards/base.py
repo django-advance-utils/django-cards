@@ -429,7 +429,7 @@ class CardBase:
         current_sort = dict(self.extra_card_info['datatable_model'].objects.filter(id__in=ids).
                             values_list('id', order_field))
         for s in kwargs['sort']:
-            if current_sort[s[1]] != s[0]:
+            if current_sort.get(s[1]) != s[0]:
                 o = self.extra_card_info['datatable_model'].objects.get(id=s[1])
                 setattr(o, order_field, s[0])
                 o.save()
