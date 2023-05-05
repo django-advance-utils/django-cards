@@ -1,11 +1,11 @@
-    <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
         <div class="card-header">
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{{ card.title }}</h5>
                 {{ card.menu.render }}
             </div>
         </div>
-        <div class="{{ card_body_css_class }}">
+        <div class="{{ card_body_css_class }}" id="{{ card.code }}_body">
             {{ card.extra_card_info.html|safe }}
         </div>
         {% if card.footer %}
