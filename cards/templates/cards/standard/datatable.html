@@ -8,7 +8,7 @@
             </div>
         </div>
         {{ card.tab_menu.render }}
-        <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}{% endif %}">
+        <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
             {{ card.extra_card_info.datatable.render|safe }}
         </div>
         {% if card.footer %}
