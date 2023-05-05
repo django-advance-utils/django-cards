@@ -1,6 +1,6 @@
 {% load datatable_tags %}
 
-    <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="{{ card_css_class }}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
         <div class="card-header">
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{{ card.title }}</h5>
@@ -8,7 +8,7 @@
             </div>
         </div>
         {{ card.tab_menu.render }}
-        <div class="{{ card_body_css_class }}">
+        <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}{% endif %}">
             {{ card.extra_card_info.datatable.render|safe }}
         </div>
         {% if card.footer %}
