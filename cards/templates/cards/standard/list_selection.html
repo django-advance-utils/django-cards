@@ -33,7 +33,7 @@
             {{ card.menu.render }}
         </div>
     </div>
-    <div class="{{ card_body_css_class }}" style="{{ card_body_css_style }}">
+    <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}{% endif %}">
     {% for entry in entries %}
         <a class="{{ card_link_css_class }}" id="list_{{ entry.pk }}"
            href="javascript:load_details({{ entry.pk }})">
