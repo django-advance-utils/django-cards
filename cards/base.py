@@ -207,6 +207,13 @@ class CardBase:
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
 
+    def add_html_entry(self, template_name, context=None, **kwargs):
+        if context is None:
+            context = {}
+        context = {**context, **kwargs}
+        html = render_to_string(template_name=template_name, context=context)
+        self.rows.append({'type': 'html', 'html': html, **kwargs})
+
     def get_field_value(self, value, field, label):
         field_type = None
         if value is None and field is not None:

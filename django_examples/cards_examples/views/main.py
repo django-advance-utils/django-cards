@@ -22,6 +22,7 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
                              extra_card_context={'table_css_class': 'table table-bordered'})
         card.add_entry(value='Welcome using the table template2', label='Sample')
         card.add_entry(value='This is some sample text2', label='Text')
+        card.add_html_entry(template_name='cards_examples/sample_entry.html', colspan=2)
 
 
 class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
@@ -158,6 +159,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                           {'field': 'first_name', 'menu': menu},
                           'surname',
                           )
+            card.add_html_entry(template_name='cards_examples/sample_entry.html')
+            card.add_html_entry(template_name='cards_examples/sample_entry.html')
 
     def add_multi_fields_card(self):
         person = Person.objects.first()

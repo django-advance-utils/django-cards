@@ -3,6 +3,7 @@
 <div class="{{ card_body_css_class }}">
     <div class="list-group">
         {% for row in card.rows %}
+            {% if row.type == 'html' %}<div class="{{ item_css_class }}">{{ row.html|safe }}</div>{% else %}
             {% if row.type == 'multiple' %}<div class="row">{% endif %}
             {% for entry in row.entries %}
                 {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
@@ -23,6 +24,7 @@
              {% if entry.entry_css_class %}</div>{% endif %}
             {% endfor %}
             {% if row.type == 'multiple' %}</div>{% endif %}
+            {% endif %}
         {% endfor %}
     </div>
 </div>
