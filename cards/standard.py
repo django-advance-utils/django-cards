@@ -110,7 +110,8 @@ class CardMixin:
                 context = {}
             if 'details_object' in kwargs:
                 context['object'] = kwargs['details_object']
-
+            if hasattr(self, 'request'):
+                context['request'] = self.request
             html = render_to_string(context_template_name, context)
         else:
             html = ''
