@@ -23,15 +23,23 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
         self.add_card('companies',
                       title='Company (Datatables)',
                       group_type=CARD_TYPE_DATATABLE,
-                      datatable_model=Company)
+                      datatable_model=Company,
+                      extra_card_context={'show_search_bar': False,
+                                          'show_pivot_table': True,
+                                          # 'pivot_filter_class': 'col-4 float-left',
+                                          # 'pivot_table_class': 'col-8 col-4 float-left'
+                                          })
 
     def setup_table_companies(self, table, details_object):
         table.edit_fields = ['name', 'company_category__name']
         table.edit_options = {'company_category__name': {'select2': True}}
+
         table.ajax_data = True
         table.add_columns(
             'id',
             'name',
+            'importance',
             ColumnBase(column_name='company_category__name',
                        field='name',
                        table=table, model=CompanyCategory))
+        table.add_js_filters('pivot', 'importance', filter_title='Importance')
