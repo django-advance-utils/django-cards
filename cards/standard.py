@@ -7,6 +7,17 @@ from django.template.loader import render_to_string
 from cards.base import CardBase, CARD_TYPE_HTML
 
 
+class CardPostError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+    def value(self):
+        return self.value
+
+
 class CardMixin:
 
     card_cls = CardBase
@@ -38,8 +49,8 @@ class CardMixin:
             return super().post(request, *args, **kwargs)
         elif is_ajax(request) and request.content_type == 'application/json':
             response = json.loads(request.body)
-            raise Exception(f'May need to use AjaxHelpers Mixin or'
-                            f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
+            raise CardPostError(f'May need to use AjaxHelpers Mixin or'
+                                f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
     def add_card_group(self, *args, div_css_class='', div_css='', error_if_not_found=True, group_code='main'):
         cards = []
