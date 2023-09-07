@@ -158,6 +158,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
             card.add_rows('title',
                           {'field': 'first_name', 'menu': menu},
                           'surname',
+                          ('title', 'first_name', 'surname')
                           )
             card.add_html_entry(template_name='cards_examples/sample_entry.html')
             card.add_html_entry(template_name='cards_examples/sample_entry.html')
