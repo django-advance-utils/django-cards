@@ -118,6 +118,7 @@ class CardBase:
             extra_info['datatable_id'] = kwargs.get('datatable_id', self.code)
             extra_info['datatable'] = kwargs.get('datatable')
             extra_info['datatable_model'] = kwargs.get('datatable_model')
+            extra_info['setup_table'] = kwargs.get('setup_table')
             if group_type == CARD_TYPE_ORDERED_DATATABLE:
                 extra_info['order_field'] = kwargs.get('order_field', 'order')
         elif group_type == CARD_TYPE_HTML:
@@ -403,7 +404,11 @@ class CardBase:
             else:
                 table = self.extra_card_info['datatable']
             setup_table_field = 'setup_table'
-            if self.code is not None:
+            if self.extra_card_info['setup_table'] is not None:
+                field_setup_table_field = f'setup_table_{self.extra_card_info["setup_table"]}'
+                if hasattr(self.view, field_setup_table_field):
+                    setup_table_field = field_setup_table_field
+            elif self.code is not None:
                 field_setup_table_field = f'setup_table_{self.code}'
                 if hasattr(self.view, field_setup_table_field):
                     setup_table_field = field_setup_table_field
