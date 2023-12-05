@@ -1,5 +1,9 @@
 <script>
+
+    var last_loaded_entry_id = null;
+
     function load_details(entry_id) {
+        last_loaded_entry_id = entry_id;
         $('.cards-list-group-item.active').removeClass('active');
         $('#list_' + entry_id).addClass('active');
         $(document).ready(function () {
@@ -12,6 +16,7 @@
     }
 
     function load_empty_details() {
+        last_loaded_entry_id = null;
         $('.cards-list-group-item.active').removeClass('active');
         $(document).ready(function () {
             {% if modal %}
@@ -25,6 +30,18 @@
     $(document).ready(function () {
          $( "#list_{{ selected_id }}" ).focus();
     });
+
+    ajax_helpers.command_functions.load_details = function (command) {
+        var entry_id = last_loaded_entry_id;
+        if (typeof command.entry_id !== "undefined") {
+            entry_id = command.entry_id;
+        }
+        if(entry_id == null) {
+            load_empty_details(entry_id);
+        } else {
+            load_details(entry_id);
+        }
+    }
 </script>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
     <div class="card-header">
