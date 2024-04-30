@@ -1,4 +1,3 @@
-from ajax_helpers.utils import random_string
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 

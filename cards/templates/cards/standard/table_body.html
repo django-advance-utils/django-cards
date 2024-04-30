@@ -1,13 +1,13 @@
 {{ card.tab_menu.render }}
-<div class="{{ card_body_css_class }}">
+<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
     <div class="list-group">
         <table class="{{ table_css_class }}">
             {% for row in card.rows %}
                 <tr>
                     {% if row.type == 'html' %}{% if not row.exclude_td %}<td class="{{ table_td_css_class }}"{% if row.colspan %} colspan="{{ row.colspan }}"{% endif %} {% if row.rowspan %} rowspan="{{ row.rowspan }}"{% endif %}>{{ row.html|safe }}</td>{% else %}{{ row.html|safe }}{% endif %}{% else %}
                     {% for entry in row.entries %}
-                        {% if forloop.first %}<th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>{% endif %}
-                        <td class="{{ table_td_css_class }}"{% if entry.colspan %} colspan="{{ entry.colspan }}"{% endif %}{% if entry.rowspan %} rowspan="{{ entry.rowspan }}"{% endif %}>{% if entry.link %}
+                        {% if forloop.first %}{% if entry.label_td %}<td>{{ entry.label|safe }}</td>{% else %}<th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>{% endif %}{% endif %}
+                        {% if entry.value_th %}<th{% else %}<td class="{{ table_td_css_class }}"{% endif %}{% if entry.colspan %} colspan="{{ entry.colspan }}"{% endif %}{% if entry.rowspan %} rowspan="{{ entry.rowspan }}"{% endif %}>{% if entry.link %}
                             <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}
                             {% if entry.multiple_lines %}
                                 {% for x in entry.html %}
@@ -16,7 +16,7 @@
                             {% else %}
                                 {{ entry.html|safe }}
                             {% endif %}
-                            {% if entry.link %}</a>{% endif %}</td>
+                        {% if entry.link %}</a>{% endif %}{% if entry.value_th %}</th>{% else %}</td>{% endif %}
                     {% endfor %}{% endif %}</tr>
             {% endfor %}
         </table>

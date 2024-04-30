@@ -28,7 +28,8 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
                                           'show_pivot_table': True,
                                           # 'pivot_filter_class': 'col-4 float-left',
                                           # 'pivot_table_class': 'col-8 col-4 float-left'
-                                          })
+                                          },
+                      collapsed=False)
 
     def setup_table_companies(self, table, details_object):
         table.edit_fields = ['name', 'company_category__name']

@@ -19,10 +19,25 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('welcome2',
                              title='Welcome Two',
                              template_name='table',
-                             extra_card_context={'table_css_class': 'table table-bordered'})
+                             extra_card_context={'table_css_class': 'table table-bordered'},
+                             collapsed=False)
         card.add_entry(value='Welcome using the table template2', label='Sample')
         card.add_entry(value='This is some sample text2', label='Text')
         card.add_html_entry(template_name='cards_examples/sample_entry.html', colspan=2)
+
+        card = self.add_card('welcome3',
+                             title='Table Examples',
+                             template_name='table',
+                             extra_card_context={'table_css_class': 'table table-bordered'},
+                             collapsed=False)
+
+        card.add_entry(value='Description', label='Value', value_th=True, extra_cells=[''])
+
+        card.add_rows(({'value': 'Welcome using the table template2',
+                        'label': 'Sample', 'label_td': True},
+                       {'value': 'Value 1-1'}))
+
+        card.add_entry(value='Welcome using the table template2', label='Total', value_th=True)
 
 
 class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
@@ -33,6 +48,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_split_card()
         self.add_table_multiple_columns()
         self.add_other_card()
+        collapsed_card = self.add_collapsed_card()
         self.add_person_card()
         self.add_multi_fields_card()
         self.add_company_card()
@@ -42,7 +58,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_html_file_card()
         self.add_empty_message_card()
 
-        self.add_card_group('welcome', 'split', 'table_multiple_columns', 'other', 'person', 'multi_fields_example',
+        self.add_card_group('welcome', 'split', 'table_multiple_columns',
+                            'other', 'person', 'multi_fields_example', collapsed_card,
                             div_css_class='col-6 float-left', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
@@ -56,14 +73,18 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='sample text', label='Sample')
 
     def add_split_card(self):
-        card = self.add_card('split', title='Split Column')
+        card = self.add_card('split', title='Split Column', collapsed=False)
         card.add_rows(({'value': 'Hello'}, {'value': 'World'}),
                       ({'value': 'Hello'}, {'value': 'World'}, {'value': ':)'}),
                       ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},
                        {'value': 'World', 'entry_css_class': 'col-sm-3'}))
 
     def add_table_multiple_columns(self):
-        card = self.add_card('table_multiple_columns', title='Table Multiple Columns', template_name='table')
+        card = self.add_card('table_multiple_columns',
+                             title='Table Multiple Columns',
+                             template_name='table',
+                             extra_card_context={'table_css_class': 'table table-bordered'},
+                             collapsed=False)
         card.add_rows(({'value': 'Value 1-0', 'label': 'Row 1'}, {'value': 'Value 1-1', 'colspan': 2}),
                       ({'value': 'Value 2-0', 'label': 'Row 2'}, {'value': 'Value 2-1'}, {'value': 'Value 2-2'}))
 
@@ -71,7 +92,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                       {'value': 'Value 4-0', 'label': 'Row 4'}, extra_row_kwargs={'colspan': 3})
 
     def add_other_card(self):
-        card = self.add_card('other', title='Other')
+        card = self.add_card('other', title='Other', collapsed=False)
         card.add_rows({'value': 'This should be in uppercase',
                        'label': 'CSS Class',
                        'css_class': 'text-uppercase'},
@@ -80,8 +101,19 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                        'label': 'Html Override',
                        'html_override': '<div class="alert alert-warning">%1%</div>'})
 
+    def add_collapsed_card(self):
+        card = self.add_card(title='Collapsed by default', collapsed=True)
+        card.add_rows({'value': 'This should be in uppercase',
+                       'label': 'CSS Class',
+                       'css_class': 'text-uppercase'})
+        return card
+
     def add_html_string_card(self):
-        self.add_card('html_string', title='HTML string sample', group_type=CARD_TYPE_HTML, html='<h1>Hello</h2>')
+        self.add_card('html_string',
+                      title='HTML string sample',
+                      group_type=CARD_TYPE_HTML,
+                      html='<h1>Hello</h2>',
+                      collapsed=False)
 
     def add_html_file_card(self):
         self.add_html_card(card_name='html_file',
@@ -106,11 +138,17 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     def add_company_card(self):
         company = Company.objects.first()
         if company is None:
-            card = self.add_card('company', title='Company')
+            card = self.add_card('company',
+                                 title='Company',
+                                 collapsed=False)
             card.add_entry(value='Warning No Companies in the system', label=None,
                            html_override='<div class="alert alert-warning">%1%</div>')
         else:
-            card = self.add_card('company', title='Company', details_object=company, show_created_modified_dates=True)
+            card = self.add_card('company',
+                                 title='Company',
+                                 details_object=company,
+                                 show_created_modified_dates=True,
+                                 collapsed=False)
             card.add_rows(['name', 'active'],
                           [{'field': 'company_category__name', 'label': 'category'}],
                           'importance',
@@ -127,7 +165,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_card('companies',
                       title='Company (Datatables)',
                       group_type=CARD_TYPE_DATATABLE,
-                      datatable_model=Company)
+                      datatable_model=Company,
+                      collapsed=False)
 
     # noinspection PyMethodMayBeStatic
     def setup_table_companies(self, table, details_object):

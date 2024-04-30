@@ -3,9 +3,14 @@
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{{ card.title }}</h5>
                 {{ card.menu.render }}
+                {% if card.enable_collapse %}
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+                <i class="expandicon"></i>
+            </div>
+            {% endif %}
             </div>
         </div>
-        <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
+        <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
             {{ card.extra_card_info.html|safe }}
         </div>
         {% if card.footer %}

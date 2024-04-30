@@ -1,6 +1,7 @@
 import datetime
 import json
 
+from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -74,7 +75,10 @@ class CardBase:
                  menu=None, tab_menu=None, template_name=None, call_details_data=False,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
-                 is_empty=False, empty_template_name=None, empty_message='N/A', **kwargs):
+                 is_empty=False, empty_template_name=None, empty_message='N/A', collapsed=None, **kwargs):
+
+        if code is None:
+            code = random_string()
 
         self.code = code
         self.view = view
@@ -94,6 +98,8 @@ class CardBase:
             tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*tab_menu)
         self.tab_menu = tab_menu
         self.call_details_data = call_details_data
+        self.enable_collapse = collapsed is not None
+        self.collapsed = collapsed
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
