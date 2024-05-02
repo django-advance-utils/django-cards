@@ -103,9 +103,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
     def add_collapsed_card(self):
         card = self.add_card(title='Collapsed by default', collapsed=True)
-        card.add_rows({'value': 'This should be in uppercase',
-                       'label': 'CSS Class',
-                       'css_class': 'text-uppercase'})
+        card.add_rows({'value': 'Boo'})
         return card
 
     def add_html_string_card(self):
@@ -125,7 +123,8 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('empty_list_message',
                              title='Empty Message',
                              is_empty=True,
-                             empty_message='This is empty with is_empty=True')
+                             empty_message='This is empty with is_empty=True',
+                             collapsed=False)
         card.add_rows(({'value': 'Hello'}, {'value': 'World'}),
                       ({'value': 'Hello'}, {'value': 'World'}, {'value': ':)'}),
                       ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},

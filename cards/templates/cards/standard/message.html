@@ -6,10 +6,16 @@
                 <div class="d-flex align-items-center">
                     <h5 class="mr-auto">{{ card.title|safe }}</h5>
                     {{ card.menu.render }}
+                    {% if card.enable_collapse %}
+                        <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}"
+                             data-target="#{{ card.code }}_body" data-toggle="collapse">
+                            <i class="expandicon"></i>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         {% endif %}
-        <div class="card-body jms-list {{ card_body_css_class }}">
+        <div class="card-body jms-list {{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
             <div class="alert {{ alert_css_class }} mb-0 small">{{ message|safe }}</div>
         </div>
     </div>

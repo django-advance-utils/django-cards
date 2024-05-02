@@ -5,10 +5,11 @@
                 <h5 class="mr-auto">{{ card.title }}</h5>
                 {{ card.menu.render }}
                 {% if card.enable_collapse %}
-            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
-                <i class="expandicon"></i>
-            </div>
-            {% endif %}
+                    <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}"
+                         data-target="#{{ card.code }}_body" data-toggle="collapse">
+                        <i class="expandicon"></i>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
