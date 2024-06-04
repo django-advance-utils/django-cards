@@ -460,7 +460,6 @@ class CardBase:
                 o = self.extra_card_info['datatable_model'].objects.get(id=s[1])
                 setattr(o, order_field, s[0])
                 o.save()
-        return self.command_response('null')
 
     @staticmethod
     def label_from_field(field, field_type):

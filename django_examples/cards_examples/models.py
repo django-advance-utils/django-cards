@@ -99,3 +99,13 @@ class Payment(TimeStampedModel):
     quantity = models.IntegerField()
     received = models.BooleanField(default=False)
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
+
+
+class Status(TimeStampedModel):
+    name = models.CharField(max_length=80)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        self.set_order_field()
+        super().save(*args, **kwargs)
+

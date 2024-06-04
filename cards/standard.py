@@ -140,3 +140,11 @@ class CardMixin:
             getattr(self, field_setup_table_field)(table=table, details_object=self.cards[table_id].details_object)
         table.columns[kwargs['changed'][0]].alter_object(row_object, row_data[kwargs['changed'][0]])
         return table.refresh_row(self.request, kwargs['row_no'])
+
+
+    def datatable_sort(self, **kwargs):
+        self.setup_datatable_cards()
+        card = self.cards.get(kwargs.get('table_id', ''))
+        card.datatable_sort(**kwargs)
+
+        return self.command_response('null')

@@ -14,6 +14,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:list_adv,-', 'List Adv'),
             ('cards_examples:tree,-', 'Tree'),
             ('cards_examples:datatable', 'Datatable'),
+            ('cards_examples:datatable_order', 'Datatable Order'),
             ('cards_examples:child_cards', 'Child Cards'),
             MenuItem(url='admin:index',
                      menu_display='Admin',

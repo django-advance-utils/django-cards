@@ -5,7 +5,7 @@ from cards_examples.views.list import ExampleCompanyCardList, ExampleCompanyCard
     ExampleCompanyCardAdvancedList
 from cards_examples.views.main import ExampleIndex, ExampleCardsIndex
 from cards_examples.views.tree import ExampleCompanyTree
-from cards_examples.views.datatable import DatatableExample
+from cards_examples.views.datatable import DatatableExample, DatatableOrderExample
 
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
@@ -29,6 +29,7 @@ urlpatterns = [
     path('child-cards/', ChildCardExampleIndex.as_view(), name='child_cards'),
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
+    path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
 ]
 
 

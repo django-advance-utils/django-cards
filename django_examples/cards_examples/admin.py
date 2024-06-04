@@ -1,6 +1,6 @@
 from django.contrib import admin
 from cards_examples.models import Company, Person, Tags, Sector, Tally, Payment,\
-    CompanyInformation, CompanyCategory
+    CompanyInformation, CompanyCategory, Status
 from django.contrib.auth.admin import UserAdmin
 
 from cards_examples.models import UserProfile
@@ -75,3 +75,10 @@ admin.site.register(UserProfile, UserAdmin)
 class CompanyCategoryAdmin(admin.ModelAdmin):
     list_display = ('name',
                     )
+
+
+@admin.register(Status)
+class CStatusAdmin(admin.ModelAdmin):
+    list_display = ('name',
+                    'order')
+
