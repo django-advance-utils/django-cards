@@ -129,6 +129,15 @@ class CardMixin:
 
         return self.add_card(group_type=CARD_TYPE_HTML, html=html, is_empty=is_empty, **kwargs)
 
+    def add_html_data_card(self, html, is_empty=False, **kwargs):
+        if not is_empty and html is not None:
+            if not isinstance(html, str) and hasattr(html, 'render'):
+                html = html.render()
+        else:
+            html = ''
+        return self.add_card(group_type=CARD_TYPE_HTML, html=html, is_empty=is_empty, **kwargs)
+
+
     def row_edit(self, **kwargs):
         row_data = json.loads(kwargs.pop('row_data'))
         self.setup_datatable_cards()
@@ -140,7 +149,6 @@ class CardMixin:
             getattr(self, field_setup_table_field)(table=table, details_object=self.cards[table_id].details_object)
         table.columns[kwargs['changed'][0]].alter_object(row_object, row_data[kwargs['changed'][0]])
         return table.refresh_row(self.request, kwargs['row_no'])
-
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()

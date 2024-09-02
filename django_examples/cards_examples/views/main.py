@@ -63,7 +63,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                             div_css_class='col-6 float-left', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
-        self.add_card_group('html_string', 'html_file', 'empty_list_message',  div_css_class='col-12 float-right')
+        self.add_card_group('html_string', 'html_file', 'empty_list_message', div_css_class='col-12 float-right')
 
     def add_welcome_card(self):
         menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]
@@ -107,15 +107,14 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         return card
 
     def add_html_string_card(self):
-        self.add_card('html_string',
-                      title='HTML string sample',
-                      group_type=CARD_TYPE_HTML,
-                      html='<h1>Hello</h2>',
-                      collapsed=False)
+        self.add_html_data_card(card_name='html_string',
+                                title='HTML string sample',
+                                html='<h1>Hello</h2>',
+                                collapsed=False)
 
     def add_html_file_card(self):
         self.add_html_card(card_name='html_file',
-                           title='HTML string sample',
+                           title='HTML file card',
                            context_template_name='cards_examples/hello_world.html',
                            context={'from_view': 'this is from the view'})
 
