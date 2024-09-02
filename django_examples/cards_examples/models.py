@@ -92,6 +92,11 @@ class Tally(models.Model):
         verbose_name_plural = 'Tallies'
 
 
+class PaymentTag(models.Model):
+    tag = models.CharField(max_length=40)
+    colour = models.CharField(max_length=8)
+
+
 class Payment(TimeStampedModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     date = models.DateField()
@@ -99,6 +104,7 @@ class Payment(TimeStampedModel):
     quantity = models.IntegerField()
     received = models.BooleanField(default=False)
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
+    payment_tags = models.ManyToManyField(PaymentTag, blank=True)
 
 
 class Status(TimeStampedModel):
@@ -108,4 +114,3 @@ class Status(TimeStampedModel):
     def save(self, *args, **kwargs):
         self.set_order_field()
         super().save(*args, **kwargs)
-
