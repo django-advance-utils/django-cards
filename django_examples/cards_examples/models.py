@@ -61,6 +61,7 @@ class Person(models.Model):
     surname = models.CharField(max_length=80)
     date_entered = models.DateField(auto_now_add=True)
     age = models.IntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
 
 class Tags(models.Model):

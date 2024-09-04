@@ -49,7 +49,7 @@ class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
                                  title='Person', details_object=person)
             card.add_row_style('test', html=HtmlDiv([HtmlElement(element='span',
                                                                  contents=[
-                                                                     HtmlElement(element='h3', contents='{label}')]),
+                                                                     HtmlElement(element='h1', contents='{label}')]),
                                                      HtmlElement(element='span', contents='{value}')]),
                                is_default=True)
 
@@ -59,6 +59,9 @@ class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
                                                       HtmlElement(element='span', contents='{value[0]} -- {value[1]}')]))
 
             card.add_entry(field=['first_name', 'surname'], label='Names', row_style='multi')
+
+            card.add_rows('is_active',
+                          {'field': ['first_name', 'surname'], 'label': 'Names', 'row_style': 'multi'})
 
         return card
 
