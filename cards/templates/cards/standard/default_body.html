@@ -3,9 +3,11 @@
 <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
     <div class="list-group">
         {% for row in card.rows %}
+
             {% if row.type == 'html' %}<div class="{{ item_css_class }}">{{ row.html|safe }}</div>{% else %}
             {% if row.type == 'multiple' %}<div class="{{ item_css_class }}"><div class="row">{% endif %}
             {% for entry in row.entries %}
+                {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}
                 {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
                 {% if entry.link %}<a class="{{ item_css_class }} cards-list-group-item" href="{{ entry.link }}" style="{{ item_css }}">{% elif row.type != 'multiple' %}<div class="{{ item_css_class }}" style="{{ item_css }}">{% endif %}
                     {% if entry.label %}
@@ -21,7 +23,7 @@
                         {{ entry.html|safe }}
                     {% endif %}
             {% if entry.link %}</a>{% elif row.type != 'multiple' %}</div>{% endif %}
-             {% if entry.entry_css_class %}</div>{% endif %}
+             {% if entry.entry_css_class %}</div>{% endif %}{% endif %}
             {% endfor %}
             {% if row.type == 'multiple' %}</div></div>{% endif %}
             {% endif %}

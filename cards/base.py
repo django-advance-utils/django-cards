@@ -89,6 +89,8 @@ class CardBase:
         self.footer = footer
 
         self.rows = []
+        self._row_styles = {}
+        self._default_row_styles = None
         self.title = title
         self.created_modified_dates = self.get_created_modified_dates(details_object=details_object)
         if isinstance(menu, (list, tuple)):
@@ -199,7 +201,7 @@ class CardBase:
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
-                  html_override=None, value_method=None, value_type=None, default_if=None, **kwargs):
+                  html_override=None, value_method=None, value_type=None, default_if=None, row_style=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -214,6 +216,7 @@ class CardBase:
                                          value_method=value_method,
                                          value_type=value_type,
                                          default_if=default_if,
+                                         row_style=row_style,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -224,6 +227,17 @@ class CardBase:
         context = {**context, **kwargs}
         html = render_to_string(template_name=template_name, context=context)
         self.rows.append({'type': 'html', 'html': html, **kwargs})
+
+    def add_row_style(self, name, html, is_default=False):
+        if not isinstance(html, str) and hasattr(html, 'render'):
+            html = html.render()
+        self._row_styles[name] = html
+        if is_default:
+            self._default_row_styles = name
+
+    def set_default_style(self, name=None):
+        if name in self._row_styles:
+            self._default_row_styles = name
 
     def get_field_value(self, value, field, label):
         field_type = None
@@ -304,7 +318,7 @@ class CardBase:
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=False, html_override=None,
                             value_method=None, value_type=None,
-                            entry_css_class=None, css_class=None, menu=None, default_if=None,
+                            entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             **kwargs):
 
         value, label, field_type = self.get_field_value(value=value, field=field, label=label)
@@ -378,6 +392,21 @@ class CardBase:
 
             if menu is not None and isinstance(menu, (list, tuple)):
                 menu = HtmlMenu(self.request, self.button_menu_type).add_items(*menu)
+            row_style_html = None
+            if (row_style is not None and row_style in self._row_styles) or self._default_row_styles is not None:
+
+                if row_style is not None:
+                    html_row_style = self._row_styles[row_style]
+                else:
+                    html_row_style = self._row_styles[self._default_row_styles]
+
+                value_dict = {'value': value,
+                              'label': label,
+                              'menu': menu,
+                              'link': link,
+                              **kwargs}
+
+                row_style_html = html_row_style.format(**value_dict)
 
             entry = {'label': label,
                      'html': value,
@@ -386,6 +415,7 @@ class CardBase:
                      'multiple_lines': multiple_parts,
                      'link': link,
                      'menu': menu,
+                     'row_style_html': row_style_html,
                      **kwargs}
             return entry
 

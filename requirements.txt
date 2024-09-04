@@ -14,3 +14,6 @@ git+https://github.com/jonesim/ajax-helpers.git@af8cb2d0bc1a8c41fbe43cca6f399d7e
 time-stamped-model==0.2.2
 date-offset==0.0.2
 django-debug-toolbar==3.2.4
+
+# make-html==0.0.2
+git+https://github.com/jonesim/html-classes.git@96a44f4a5806371e7acfd37d1a0debdebae9739e
