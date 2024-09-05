@@ -1,5 +1,6 @@
 from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
+from django_menus.menu import MenuItem
 from html_classes.html import HtmlElement, HtmlDiv
 
 from cards.standard import CardMixin
@@ -53,15 +54,34 @@ class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
                                                      HtmlElement(element='span', contents='{value}')]),
                                is_default=True)
 
-            card.add_row_style('multi', html=HtmlDiv([HtmlElement(element='span',
-                                                                  contents=[
-                                                                      HtmlElement(element='h3', contents='{label}')]),
-                                                      HtmlElement(element='span', contents='{value[0]} -- {value[1]}')]))
+            card.add_row_style('with_menu', html=HtmlDiv([HtmlElement(element='span',
+                                                                      contents=[
+                                                                          HtmlElement(element='h5',
+                                                                                      contents='{label}')]),
+                                                          HtmlElement(element='span', contents='{value}'),
+                                                          HtmlElement(element='span', contents='{menu}')]))
+
+            card.add_row_style('multi',
+                               html=HtmlDiv([HtmlElement(element='span',
+                                                         contents=[
+                                                             HtmlElement(element='h3', contents='{label}')]),
+                                             HtmlElement(element='span', contents='{value[0]} -- {value[1]}')]))
+
+            card.add_row_style('crash', html=HtmlDiv([HtmlElement(element='span',
+                                                                 contents=[
+                                                                     HtmlElement(element='h1', contents='{label}')]),
+                                                     HtmlElement(element='span', contents='{foo}')]))
+
 
             card.add_entry(field=['first_name', 'surname'], label='Names', row_style='multi')
 
+            menu = [MenuItem('cards_examples:hello_modal', menu_display='',
+                             font_awesome='fas fa-edit', css_classes='btn btn-link')]
+
             card.add_rows('is_active',
-                          {'field': ['first_name', 'surname'], 'label': 'Names', 'row_style': 'multi'})
+                          {'field': ['first_name', 'surname'], 'label': 'Names', 'row_style': 'multi'},
+                          {'field': 'first_name', 'menu': menu, 'row_style': 'with_menu'},
+                          {'field': 'first_name', 'menu': menu, 'row_style': 'crash'},)
 
         return card
 

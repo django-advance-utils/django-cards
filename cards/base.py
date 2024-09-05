@@ -1,5 +1,6 @@
 import datetime
 import json
+from collections import defaultdict
 
 from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
@@ -410,11 +411,11 @@ class CardBase:
 
                 value_dict = {'value': value,
                               'label': label,
-                              'menu': menu,
                               'link': link,
                               **kwargs}
-
-                row_style_html = html_row_style.format(**value_dict)
+                if menu is not None:
+                    value_dict['menu'] = menu.render()
+                row_style_html = html_row_style.format_map(defaultdict(lambda: '', value_dict))
 
             entry = {'label': label,
                      'html': value,
