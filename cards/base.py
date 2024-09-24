@@ -17,6 +17,7 @@ CARD_TYPE_ORDERED_DATATABLE = 3
 CARD_TYPE_HTML = 4
 CARD_TYPE_LIST_SELECTION = 5
 CARD_TYPE_CARD_GROUP = 6
+CARD_TYPE_CARD_LAYOUT = 7
 
 
 class CardBase:
@@ -42,6 +43,10 @@ class CardBase:
                                 'context': {'card_css_class': 'card django-card',
                                             'card_body_css_outer_class': 'card-body',
                                             'card_body_css_inner_class': 'row cards-list'}},
+                 'card_layout': {'name': 'cards/standard/card_group.html',
+                                 'context': {'card_body_css_outer_class': '',
+                                             'card_css_class': '',
+                                             'card_body_css_inner_class': 'row'}},
                  'list_selection': {'name': 'cards/standard/list_selection.html',
                                     'context': {'card_css_class': 'card django-card',
                                                 'card_link_css_class': 'list-group-item cards-list-group-item',
@@ -66,7 +71,8 @@ class CardBase:
                          CARD_TYPE_ORDERED_DATATABLE: 'datatable',
                          CARD_TYPE_HTML: 'html',
                          CARD_TYPE_LIST_SELECTION: 'list_selection',
-                         CARD_TYPE_CARD_GROUP: 'card_group'}
+                         CARD_TYPE_CARD_GROUP: 'card_group',
+                         CARD_TYPE_CARD_LAYOUT: 'card_layout'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -561,7 +567,7 @@ class CardBase:
 
     def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='',
                              div_inner_css='', override_card_context=None):
-        if self.group_type != CARD_TYPE_CARD_GROUP:
+        if self.group_type not in [CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT]:
             raise Exception('This will only work for card group')
         self.child_card_groups.append({'div_css_class': div_css_class,
                                        'div_inner_css_class': div_inner_css_class,

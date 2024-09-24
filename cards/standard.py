@@ -4,7 +4,7 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT
 
 
 class CardPostError(Exception):
@@ -86,6 +86,10 @@ class CardMixin:
         if card_name is not None:
             self.cards[card_name] = card
         return card
+
+    def add_layout_card(self, card_name=None):
+        return self.add_card(card_name=card_name,
+                             group_type=CARD_TYPE_CARD_LAYOUT)
 
     def get_context_data(self, **kwargs):
         self.setup_datatable_cards()

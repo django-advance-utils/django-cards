@@ -1,13 +1,17 @@
 {% load django_cards_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+
+    {% if card.title or card.menu %}
     <div class="card-header">
         <div class="d-flex align-items-center">
             <h5 class="mr-auto">{{ card.title }}</h5>
             {{ card.menu.render }}
         </div>
     </div>
+    {% endif %}
     {{ card.tab_menu.render }}
-    <div class="{{ card_body_css_outer_class }}">
+
+    {% if card_body_css_outer_class %}<div class="{{ card_body_css_outer_class }}">{% endif %}
         <div class="{{ card_body_css_inner_class }}">
             {% for group in card.child_card_groups %}
                 <div class="{{ group.div_css_class }}">
@@ -23,7 +27,7 @@
                 </div>
             {% endfor %}
         </div>
-    </div>
+    {% if card_body_css_outer_class %}</div>{% endif %}
     {% if card.footer %}
         <div class="card-footer">
             <small style="text-align: left">{{ card.footer|safe }}</small>
