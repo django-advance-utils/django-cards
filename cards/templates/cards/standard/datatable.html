@@ -22,6 +22,7 @@
         {{ card.tab_menu.render }}
         <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body"
              {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
+                {{ top|safe }}
             {% if show_search_bar and not show_pivot_table %}
                 <div class="d-flex">
                     <div class="p-2">{% no_of_results card.extra_card_info.datatable %}</div>
@@ -31,6 +32,7 @@
                 </div>
             {% endif %}
             {{ card.extra_card_info.datatable.render|safe }}
+            {{ bottom|safe }}
         </div>
         {% if card.footer %}
             <div class="card-footer">

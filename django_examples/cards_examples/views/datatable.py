@@ -26,6 +26,8 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
                       datatable_model=Company,
                       extra_card_context={'show_search_bar': False,
                                           'show_pivot_table': True,
+                                          'top': '<h5 style="padding-left: 10px">This is top</h5>',
+                                          'bottom': '<h5 style="padding-left: 10px">This is bottom</h5>'
                                           # 'pivot_filter_class': 'col-4 float-left',
                                           # 'pivot_table_class': 'col-8 col-4 float-left'
                                           },
