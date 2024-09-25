@@ -20,7 +20,8 @@ class CardListMixin(CardListBaseMixin):
 
     model = None
 
-    def add_list_card(self):
+    def setup_cards(self):
+
         list_menu = self.get_list_menu()
         selected_id = self.slug.get('pk')
         self.display_list_entries()
@@ -32,22 +33,14 @@ class CardListMixin(CardListBaseMixin):
         if selected_id:
             selected_id = int(selected_id)
 
-        context = {'list_title': self.list_title,
-                   'entries': self.list_entries,
-                   'selected_id': selected_id,
-                   'empty_list_message': self.empty_list_message(),
-                   'details_button_action_name': 'details_html',
-                   'details_empty_button_action_name': 'empty_details_html'}
+        self.add_list_card(card_name='list_card',
+                           list_entries=self.list_entries,
+                           list_title=self.list_title,
+                           selected_id=selected_id,
+                           list_menu=list_menu,
+                           list_template_name=self.list_template_name,
+                           empty_list_message=self.empty_list_message())
 
-        self.add_card('list_card',
-                      title=self.list_title,
-                      menu=list_menu,
-                      group_type=CARD_TYPE_HTML,
-                      template_name=self.list_template_name,
-                      extra_card_context=context)
-
-    def setup_cards(self):
-        self.add_list_card()
         self.add_card('details_card',
                       group_type=CARD_TYPE_HTML,
                       template_name='blank',

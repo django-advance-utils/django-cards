@@ -1,10 +1,10 @@
 from cards_examples.models import Company, Person
+from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
 from django_menus.menu import MenuItem
 
-from cards.base import CARD_TYPE_DATATABLE, CARD_TYPE_HTML
+from cards.base import CARD_TYPE_DATATABLE
 from cards.standard import CardMixin
-from cards_examples.views.base import MainMenu
 
 
 class ExampleIndex(MainMenu, CardMixin, TemplateView):

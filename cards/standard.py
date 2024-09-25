@@ -91,6 +91,29 @@ class CardMixin:
         return self.add_card(card_name=card_name,
                              group_type=CARD_TYPE_CARD_LAYOUT)
 
+
+    def add_list_card(self, list_entries, card_name=None, list_title='Entries',
+                      selected_id='', list_menu=None, list_template_name='list_selection',
+                      empty_list_message='No entries setup yet!',
+                      extra_card_context=None):
+
+        context = {'list_title': list_title,
+                   'entries': list_entries,
+                   'selected_id': selected_id,
+                   'empty_list_message': empty_list_message,
+                   'details_button_action_name': 'details_html',
+                   'details_empty_button_action_name': 'empty_details_html'}
+        if extra_card_context is not None:
+            context.update(extra_card_context)
+
+        card = self.add_card(card_name=card_name,
+                             title=list_title,
+                             menu=list_menu,
+                             group_type=CARD_TYPE_HTML,
+                             template_name=list_template_name,
+                             extra_card_context=context)
+        return card
+
     def get_context_data(self, **kwargs):
         self.setup_datatable_cards()
         self.setup_cards()
