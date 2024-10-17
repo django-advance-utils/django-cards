@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 
 from ajax_helpers.utils import random_string
+from crispy_forms.templatetags.crispy_forms_filters import as_crispy_field
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -18,6 +19,7 @@ CARD_TYPE_HTML = 4
 CARD_TYPE_LIST_SELECTION = 5
 CARD_TYPE_CARD_GROUP = 6
 CARD_TYPE_CARD_LAYOUT = 7
+CARD_TYPE_MODAL = 8
 
 
 class CardBase:
@@ -62,7 +64,10 @@ class CardBase:
                  'blank': {'name': 'cards/standard/blank.html'},
                  'message': {'name': 'cards/standard/message.html',
                              'context': {'card_css_class': 'card django-card',
-                                         'alert_css_class': 'alert-warning'}}}
+                                         'alert_css_class': 'alert-warning'}},
+                 'modal': {'name': 'cards/standard/modal.html',
+                           'context': {'card_body_css_class': 'card-body cards-list',
+                                       'item_css_class': 'list-group-item'}}}
 
     ajax_commands = ['datatable']
 
@@ -72,7 +77,8 @@ class CardBase:
                          CARD_TYPE_HTML: 'html',
                          CARD_TYPE_LIST_SELECTION: 'list_selection',
                          CARD_TYPE_CARD_GROUP: 'card_group',
-                         CARD_TYPE_CARD_LAYOUT: 'card_layout'}
+                         CARD_TYPE_CARD_LAYOUT: 'card_layout',
+                         CARD_TYPE_MODAL: 'modal'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -82,7 +88,7 @@ class CardBase:
                  menu=None, tab_menu=None, template_name=None, call_details_data=False,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
-                 is_empty=False, empty_template_name=None, empty_message='N/A', collapsed=None, **kwargs):
+                 is_empty=False, empty_template_name=None, empty_message='N/A', collapsed=None, form=None, **kwargs):
 
         if code is None:
             code = random_string()
@@ -109,6 +115,7 @@ class CardBase:
         self.call_details_data = call_details_data
         self.enable_collapse = collapsed is not None
         self.collapsed = collapsed
+        self.form = form
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -212,7 +219,8 @@ class CardBase:
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
-                  html_override=None, value_method=None, value_type=None, default_if=None, row_style=None, **kwargs):
+                  html_override=None, value_method=None, value_type=None, default_if=None, row_style=None,
+                  form_field=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
                                          field=field,
@@ -228,6 +236,7 @@ class CardBase:
                                          value_type=value_type,
                                          default_if=default_if,
                                          row_style=row_style,
+                                         form_field=form_field,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -331,9 +340,13 @@ class CardBase:
                             hidden=False, hidden_if_blank_or_none=False, html_override=None,
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
-                            **kwargs):
+                            form_field=None, **kwargs):
 
-        value, label, field_type = self.get_field_value(value=value, field=field, label=label)
+        if form_field is not None:
+            value = as_crispy_field(self.form[form_field])
+            field_type = None
+        else:
+            value, label, field_type = self.get_field_value(value=value, field=field, label=label)
 
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None
@@ -537,14 +550,15 @@ class CardBase:
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
-    def render(self, override_card_context=None):
+    def render(self, *arg, override_card_context=None, **kwargs):
         extra_card_context = self.extra_card_context
         context = {'card': self,
                    'request': self.request,
                    'card_types': {'standard': CARD_TYPE_STANDARD,
                                   'datatable': CARD_TYPE_DATATABLE,
                                   'ordered_datatable': CARD_TYPE_ORDERED_DATATABLE,
-                                  'html': CARD_TYPE_HTML}}
+                                  'html': CARD_TYPE_HTML,
+                                  'modal': CARD_TYPE_MODAL}}
 
         if extra_card_context is not None:
             context = {**context, **extra_card_context}

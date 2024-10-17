@@ -4,6 +4,7 @@ from cards_examples.views.base import HelloModal
 from cards_examples.views.list import ExampleCompanyCardList, ExampleCompanyCardEmptyList, \
     ExampleCompanyCardAdvancedList
 from cards_examples.views.main import ExampleIndex, ExampleCardsIndex
+from cards_examples.views.modal import ModalExampleIndex, SimpleModal, ExampleFormModal
 from cards_examples.views.tree import ExampleCompanyTree
 from cards_examples.views.datatable import DatatableExample, DatatableOrderExample
 
@@ -31,6 +32,10 @@ urlpatterns = [
     path('child-cards/', ChildCardExampleIndex.as_view(), name='child_cards'),
 
     path('row-styles/', RowStyleExampleIndex.as_view(), name='row_styles'),
+    path('modal-example/', ModalExampleIndex.as_view(), name='modal_example'),
+
+    path('modal-example/modal/simple/', SimpleModal.as_view(), name='simple_modal'),
+    path('modal_example/modal/form/', ExampleFormModal.as_view(), name='form_modal'),
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
     path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
