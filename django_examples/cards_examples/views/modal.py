@@ -34,7 +34,39 @@ class ModalExampleIndex(MainMenu, CardMixin, TemplateView):
 
 
 class CardModalMixin(CardMixin, Modal):
-    pass
+    card_methods = ['main_card']
+
+    def main_card(self, *args, **kwargs):
+        pass
+
+    def get_cards(self):
+        cards = [getattr(self, card_method)() for card_method in self.card_methods]
+        return cards
+
+    # noinspection PyUnresolvedReferences
+    def modal_content(self):
+        main_card, cards = self.main_card(*args, **kwargs), self.get_cards()
+        if all([main_card is not None, cards is not None]):
+            all_cards = [main_card, *cards]
+
+
+
+        # need card groups now
+        # return cards[0].render() if len(cards) == 1 else 0 # otherwise do cards
+
+
+class SimpleModal(CardModalMixin):
+    button_container_class = 'text-center'
+
+    def main_card(self):
+        card = self.add_card(template_name='modal')
+        card.add_entry(label='Label', value='Value')
+        card.add_entry(label='Another Label', value='Another Value')
+        return card
+
+    # def modal_content(self):
+    #     card = self.main_card()
+    #     return card.render()
 
 
 class CardFormMixin(CardMixin):
@@ -90,20 +122,6 @@ class ModalCompanyForm(CardModelFormModalMixin):
         card.add_entry(value=['a', 'b'], label='test', html_override="<b>%1%</b>")
         card.add_entry(form_field='name')
         card.add_entry(field='sectors')
-
-
-class SimpleModal(CardModalMixin):
-    button_container_class = 'text-center'
-
-    def example_card(self):
-        card = self.add_card(template_name='modal')
-        card.add_entry(label='Label', value='Value')
-        card.add_entry(label='Another Label', value='Another Value')
-        return card
-
-    def modal_content(self):
-        card = self.example_card()
-        return card.render()
 
 
 class ExampleFormModal(CardFormModalMixin):
