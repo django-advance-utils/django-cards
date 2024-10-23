@@ -39,7 +39,6 @@ class ModalExampleIndex(MainMenu, CardMixin, TemplateView):
 
 
 class SimpleMainCard(CardModalMixin):
-
     def main_card(self):
         card = self.add_card()
         card.add_entry(label='Label', value='Value')
@@ -153,3 +152,6 @@ class ModelFormCardModal(CardModelFormModalMixin):
         card.add_entry(value=['a', 'b'], label='test', html_override="<b>%1%</b>")
         card.add_entry(form_field='name')
         card.add_entry(field='sectors')
+
+
+# Multiple cards with model, form and setup_cards

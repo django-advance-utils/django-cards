@@ -341,7 +341,7 @@ class CardBase:
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             form_field=None, **kwargs):
-
+        # maybe need to run smart render routine around here
         if form_field is not None:
             value = as_crispy_field(self.form[form_field])
             field_type = None
