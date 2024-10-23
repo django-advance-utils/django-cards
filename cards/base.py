@@ -104,7 +104,10 @@ class CardBase:
         self.rows = []
         self._row_styles = {}
         self._default_row_styles = None
-        self.title = title
+        if title is not None:
+            self.title = mark_safe(title)
+        else:
+            self.title = None
         self.created_modified_dates = self.get_created_modified_dates(details_object=details_object)
         if isinstance(menu, (list, tuple)):
             menu = HtmlMenu(self.request, self.button_menu_type).add_items(*menu)
