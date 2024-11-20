@@ -82,7 +82,8 @@ class CardBase:
                  menu=None, tab_menu=None, template_name=None, call_details_data=False,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
-                 is_empty=False, empty_template_name=None, empty_message='N/A', collapsed=None, **kwargs):
+                 is_empty=False, empty_template_name=None, empty_message='N/A',
+                 collapsed=None, hidden_if_blank_or_none=None, **kwargs):
 
         if code is None:
             code = random_string()
@@ -112,6 +113,7 @@ class CardBase:
         self.call_details_data = call_details_data
         self.enable_collapse = collapsed is not None
         self.collapsed = collapsed
+        self.hidden_if_blank_or_none = hidden_if_blank_or_none
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -214,7 +216,7 @@ class CardBase:
             self.rows.append(row)
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
-                  default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=False,
+                  default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=None,
                   html_override=None, value_method=None, value_type=None, default_if=None, row_style=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
@@ -331,12 +333,15 @@ class CardBase:
                                         **kwargs)
 
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=False, html_override=None,
+                            hidden=False, hidden_if_blank_or_none=None, html_override=None,
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             **kwargs):
 
         value, label, field_type = self.get_field_value(value=value, field=field, label=label)
+
+        if hidden_if_blank_or_none is None:
+            hidden_if_blank_or_none = self.hidden_if_blank_or_none
 
         if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
             return None

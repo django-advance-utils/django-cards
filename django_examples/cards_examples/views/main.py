@@ -29,13 +29,15 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
                              title='Table Examples',
                              template_name='table',
                              extra_card_context={'table_css_class': 'table table-bordered'},
-                             collapsed=False)
+                             collapsed=False,
+                             hidden_if_blank_or_none=True)
 
         card.add_entry(value='Description', label='Value', value_th=True, extra_cells=[''])
 
         card.add_rows(({'value': 'Welcome using the table template2',
                         'label': 'Sample', 'label_td': True},
-                       {'value': 'Value 1-1'}))
+                       {'value': 'Value 1-1'}),
+                      {'field': '', 'title': 'this is hidden'})
 
         card.add_entry(value='Welcome using the table template2', label='Total', value_th=True)
 
