@@ -50,9 +50,7 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         return ajax_btn
 
     def button_message(self, **_kwargs):
-        self.add_command('message', text='Buttons')
-        self.add_command('null')
-        return self.command_response()
+        return self.command_response('message', text='Buttons')
 
 
 class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
