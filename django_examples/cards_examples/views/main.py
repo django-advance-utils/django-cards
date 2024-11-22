@@ -1,7 +1,7 @@
 from cards_examples.models import Company, Person
 from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
-from django_menus.menu import MenuItem
+from django_menus.menu import MenuItem, HtmlMenu, AjaxButtonMenuItem
 
 from cards.base import CARD_TYPE_DATATABLE
 from cards.standard import CardMixin
@@ -15,6 +15,7 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('welcome', title='Welcome', footer='This is a footer')
         card.add_entry(value='Welcome using the default template', label='Sample')
         card.add_entry(value='This is some sample text', label='Text')
+        card.add_entry(value=self.ajax_btn(), label='Buttons')
 
         card = self.add_card('welcome2',
                              title='Welcome Two',
@@ -38,8 +39,18 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
                         'label': 'Sample', 'label_td': True},
                        {'value': 'Value 1-1'}),
                       {'field': '', 'title': 'this is hidden'})
-
         card.add_entry(value='Welcome using the table template2', label='Total', value_th=True)
+
+    def ajax_btn(self):
+        ajax_btn = HtmlMenu(request=self.request, template='button_group') \
+            .add_items(AjaxButtonMenuItem(button_name='message',
+                                          menu_display='',
+                                          font_awesome='fa fa-question',
+                                          css_classes='btn btn-sm btn-primary')).render()
+        return ajax_btn
+
+    def button_message(self, **_kwargs):
+        return self.command_response('message', text='Buttons')
 
 
 class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
