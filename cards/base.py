@@ -6,6 +6,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
+from django.utils.text import slugify
 from django_datatables.datatables import DatatableTable
 from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
@@ -86,7 +87,10 @@ class CardBase:
                  collapsed=None, hidden_if_blank_or_none=None, **kwargs):
 
         if code is None:
-            code = random_string()
+            if title is not None:
+                code = slugify(title).replace('-', '_') + '_card'
+            else:
+                code = random_string()
 
         self.code = code
         self.view = view

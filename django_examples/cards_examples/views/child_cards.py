@@ -10,15 +10,16 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
-        self.setup_simple_example()
-        self.setup_complex_example()
+        simple_card = self.setup_simple_example()
+        complex_card = self.setup_complex_example()
 
         none_child_card = self.add_card(title='Card 1 Card')
         none_child_card.add_rows({'label': 'Label', 'value': 'Hello World'})
 
         layout_card = self.setup_layout_card()
 
-        self.add_card_group('simple', 'complex',
+        self.add_card_group(simple_card,
+                            complex_card,
                             none_child_card,
                             layout_card, div_css_class='col-12 float-left')
 
@@ -32,7 +33,7 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
         child_2_card.add_rows({'label': 'Label', 'value': 'Hello World'},
                               {'label': 'Description', 'value': 'This is a another child card'})
 
-        card = self.add_card('simple', title='Simple Example', group_type=CARD_TYPE_CARD_GROUP)
+        card = self.add_card(title='Simple Example', group_type=CARD_TYPE_CARD_GROUP)
         card.add_child_card_group(child_1_card,
                                   div_css_class='col-6 float-left',
                                   div_inner_css='border-style: solid;border-color: red')
@@ -40,6 +41,7 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
                                   div_css_class='col-6 float-left',
                                   div_inner_css='border-style: solid;background-color: #9a59b5;'
                                                 'border-color: #9a59b5; color: white')
+        return card
 
     def setup_complex_example(self):
         child_menu = [MenuItem('cards_examples:hello_modal', menu_display='Child Menu')]
@@ -62,6 +64,7 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
         card.add_child_card_group(child_2_card,
                                   div_css_class='col-6 float-left',
                                   div_inner_css='border-style: solid;border-color: #9a59b5')
+        return card
 
     def setup_layout_card(self):
         child_menu = [MenuItem('cards_examples:hello_modal', menu_display='Child Menu')]
