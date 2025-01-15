@@ -38,7 +38,8 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
         card.add_rows(({'value': 'Welcome using the table template2',
                         'label': 'Sample', 'label_td': True},
                        {'value': 'Value 1-1'}),
-                      {'field': '', 'title': 'this is hidden'})
+                      {'value': '', 'label': 'This is hidden'},
+                      {'value': 0.0, 'label': 'This is also hidden', 'hidden_if_zero': True},)
         card.add_entry(value='Welcome using the table template2', label='Total', value_th=True)
 
     def ajax_btn(self):

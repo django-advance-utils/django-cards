@@ -84,7 +84,7 @@ class CardBase:
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
                  is_empty=False, empty_template_name=None, empty_message='N/A',
-                 collapsed=None, hidden_if_blank_or_none=None, **kwargs):
+                 collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None, **kwargs):
 
         if code is None:
             if title is not None:
@@ -118,6 +118,7 @@ class CardBase:
         self.enable_collapse = collapsed is not None
         self.collapsed = collapsed
         self.hidden_if_blank_or_none = hidden_if_blank_or_none
+        self.hidden_if_zero = hidden_if_zero
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -137,7 +138,7 @@ class CardBase:
         self.child_card_groups = []
 
     # noinspection PyMethodMayBeStatic
-    def add_extra_card_info(self, extra_info, group_type,  **kwargs):
+    def add_extra_card_info(self, extra_info, group_type, **kwargs):
         if group_type in (CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE):
             extra_info['datatable_id'] = kwargs.get('datatable_id', self.code)
             extra_info['datatable'] = kwargs.get('datatable')
@@ -220,7 +221,7 @@ class CardBase:
             self.rows.append(row)
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
-                  default='N/A', link=None,  hidden=False, hidden_if_blank_or_none=None,
+                  default='N/A', link=None, hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None,
                   html_override=None, value_method=None, value_type=None, default_if=None, row_style=None, **kwargs):
 
         entry = self._add_entry_internal(value=value,
@@ -232,6 +233,7 @@ class CardBase:
                                          link=link,
                                          hidden=hidden,
                                          hidden_if_blank_or_none=hidden_if_blank_or_none,
+                                         hidden_if_zero=hidden_if_zero,
                                          html_override=html_override,
                                          value_method=value_method,
                                          value_type=value_type,
@@ -323,7 +325,7 @@ class CardBase:
                     if callable(value):
                         value = value()
                     html += html_barge.replace('%1%', str(value))
-                
+
         return self._add_entry_internal(label=label,
                                         value=html,
                                         default=default,
@@ -337,7 +339,7 @@ class CardBase:
                                         **kwargs)
 
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
-                            hidden=False, hidden_if_blank_or_none=None, html_override=None,
+                            hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None, html_override=None,
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             **kwargs):
@@ -347,7 +349,11 @@ class CardBase:
         if hidden_if_blank_or_none is None:
             hidden_if_blank_or_none = self.hidden_if_blank_or_none
 
-        if hidden or (hidden_if_blank_or_none and (value is None or value == '')):
+        if hidden_if_zero is None:
+            hidden_if_zero = self.hidden_if_zero
+
+        if hidden or (hidden_if_blank_or_none and (value is None or value == '') or
+                      (hidden_if_zero and isinstance(value, (float, int)) and value == 0)):
             return None
         if isinstance(value, bool):
             return self.add_boolean_entry(value=value,
