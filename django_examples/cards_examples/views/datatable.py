@@ -66,8 +66,6 @@ class DatatableOrderExample(MainMenu, CardMixin, TemplateView):
                       datatable_model=Status,)
 
     def setup_table_statuses(self, table, details_object):
-
-
         table.ajax_data = True
         table.add_columns(
             'id',
