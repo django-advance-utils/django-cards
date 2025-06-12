@@ -2,7 +2,7 @@ from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
 from django_menus.menu import MenuItem
 
-from cards.base import CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT
+from cards.base import CARD_TYPE_CARD_GROUP
 from cards.standard import CardMixin
 
 
