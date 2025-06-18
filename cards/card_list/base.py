@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django_datatables.reorder_datatable import reorder
 
 from cards.base import CARD_TYPE_STANDARD, CardBase, CARD_TYPE_HTML
 
@@ -28,6 +29,7 @@ class CardListBaseMixin:
 
     model = None
     datatable_model = None
+    order_field = 'order'
     list_title = ''
     menu_display = ''
     card_cls = CardBase
@@ -38,12 +40,6 @@ class CardListBaseMixin:
         self.cards = {}
 
     def dispatch(self, request, *args, **kwargs):
-        """
-        Processes the slug and checks permissions before continuing with dispatch.
-
-        Raises:
-            Exception: If permission is denied via `process_slug_kwargs()`.
-        """
         self.split_slug(kwargs)
         if self.process_slug_kwargs():
             # noinspection PyUnresolvedReferences
@@ -385,3 +381,7 @@ class CardListBaseMixin:
            list: A list of menu item dictionaries. Defaults to an empty list.
         """
         return []
+
+    def button_save_list_order(self, **kwargs):
+        reorder(model=self.model, order_field=self.order_field, sort_data=kwargs['sort'])
+        return self.command_response('null')

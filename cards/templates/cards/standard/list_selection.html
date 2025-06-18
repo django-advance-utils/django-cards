@@ -1,3 +1,12 @@
+<style>
+    .drop-placeholder {
+        height: 2px;
+        background: #007bff;
+        margin: 4px 0;
+    }
+</style>
+
+
 <script>
 
     var last_loaded_entry_id = null;
@@ -52,11 +61,16 @@
     </div>
     <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
     {% for entry in entries %}
-        <a class="{{ card_link_css_class }}" id="list_{{ entry.pk }}"
-           href="javascript:load_details({{ entry.pk }})">
+
+    <a class="{{ card_link_css_class }}{% if enable_reorder %} draggable-entry{% endif %}"
+       id="list_{{ entry.pk }}"
+       href="javascript:load_details({{ entry.pk }})"
+       {% if enable_reorder %} draggable="true" data-entry-id="{{ entry.pk }}"{% endif %}
+    >
             <div class="row">
                 <div class="col-sm-12">
-                    <h4 class="list-group-item-heading {{ entry.class }}">
+                    <h4 class="list-group-item-heading {{ entry.class }}">{% if enable_reorder %}
+                        <i class="btn btn-outline-secondary btn-sm fas fa-arrows-alt-v pl-0 pr-0 " style="width: 20px"></i>{% endif %}
                         {% if entry.colour %}<i class="fa fa-square"
                                                 style="color: #{{ entry.colour }};opacity: 1;"></i>{% endif %}{{ entry.name }}
                     </h4>
@@ -64,7 +78,7 @@
             </div>
         </a>
         {% if selected_id == entry.pk %}
-            <script>load_details({{ entry.pk }})</script>
+            <script>load_details({{ entry.pk }});</script>
         {% endif %}
         {% empty %}
         <div class="list-group-item">
@@ -73,6 +87,7 @@
 
         <script>
             $(document).ready(function () {load_empty_details();});
+
         </script>
 
     {% endfor %}
@@ -82,5 +97,65 @@
         <small style="text-align: left">{{ card.footer|safe }}</small>
     </div>
 {% endif %}
+{% if enable_reorder %}
+<script>
+    let draggedItem = null;
+    let placeholder = document.createElement('div');
+    placeholder.classList.add('drop-placeholder');
 
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('{{ card.code }}_body');
+
+        container.addEventListener('dragstart', function (e) {
+            if (e.target.classList.contains('draggable-entry')) {
+                draggedItem = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+                e.target.classList.add('dragging');
+            }
+        });
+
+        container.addEventListener('dragend', function (e) {
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+                placeholder.remove();
+                draggedItem = null;
+            }
+        });
+
+        container.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement == null) {
+                container.appendChild(placeholder);
+            } else {
+                container.insertBefore(placeholder, afterElement);
+            }
+        });
+
+        container.addEventListener('drop', function (e) {
+            e.preventDefault();
+            if (placeholder && draggedItem) {
+                container.insertBefore(draggedItem, placeholder);
+                placeholder.remove();
+                const newOrder = Array.from(container.querySelectorAll('.draggable-entry')).map((el, i) => [i, parseInt(el.dataset.entryId)]);
+                ajax_helpers.post_json({data: {button: 'save_list_order', sort: newOrder}});
+            }
+        });
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable-entry:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+</script>
+{% endif %}
 </div>
