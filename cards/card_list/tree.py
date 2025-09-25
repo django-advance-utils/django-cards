@@ -38,6 +38,7 @@ class CardTreeMixin(CardListBaseMixin):
         based on the current slug or default ID. Also expands parent nodes as needed.
         """
         list_menu = self.get_list_menu()
+
         selected_id = self.slug.get('pk')
 
         if not selected_id or selected_id == '-':

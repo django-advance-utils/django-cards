@@ -42,15 +42,7 @@ class CardListMixin(CardListBaseMixin):
         Sets up the list and detail cards, including layout configuration and default selection.
         """
         list_menu = self.get_list_menu()
-        selected_id = self.slug.get('pk')
-        self.display_list_entries()
-        if (not selected_id or selected_id == '-') and self.list_entries:
-            selected_id = self.list_entries[0]['pk']
-        elif selected_id == '-':
-            selected_id = ''
-
-        if selected_id:
-            selected_id = int(selected_id)
+        selected_id = self.get_selected_id()
 
         self.add_list_card(card_name='list_card',
                            list_entries=self.list_entries,
@@ -67,6 +59,27 @@ class CardListMixin(CardListBaseMixin):
 
         self.add_card_group('list_card', div_css_class=self.list_class, div_css=self.list_css_style)
         self.add_card_group('details_card', div_css_class=self.details_class, div_css=self.details_css_style)
+
+    def get_selected_id(self):
+        selected_id = self.slug.get('pk')
+        self.display_list_entries()
+        if (not selected_id or selected_id == '-') and self.list_entries:
+            selected_id = self.get_default_selected_id()
+        elif selected_id == '-':
+            selected_id = ''
+
+        if selected_id:
+            selected_id = int(selected_id)
+        return selected_id
+
+    def get_default_selected_id(self):
+        """
+        Returns the default selected ID used when no selection is present in the URL slug.
+
+        Returns:
+           str: The default selected node ID. Defaults to empty string.
+        """
+        return self.list_entries[0]['pk']
 
     def empty_list_message(self):
         """
