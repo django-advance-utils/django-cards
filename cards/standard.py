@@ -404,7 +404,7 @@ class CardMixin:
             html = ''
         return self.add_card(group_type=CARD_TYPE_HTML, html=html, is_empty=is_empty, **kwargs)
 
-    def add_message_card(self, card_name, title=None, message='', **kwargs):
+    def add_message_card(self, card_name=None, title=None, message='', **kwargs):
         """
         Adds a message / warning card
         """
