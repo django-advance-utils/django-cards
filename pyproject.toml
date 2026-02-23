@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-cards"
+version = "0.12.3"
+description = "Django app that allows you make cards"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.6"
+authors = [
+    { name = "Thomas Turner" }
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/django-advance-utils/django-cards"
+
+[tool.setuptools]
+packages = ["cards"]
+include-package-data = true
