@@ -19,6 +19,7 @@ CARD_TYPE_HTML = 4
 CARD_TYPE_LIST_SELECTION = 5
 CARD_TYPE_CARD_GROUP = 6
 CARD_TYPE_CARD_LAYOUT = 7
+CARD_TYPE_CARD_MESSAGE = 8
 
 
 class CardBase:
@@ -126,7 +127,8 @@ class CardBase:
                          CARD_TYPE_HTML: 'html',
                          CARD_TYPE_LIST_SELECTION: 'list_selection',
                          CARD_TYPE_CARD_GROUP: 'card_group',
-                         CARD_TYPE_CARD_LAYOUT: 'card_layout'}
+                         CARD_TYPE_CARD_LAYOUT: 'card_layout',
+                         CARD_TYPE_CARD_MESSAGE: 'message'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -137,7 +139,9 @@ class CardBase:
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
                  is_empty=False, empty_template_name=None, empty_message='N/A',
-                 collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None, **kwargs):
+                 collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None,
+                 show_header=True,
+                 **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
 
@@ -172,6 +176,7 @@ class CardBase:
             collapsed (bool, optional): If True, the card is initially collapsed.
             hidden_if_blank_or_none (list, optional): Field names to hide if their values are blank or None.
             hidden_if_zero (list, optional): Field names to hide if their values are zero.
+            show_header (bool, optional): Whether to show the header / title of the card.
             **kwargs: Additional keyword arguments for custom behavior or extension.
 
         Notes:
@@ -211,6 +216,7 @@ class CardBase:
         self.collapsed = collapsed
         self.hidden_if_blank_or_none = hidden_if_blank_or_none
         self.hidden_if_zero = hidden_if_zero
+        self.show_header = show_header
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -1131,40 +1137,43 @@ class CardBase:
                 self.add_row(*arg)
 
     def render(self, override_card_context=None):
+        """
+               Renders the card as an HTML string using the appropriate template and context.
+
+               This method:
+                 - Builds the rendering context from:
+                     * `self` (the card instance)
+                     * `self.extra_card_context` (if provided)
+                     * `override_card_context` (if provided at render time)
+                 - Resolves the correct template to use:
+                     * If `self.template_name` is set, it uses that.
+                     * Otherwise, it falls back to `self.template_defaults[self.group_type]`.
+                     * If `self.templates[template_name]` exists, it may override both the template path and context.
+                 - Uses `render_to_string()` to produce the final HTML output.
+
+               Args:
+                   override_card_context (dict, optional): Context values that override or extend the default card context.
+
+               Returns:
+                   str: Safe HTML string rendered from the selected template.
+
+               Notes:
+                   - Supports preloaded templates via `self.templates` dict, with optional custom context injection.
+                   - Includes a default `card_types` mapping in the context for conditional logic in templates.
+
+               Example:
+                   html = card.render(override_card_context={'highlight': True})
+               """
         extra_card_context = self.extra_card_context
         context = {'card': self,
                    'request': self.request,
                    'card_types': {'standard': CARD_TYPE_STANDARD,
                                   'datatable': CARD_TYPE_DATATABLE,
                                   'ordered_datatable': CARD_TYPE_ORDERED_DATATABLE,
-                                  'html': CARD_TYPE_HTML}}
-        """
-        Renders the card as an HTML string using the appropriate template and context.
+                                  'html': CARD_TYPE_HTML},
+                   'show_header': self.show_header,
+                   }
 
-        This method:
-          - Builds the rendering context from:
-              * `self` (the card instance)
-              * `self.extra_card_context` (if provided)
-              * `override_card_context` (if provided at render time)
-          - Resolves the correct template to use:
-              * If `self.template_name` is set, it uses that.
-              * Otherwise, it falls back to `self.template_defaults[self.group_type]`.
-              * If `self.templates[template_name]` exists, it may override both the template path and context.
-          - Uses `render_to_string()` to produce the final HTML output.
-
-        Args:
-            override_card_context (dict, optional): Context values that override or extend the default card context.
-
-        Returns:
-            str: Safe HTML string rendered from the selected template.
-
-        Notes:
-            - Supports preloaded templates via `self.templates` dict, with optional custom context injection.
-            - Includes a default `card_types` mapping in the context for conditional logic in templates.
-
-        Example:
-            html = card.render(override_card_context={'highlight': True})
-        """
         if extra_card_context is not None:
             context = {**context, **extra_card_context}
         if override_card_context is not None:

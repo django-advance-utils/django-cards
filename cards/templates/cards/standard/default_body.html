@@ -19,6 +19,8 @@
                         {% else %}
                             <h4 class="list-group-item-heading {{ entry.css_class }}">{{ entry.html|safe }}</h4>
                         {% endif %}
+                    {% elif entry.menu %}
+                        <div class="d-flex"><h4 class="list-group-item-heading {{ entry.css_class }} mr-auto">{{ entry.html|safe }}</h4>{{ entry.menu.render }}</div>
                     {% else %}
                         {{ entry.html|safe }}
                     {% endif %}

@@ -172,3 +172,7 @@ a.list-group-item.active {
 .row_link + tbody tr td {
     cursor: pointer;
 }
+
+.django-card {
+    margin-top: 15px;
+}

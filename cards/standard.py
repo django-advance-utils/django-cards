@@ -4,7 +4,7 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE
 
 
 class CardPostError(Exception):
@@ -154,6 +154,7 @@ class CardMixin:
                  collapsed=None,
                  hidden_if_blank_or_none=None,
                  hidden_if_zero=None,
+                 show_header=True,
                  **kwargs):
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -179,6 +180,7 @@ class CardMixin:
             collapsed (bool, optional): If True, the card is initially collapsed.
             hidden_if_blank_or_none (list, optional): Field names to hide if blank or None.
             hidden_if_zero (list, optional): Field names to hide if value is zero.
+            show_header (bool, optional): Whether to show the title / header of the card.
             **kwargs: Additional keyword arguments forwarded to the card constructor.
 
         Returns:
@@ -187,7 +189,6 @@ class CardMixin:
         Side Effects:
             - Stores the card in `self.cards` under `card_name` if `card_name` is provided.
         """
-
 
         request = getattr(self, 'request', None)
 
@@ -213,6 +214,7 @@ class CardMixin:
                              collapsed=collapsed,
                              hidden_if_blank_or_none=hidden_if_blank_or_none,
                              hidden_if_zero=hidden_if_zero,
+                             show_header=show_header,
                              **kwargs)
 
         if card_name is not None:
@@ -402,6 +404,18 @@ class CardMixin:
             html = ''
         return self.add_card(group_type=CARD_TYPE_HTML, html=html, is_empty=is_empty, **kwargs)
 
+    def add_message_card(self, card_name, title=None, message='', **kwargs):
+        """
+        Adds a message / warning card
+        """
+        card = self.add_card(
+            card_name=card_name,
+            group_type=CARD_TYPE_CARD_MESSAGE,
+            title=title,
+            extra_card_context={'message': message},
+            **kwargs
+        )
+        return card
 
     def row_edit(self, **kwargs):
         """

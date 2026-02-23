@@ -71,13 +71,22 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_html_string_card()
         self.add_html_file_card()
         self.add_empty_message_card()
+        self.add_no_header_card()
+        self.add_menu_items_card()
+        self.add_warning_message_card()
 
         self.add_card_group('welcome', 'split', 'table_multiple_columns',
                             'other', 'person', 'multi_fields_example', collapsed_card,
                             div_css_class='col-6 float-left', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
                             div_css_class='col-6 float-right', error_if_not_found=False)
-        self.add_card_group('html_string', 'html_file', 'empty_list_message', div_css_class='col-12 float-right')
+        self.add_card_group('html_string',
+                            'html_file',
+                            'empty_list_message',
+                            'card_with_no_header',
+                            'menu_items_example',
+                            'warning_message',
+                            div_css_class='col-12 float-right')
 
     def add_welcome_card(self):
         menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]
@@ -143,6 +152,12 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                       ({'value': 'Hello', 'entry_css_class': 'col-sm-9'},
                        {'value': 'World', 'entry_css_class': 'col-sm-3'}))
 
+    def add_no_header_card(self):
+        card = self.add_card('card_with_no_header',
+                             show_header=False)
+        card.add_rows({'value': 'Card with no header / title',
+                       'label': 'Info'})
+
     @staticmethod
     def test_method(value):
         return f'<i>{value}</i>'
@@ -182,6 +197,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
     # noinspection PyMethodMayBeStatic
     def setup_table_companies(self, table, details_object):
+        table.filter = {'id__lte': 20}
         table.add_columns(
             'id',
             'name')
@@ -232,3 +248,22 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                            'merge': True, 'merge_string': ' - '},
                           {'field': ['age', 'id'], 'merge': True},
                           )
+
+    def add_menu_items_card(self):
+        card = self.add_card('menu_items_example', title='Menu items example')
+        menu = [MenuItem('cards_examples:hello_modal',
+                         menu_display='',
+                         font_awesome='fa fa-question')]
+
+        card.add_entry(value='With label',
+                       label='Label',
+                       menu=menu)
+
+        card.add_entry(value='Without label',
+                       menu=menu)
+
+    def add_warning_message_card(self):
+        return self.add_message_card(card_name='warning_message',
+                                     title='Warning message',
+                                     message='Hello world')
+
