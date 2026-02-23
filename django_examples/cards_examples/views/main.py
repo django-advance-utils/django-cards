@@ -46,8 +46,8 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
             def render(self):
                 return '<td>this came from a render class</td>'
 
-        card.add_html_string_entry('This is a string')
-        card.add_html_string_entry(A(), exclude_td=True)
+        card.add_html_string_entry('This is a string', exclude_td=False)
+        card.add_html_string_entry(A())
 
     def ajax_btn(self):
         ajax_btn = HtmlMenu(request=self.request, template='button_group') \
