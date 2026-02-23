@@ -42,6 +42,13 @@ class ExampleIndex(MainMenu, CardMixin, TemplateView):
                       {'value': 0.0, 'label': 'This is also hidden', 'hidden_if_zero': True},)
         card.add_entry(value='Welcome using the table template2', label='Total', value_th=True)
 
+        class A:
+            def render(self):
+                return '<td>this came from a render class</td>'
+
+        card.add_html_string_entry('This is a string')
+        card.add_html_string_entry(A(), exclude_td=True)
+
     def ajax_btn(self):
         ajax_btn = HtmlMenu(request=self.request, template='button_group') \
             .add_items(AjaxButtonMenuItem(button_name='message',

@@ -522,6 +522,16 @@ class CardBase:
         html = render_to_string(template_name=template_name, context=context)
         self.rows.append({'type': 'html', 'html': html, **kwargs})
 
+    def add_html_string_entry(self, html, **kwargs):
+        if isinstance(html, str):
+            rendered = html
+        elif callable(getattr(html, "render", None)):
+            rendered = html.render()
+        else:
+            rendered = "html must be a string or an object with a callable 'render' method"
+
+        self.rows.append({'type': 'html', 'html': rendered, **kwargs})
+
     def add_row_style(self, name, html, is_default=False):
         """
         Defines a named row style for custom rendering of card entries.
