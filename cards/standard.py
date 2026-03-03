@@ -88,7 +88,7 @@ class CardMixin:
             raise CardPostError(f'May need to use AjaxHelpers Mixin or'
                                 f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class='', div_css='', div_id='', script='', error_if_not_found=True, group_code='main'):
+    def add_card_group(self, *args, div_css_class='', div_css='', div_id='', script='', group_title='', error_if_not_found=True, group_code='main'):
         """
         Groups multiple cards together under a specified `group_code`, with optional CSS styling.
 
@@ -143,6 +143,7 @@ class CardMixin:
                                              'div_css': div_css,
                                              'div_id': div_id,
                                              'script': script,
+                                             'group_title': group_title,
                                              'cards': cards})
 
     def add_card(self,
@@ -164,6 +165,8 @@ class CardMixin:
                  hidden_if_blank_or_none=None,
                  hidden_if_zero=None,
                  show_header=True,
+                 header_icon=None,
+                 header_css_class='',
                  **kwargs):
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -224,6 +227,8 @@ class CardMixin:
                              hidden_if_blank_or_none=hidden_if_blank_or_none,
                              hidden_if_zero=hidden_if_zero,
                              show_header=show_header,
+                             header_icon=header_icon,
+                             header_css_class=header_css_class,
                              **kwargs)
 
         if card_name is not None:

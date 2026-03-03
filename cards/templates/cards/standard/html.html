@@ -1,7 +1,7 @@
     <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
-        <div class="card-header">
+        <div class="card-header {{ card.header_css_class }}">
             <div class="d-flex align-items-center">
-                <h5 class="mr-auto">{{ card.title }}</h5>
+                <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
                 {% if card.enable_collapse %}
             <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">

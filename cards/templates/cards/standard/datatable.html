@@ -8,9 +8,9 @@
             </div>
     {% endif %}
     <div class="{{ card_css_class }}{% if show_pivot_table %} {% if pivot_table_class %}{{ pivot_table_class }}{% else %}col-12 col-sm-6 col-md-7 col-lg-8 col-xl-10 float-left{% endif %}{% endif %}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
-        <div class="card-header">
+        <div class="card-header {{ card.header_css_class }}">
             <div class="d-flex align-items-center">
-                <h5 class="mr-auto">{{ card.title }}</h5>
+                <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
                 {% if card.enable_collapse %}
             <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">

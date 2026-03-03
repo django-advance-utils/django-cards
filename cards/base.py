@@ -140,7 +140,7 @@ class CardBase:
                  footer=None, extra_card_context=None,
                  is_empty=False, empty_template_name=None, empty_message='N/A',
                  collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None,
-                 show_header=True,
+                 show_header=True, header_icon=None, header_css_class='',
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -217,6 +217,8 @@ class CardBase:
         self.hidden_if_blank_or_none = hidden_if_blank_or_none
         self.hidden_if_zero = hidden_if_zero
         self.show_header = show_header
+        self.header_icon = header_icon
+        self.header_css_class = header_css_class
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -431,7 +433,8 @@ class CardBase:
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None, hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None,
                   html_override=None, value_method=None, value_type=None, default_if=None, row_style=None,
-                  tooltip=None, value_link=None, css_class_method=None, **kwargs):
+                  tooltip=None, value_link=None, css_class_method=None,
+                  badge=None, icon=None, copy_to_clipboard=False, truncate=None, **kwargs):
         """
         Adds a single entry (label/value pair) to the card as a new row.
 
@@ -494,6 +497,10 @@ class CardBase:
                                          tooltip=tooltip,
                                          value_link=value_link,
                                          css_class_method=css_class_method,
+                                         badge=badge,
+                                         icon=icon,
+                                         copy_to_clipboard=copy_to_clipboard,
+                                         truncate=truncate,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -729,6 +736,7 @@ class CardBase:
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             tooltip=None, value_link=None, css_class_method=None,
+                            badge=None, icon=None, copy_to_clipboard=False, truncate=None,
                             **kwargs):
         """
         Internal method for creating a fully-resolved entry dictionary used in card rows.
@@ -876,6 +884,14 @@ class CardBase:
             if css_class_method is not None:
                 css_class = css_class_method(value)
 
+            if truncate is not None and isinstance(value, str) and len(value) > truncate:
+                if not tooltip:
+                    tooltip = value
+                value = value[:truncate] + '\u2026'
+
+            if badge is True:
+                badge = 'bg-secondary'
+
             entry = {'label': label,
                      'html': value,
                      'entry_css_class': entry_css_class,
@@ -884,6 +900,9 @@ class CardBase:
                      'link': link,
                      'tooltip': tooltip,
                      'value_link': value_link,
+                     'badge': badge,
+                     'icon': icon,
+                     'copy_to_clipboard': copy_to_clipboard,
                      'menu': menu,
                      'row_style_html': row_style_html,
                      **kwargs}

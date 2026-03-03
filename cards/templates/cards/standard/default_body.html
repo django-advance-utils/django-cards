@@ -14,15 +14,15 @@
                         <div class="d-flex"><label class="mr-auto">{{ entry.label|safe }}</label>{{ entry.menu.render }}</div>
                         {% if entry.multiple_lines %}
                             {% for x in entry.html %}
-                                <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{{ x|safe }}{% if entry.value_link %}</a>{% endif %}</h4>
+                                <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ x|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.value_link %}</a>{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ x|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>
                             {% endfor %}
                         {% else %}
-                            <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{{ entry.html|safe }}{% if entry.value_link %}</a>{% endif %}</h4>
+                            <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.value_link %}</a>{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>
                         {% endif %}
                     {% elif entry.menu %}
-                        <div class="d-flex"><h4 class="list-group-item-heading {{ entry.css_class }} mr-auto">{{ entry.html|safe }}</h4>{{ entry.menu.render }}</div>
+                        <div class="d-flex"><h4 class="list-group-item-heading {{ entry.css_class }} mr-auto">{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>{{ entry.menu.render }}</div>
                     {% else %}
-                        {{ entry.html|safe }}
+                        {% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}
                     {% endif %}
             {% if entry.link %}</a>{% elif row.type != 'multiple' %}</div>{% endif %}
              {% if entry.entry_css_class %}</div>{% endif %}{% endif %}

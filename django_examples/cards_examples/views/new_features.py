@@ -13,14 +13,21 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_value_link_card()
         self.add_css_class_method_card()
         self.add_company_features_card()
+        self.add_badge_card()
+        self.add_icon_card()
+        self.add_copy_truncate_card()
 
         self.add_card_group('tooltip', 'value_link',
                             div_css_class='col-6 float-left',
-                            div_id='left-column')
+                            div_id='left-column',
+                            group_title='Tooltip & Link Examples')
         self.add_card_group('css_class_method', 'company_features',
                             div_css_class='col-6 float-right',
                             div_id='right-column',
+                            group_title='CSS & Company Examples',
                             script='console.log("New features examples loaded");')
+        self.add_card_group('badge', 'icon', 'copy_truncate',
+                            div_css_class='col-12')
 
     def add_tooltip_card(self):
         card = self.add_card('tooltip', title='Tooltip Examples')
@@ -88,19 +95,77 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
                            tooltip='Whether the company is currently active')
 
 
+    def add_badge_card(self):
+        card = self.add_card('badge', title='Badge Examples',
+                             header_icon='fas fa-tags',
+                             header_css_class='bg-primary text-white')
+        card.add_entry(value='Active',
+                       label='Status',
+                       badge=True)
+        card.add_entry(value='Overdue',
+                       label='Payment',
+                       badge='bg-danger')
+        card.add_entry(value='Pending',
+                       label='Review',
+                       badge='bg-warning text-dark')
+        card.add_entry(value='Complete',
+                       label='Task',
+                       badge='bg-success')
+
+    def add_icon_card(self):
+        card = self.add_card('icon', title='Icon Examples',
+                             header_icon='fas fa-icons')
+        card.add_entry(value='user@example.com',
+                       label='Email',
+                       icon='fas fa-envelope')
+        card.add_entry(value='+1 555-0123',
+                       label='Phone',
+                       icon='fas fa-phone')
+        card.add_entry(value='New York, USA',
+                       label='Location',
+                       icon='fas fa-map-marker-alt')
+        card.add_entry(value='Premium',
+                       label='Plan',
+                       icon='fas fa-crown',
+                       badge='bg-warning text-dark')
+
+    def add_copy_truncate_card(self):
+        card = self.add_card('copy_truncate', title='Copy & Truncate Examples',
+                             header_icon='fas fa-clipboard',
+                             header_css_class='bg-dark text-white')
+        card.add_entry(value='sk-abc123def456ghi789',
+                       label='API Key',
+                       copy_to_clipboard=True)
+        card.add_entry(value='user@example.com',
+                       label='Email',
+                       icon='fas fa-envelope',
+                       copy_to_clipboard=True)
+        card.add_entry(value='This is a very long description that should be truncated to a reasonable length for display purposes in the card UI',
+                       label='Description',
+                       truncate=50)
+        card.add_entry(value='Short text',
+                       label='No truncation',
+                       truncate=50)
+
+
 class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
         self.add_table_tooltip_card()
         self.add_table_value_link_card()
+        self.add_table_badge_icon_card()
+        self.add_table_copy_truncate_card()
 
         self.add_card_group('table_tooltip',
                             div_css_class='col-6 float-left',
-                            div_id='table-left')
+                            div_id='table-left',
+                            group_title='Table Tooltip & Link')
         self.add_card_group('table_value_link',
                             div_css_class='col-6 float-right',
                             div_id='table-right')
+        self.add_card_group('table_badge_icon', 'table_copy_truncate',
+                            div_css_class='col-12')
 
     def add_table_tooltip_card(self):
         card = self.add_card('table_tooltip',
@@ -129,3 +194,35 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
                        label='Contact',
                        value_link='mailto:admin@example.com',
                        tooltip='Click to send email')
+
+    def add_table_badge_icon_card(self):
+        card = self.add_card('table_badge_icon',
+                             title='Table Badge & Icon Examples',
+                             template_name='table',
+                             header_icon='fas fa-table',
+                             header_css_class='bg-info text-white',
+                             extra_card_context={'table_css_class': 'table table-bordered'})
+        card.add_entry(value='Active',
+                       label='Status',
+                       badge=True,
+                       icon='fas fa-circle')
+        card.add_entry(value='Overdue',
+                       label='Payment',
+                       badge='bg-danger',
+                       icon='fas fa-exclamation-triangle')
+        card.add_entry(value='user@example.com',
+                       label='Email',
+                       icon='fas fa-envelope')
+
+    def add_table_copy_truncate_card(self):
+        card = self.add_card('table_copy_truncate',
+                             title='Table Copy & Truncate Examples',
+                             template_name='table',
+                             header_icon='fas fa-clipboard',
+                             extra_card_context={'table_css_class': 'table table-bordered'})
+        card.add_entry(value='sk-abc123def456ghi789',
+                       label='API Key',
+                       copy_to_clipboard=True)
+        card.add_entry(value='This is a very long description that should be truncated to a reasonable length for display in table cells',
+                       label='Description',
+                       truncate=40)
