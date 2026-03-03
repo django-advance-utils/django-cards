@@ -88,7 +88,7 @@ class CardMixin:
             raise CardPostError(f'May need to use AjaxHelpers Mixin or'
                                 f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class='', div_css='', error_if_not_found=True, group_code='main'):
+    def add_card_group(self, *args, div_css_class='', div_css='', script='', error_if_not_found=True, group_code='main'):
         """
         Groups multiple cards together under a specified `group_code`, with optional CSS styling.
 
@@ -102,6 +102,7 @@ class CardMixin:
             *args: A variable number of card name strings or card objects to include in the group.
             div_css_class (str, optional): CSS class to apply to the container div of this group. Defaults to an empty string.
             div_css (str, optional): Inline CSS styles to apply to the container div. Defaults to an empty string.
+            script (str, optional): JavaScript code to render in a ``<script>`` tag after the group div. Defaults to an empty string.
             error_if_not_found (bool, optional): If True, raises an error when a named card is not found in `self.cards`.
                                                  If False, missing cards are silently skipped. Defaults to True.
             group_code (str, optional): A string identifying which card group to append to (e.g., 'main', 'sidebar'). Defaults to 'main'.
@@ -114,11 +115,17 @@ class CardMixin:
                     'cards': resolved_card_objects
                 }
 
-        Example:
+        Examples:
             self.add_card_group(
                 'welcome', 'split', 'table_multiple_columns',
                 'other', 'person', 'multi_fields_example', collapsed_card,
                 div_css_class='col-6 float-left',
+            )
+
+            # Attach a script to a card group
+            self.add_card_group(
+                'timeline',
+                script='$(function(){ $(".tl-evt").on("click", function(){ alert("clicked"); }); })',
             )
         """
         cards = []
@@ -134,6 +141,7 @@ class CardMixin:
 
         self.card_groups[group_code].append({'div_css_class': div_css_class,
                                              'div_css': div_css,
+                                             'script': script,
                                              'cards': cards})
 
     def add_card(self,

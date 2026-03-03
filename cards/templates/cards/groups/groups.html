@@ -4,4 +4,5 @@
         {{ card.render }}
         {% endfor %}
     </div>
+    {% if group.script %}<script>{{ group.script|safe }}</script>{% endif %}
 {% endfor %}
