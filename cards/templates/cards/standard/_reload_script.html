@@ -1,0 +1,23 @@
+{% if card.ajax_reload %}
+<script>
+window.reload_card = window.reload_card || function(card_code) {
+    ajax_helpers.post_json({data: {button: 'reload_card', card: card_code}});
+};
+ajax_helpers.command_functions.reload_card = ajax_helpers.command_functions.reload_card || function(command) {
+    reload_card(command.card);
+};
+window.setup_card_reload_ws = window.setup_card_reload_ws || function(ws_url) {
+    var ws = new WebSocket(ws_url);
+    ws.onmessage = function(e) {
+        var data = JSON.parse(e.data);
+        if (data.command === 'reload_card') { reload_card(data.card); }
+    };
+    return ws;
+};
+{% if card.reload_interval %}
+window._card_reload_intervals = window._card_reload_intervals || {};
+if (window._card_reload_intervals['{{ card.code }}']) { clearInterval(window._card_reload_intervals['{{ card.code }}']); }
+window._card_reload_intervals['{{ card.code }}'] = setInterval(function() { reload_card('{{ card.code }}'); }, {{ card.reload_interval }} * 1000);
+{% endif %}
+</script>
+{% endif %}

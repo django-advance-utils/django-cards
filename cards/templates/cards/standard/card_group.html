@@ -6,6 +6,7 @@
         <div class="d-flex align-items-center">
             <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
         </div>
     </div>
     {% endif %}
@@ -41,3 +42,4 @@
         </div>
     {% endif %}
 </div>
+{% include 'cards/standard/_reload_script.html' %}

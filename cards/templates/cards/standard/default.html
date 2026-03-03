@@ -4,6 +4,7 @@
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
+                {% include 'cards/standard/_reload_button.html' %}
                 {% if card.enable_collapse %}
                 <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
                     <i class="expandicon"></i>
@@ -26,3 +27,4 @@
         </div>
     {% endif %}
 </div>
+{% include 'cards/standard/_reload_script.html' %}

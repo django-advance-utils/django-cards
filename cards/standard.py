@@ -167,6 +167,8 @@ class CardMixin:
                  show_header=True,
                  header_icon=None,
                  header_css_class='',
+                 ajax_reload=False,
+                 reload_interval=None,
                  **kwargs):
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -229,6 +231,8 @@ class CardMixin:
                              show_header=show_header,
                              header_icon=header_icon,
                              header_css_class=header_css_class,
+                             ajax_reload=ajax_reload,
+                             reload_interval=reload_interval,
                              **kwargs)
 
         if card_name is not None:
@@ -460,4 +464,29 @@ class CardMixin:
         card = self.cards.get(kwargs.get('table_id', ''))
         card.datatable_sort(**kwargs)
 
+        return self.command_response('null')
+
+    def reload_card(self, card_code):
+        """Add a command to tell the client to reload a specific card via AJAX.
+
+        Usage from any button handler:
+            def button_save(self, **kwargs):
+                # ... save logic ...
+                self.reload_card('my_card')
+                return self.command_response('null')
+        """
+        self.add_command('reload_card', card=card_code)
+
+    def button_reload_card(self, **kwargs):
+        card_code = kwargs.get('card')
+        if not hasattr(self, 'object') and hasattr(self, 'get_object'):
+            self.object = self.get_object()
+        self.cards = {}
+        self.card_groups = {}
+        self.tables = {}
+        self.setup_datatable_cards()
+        self.setup_cards()
+        card = self.cards.get(card_code)
+        if card is not None:
+            return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')

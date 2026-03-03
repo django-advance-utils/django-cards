@@ -141,6 +141,7 @@ class CardBase:
                  is_empty=False, empty_template_name=None, empty_message='N/A',
                  collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None,
                  show_header=True, header_icon=None, header_css_class='',
+                 ajax_reload=False, reload_interval=None,
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -219,6 +220,8 @@ class CardBase:
         self.show_header = show_header
         self.header_icon = header_icon
         self.header_css_class = header_css_class
+        self.ajax_reload = ajax_reload
+        self.reload_interval = reload_interval
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -1175,34 +1178,7 @@ class CardBase:
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
-    def render(self, override_card_context=None):
-        """
-               Renders the card as an HTML string using the appropriate template and context.
-
-               This method:
-                 - Builds the rendering context from:
-                     * `self` (the card instance)
-                     * `self.extra_card_context` (if provided)
-                     * `override_card_context` (if provided at render time)
-                 - Resolves the correct template to use:
-                     * If `self.template_name` is set, it uses that.
-                     * Otherwise, it falls back to `self.template_defaults[self.group_type]`.
-                     * If `self.templates[template_name]` exists, it may override both the template path and context.
-                 - Uses `render_to_string()` to produce the final HTML output.
-
-               Args:
-                   override_card_context (dict, optional): Context values that override or extend the default card context.
-
-               Returns:
-                   str: Safe HTML string rendered from the selected template.
-
-               Notes:
-                   - Supports preloaded templates via `self.templates` dict, with optional custom context injection.
-                   - Includes a default `card_types` mapping in the context for conditional logic in templates.
-
-               Example:
-                   html = card.render(override_card_context={'highlight': True})
-               """
+    def _render_template(self, override_card_context=None):
         extra_card_context = self.extra_card_context
         context = {'card': self,
                    'request': self.request,
@@ -1229,8 +1205,19 @@ class CardBase:
         else:
             template = template_name
 
-        data = render_to_string(template, context)
-        return mark_safe(data)
+        return mark_safe(render_to_string(template, context))
+
+    def render(self, override_card_context=None):
+        """
+        Renders the card as an HTML string using the appropriate template and context.
+
+        When ajax_reload is enabled, wraps the output in a container div that serves
+        as the stable target for AJAX content replacement.
+        """
+        html = self._render_template(override_card_context)
+        if self.ajax_reload:
+            return mark_safe(f'<div id="{self.code}_ajax">{html}</div>')
+        return html
 
     def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='',
                              div_inner_css='', override_card_context=None):

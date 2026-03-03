@@ -1,3 +1,5 @@
+import datetime
+
 from cards_examples.models import Company, Person
 from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
@@ -16,6 +18,7 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_badge_card()
         self.add_icon_card()
         self.add_copy_truncate_card()
+        self.add_reload_card()
 
         self.add_card_group('tooltip', 'value_link',
                             div_css_class='col-6 float-left',
@@ -27,6 +30,8 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
                             group_title='CSS & Company Examples',
                             script='console.log("New features examples loaded");')
         self.add_card_group('badge', 'icon', 'copy_truncate',
+                            div_css_class='col-12')
+        self.add_card_group('reload',
                             div_css_class='col-12')
 
     def add_tooltip_card(self):
@@ -146,6 +151,19 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='Short text',
                        label='No truncation',
                        truncate=50)
+
+    def add_reload_card(self):
+        card = self.add_card('reload', title='AJAX Reload Examples',
+                             header_icon='fas fa-sync-alt',
+                             ajax_reload=True)
+        card.add_entry(value=datetime.datetime.now().strftime('%H:%M:%S'),
+                       label='Last loaded',
+                       icon='fas fa-clock')
+        card.add_entry(value='Click the reload button in the header to refresh this card',
+                       label='Manual reload')
+        card.add_entry(value='Use ajax_reload=True on any card',
+                       label='Usage',
+                       icon='fas fa-code')
 
 
 class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
