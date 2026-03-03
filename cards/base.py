@@ -430,7 +430,8 @@ class CardBase:
 
     def add_entry(self, value=None, field=None, label=None, entry_css_class=None, css_class=None,
                   default='N/A', link=None, hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None,
-                  html_override=None, value_method=None, value_type=None, default_if=None, row_style=None, **kwargs):
+                  html_override=None, value_method=None, value_type=None, default_if=None, row_style=None,
+                  tooltip=None, value_link=None, css_class_method=None, **kwargs):
         """
         Adds a single entry (label/value pair) to the card as a new row.
 
@@ -490,6 +491,9 @@ class CardBase:
                                          value_type=value_type,
                                          default_if=default_if,
                                          row_style=row_style,
+                                         tooltip=tooltip,
+                                         value_link=value_link,
+                                         css_class_method=css_class_method,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -724,6 +728,7 @@ class CardBase:
                             hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None, html_override=None,
                             value_method=None, value_type=None,
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
+                            tooltip=None, value_link=None, css_class_method=None,
                             **kwargs):
         """
         Internal method for creating a fully-resolved entry dictionary used in card rows.
@@ -868,12 +873,17 @@ class CardBase:
                     value_dict['menu'] = menu.render()
                 row_style_html = html_row_style.format_map(defaultdict(lambda: '', value_dict))
 
+            if css_class_method is not None:
+                css_class = css_class_method(value)
+
             entry = {'label': label,
                      'html': value,
                      'entry_css_class': entry_css_class,
                      'css_class': css_class,
                      'multiple_lines': multiple_parts,
                      'link': link,
+                     'tooltip': tooltip,
+                     'value_link': value_link,
                      'menu': menu,
                      'row_style_html': row_style_html,
                      **kwargs}

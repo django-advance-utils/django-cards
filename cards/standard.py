@@ -88,7 +88,7 @@ class CardMixin:
             raise CardPostError(f'May need to use AjaxHelpers Mixin or'
                                 f' add one of these \n{", ".join(response.keys())}\nto ajax_commands ')
 
-    def add_card_group(self, *args, div_css_class='', div_css='', script='', error_if_not_found=True, group_code='main'):
+    def add_card_group(self, *args, div_css_class='', div_css='', div_id='', script='', error_if_not_found=True, group_code='main'):
         """
         Groups multiple cards together under a specified `group_code`, with optional CSS styling.
 
@@ -141,6 +141,7 @@ class CardMixin:
 
         self.card_groups[group_code].append({'div_css_class': div_css_class,
                                              'div_css': div_css,
+                                             'div_id': div_id,
                                              'script': script,
                                              'cards': cards})
 

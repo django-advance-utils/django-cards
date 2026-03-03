@@ -17,6 +17,8 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:datatable_order', 'Datatable Order'),
             ('cards_examples:child_cards', 'Child Cards'),
             ('cards_examples:row_styles', 'Row Styles'),
+            ('cards_examples:new_features', 'New Features'),
+            ('cards_examples:new_features_table', 'New Features (Table)'),
             MenuItem(url='admin:index',
                      menu_display='Admin',
                      visible=self.request.user.is_superuser),

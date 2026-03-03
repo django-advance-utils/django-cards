@@ -14,10 +14,10 @@
                         <div class="d-flex"><label class="mr-auto">{{ entry.label|safe }}</label>{{ entry.menu.render }}</div>
                         {% if entry.multiple_lines %}
                             {% for x in entry.html %}
-                                <h4 class="list-group-item-heading {{ entry.css_class }}">{{ x|safe }}</h4>
+                                <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{{ x|safe }}{% if entry.value_link %}</a>{% endif %}</h4>
                             {% endfor %}
                         {% else %}
-                            <h4 class="list-group-item-heading {{ entry.css_class }}">{{ entry.html|safe }}</h4>
+                            <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{{ entry.html|safe }}{% if entry.value_link %}</a>{% endif %}</h4>
                         {% endif %}
                     {% elif entry.menu %}
                         <div class="d-flex"><h4 class="list-group-item-heading {{ entry.css_class }} mr-auto">{{ entry.html|safe }}</h4>{{ entry.menu.render }}</div>

@@ -10,6 +10,7 @@ from cards_examples.views.datatable import DatatableExample, DatatableOrderExamp
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
+from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex
 
 app_name = 'cards_examples'
 
@@ -34,6 +35,9 @@ urlpatterns = [
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
     path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
+
+    path('new-features/', NewFeaturesIndex.as_view(), name='new_features'),
+    path('new-features-table/', NewFeaturesTableIndex.as_view(), name='new_features_table'),
 ]
 
 
