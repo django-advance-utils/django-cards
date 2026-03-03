@@ -2,6 +2,7 @@ import datetime
 
 from cards_examples.models import Company, Person
 from cards_examples.views.base import MainMenu
+from django.utils import timezone
 from django.views.generic import TemplateView
 
 from cards.standard import CardMixin
@@ -19,6 +20,12 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_icon_card()
         self.add_copy_truncate_card()
         self.add_reload_card()
+        self.add_prefix_suffix_card()
+        self.add_placeholder_card()
+        self.add_status_dot_card()
+        self.add_progress_bar_card()
+        self.add_image_card()
+        self.add_timestamp_card()
 
         self.add_card_group('tooltip', 'value_link',
                             div_css_class='col-6 float-left',
@@ -32,6 +39,10 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group('badge', 'icon', 'copy_truncate',
                             div_css_class='col-12')
         self.add_card_group('reload',
+                            div_css_class='col-12')
+        self.add_card_group('prefix_suffix', 'placeholder', 'status_dot',
+                            div_css_class='col-12')
+        self.add_card_group('progress_bar', 'image', 'timestamp',
                             div_css_class='col-12')
 
     def add_tooltip_card(self):
@@ -165,6 +176,56 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
                        label='Usage',
                        icon='fas fa-code')
 
+    def add_prefix_suffix_card(self):
+        card = self.add_card('prefix_suffix', title='Prefix & Suffix Examples',
+                             header_icon='fas fa-text-width')
+        card.add_entry(value='1,250.00', label='Price', prefix='$')
+        card.add_entry(value='75', label='Completion', suffix='%')
+        card.add_entry(value='25.5', label='Temperature', suffix=' °C')
+        card.add_entry(value='100', label='Full price', prefix='$', suffix=' USD')
+
+    def add_placeholder_card(self):
+        card = self.add_card('placeholder', title='Placeholder Examples',
+                             header_icon='fas fa-eye-slash')
+        card.add_entry(value=None, label='Notes', placeholder=True)
+        card.add_entry(value=None, label='Bio', placeholder='Not provided')
+        card.add_entry(value='Has a value', label='Name', placeholder=True)
+        card.add_entry(value='', label='Empty field', placeholder='No data available')
+
+    def add_status_dot_card(self):
+        card = self.add_card('status_dot', title='Status Dot Examples',
+                             header_icon='fas fa-circle')
+        card.add_entry(value='Active', label='Status', status_dot='green')
+        card.add_entry(value='Warning', label='Service', status_dot='orange')
+        card.add_entry(value='Error', label='Database', status_dot='red')
+        card.add_entry(value='Inactive', label='Backup', status_dot='gray')
+
+    def add_progress_bar_card(self):
+        card = self.add_card('progress_bar', title='Progress Bar Examples',
+                             header_icon='fas fa-tasks')
+        card.add_entry(value=75, label='Completion', progress_bar=True)
+        card.add_entry(value=90, label='Disk Usage', progress_bar='bg-danger')
+        card.add_entry(value=45, label='Upload', progress_bar='bg-info')
+        card.add_entry(value=100, label='Done', progress_bar='bg-success')
+
+    def add_image_card(self):
+        card = self.add_card('image', title='Image Examples',
+                             header_icon='fas fa-image')
+        card.add_entry(value='https://placehold.co/100x40/007bff/ffffff?text=Logo',
+                       label='Logo', image=True)
+        card.add_entry(value='https://placehold.co/100x60/28a745/ffffff?text=Avatar',
+                       label='Avatar', image='60px')
+
+    def add_timestamp_card(self):
+        card = self.add_card('timestamp', title='Timestamp Examples',
+                             header_icon='fas fa-clock')
+        card.add_entry(value=timezone.now() - datetime.timedelta(hours=2),
+                       label='Created', timestamp=True)
+        card.add_entry(value=timezone.now() - datetime.timedelta(days=3),
+                       label='Last login', timestamp=True)
+        card.add_entry(value=datetime.date.today() - datetime.timedelta(days=30),
+                       label='Start date', timestamp=True)
+
 
 class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
@@ -174,6 +235,7 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         self.add_table_value_link_card()
         self.add_table_badge_icon_card()
         self.add_table_copy_truncate_card()
+        self.add_table_new_features_card()
 
         self.add_card_group('table_tooltip',
                             div_css_class='col-6 float-left',
@@ -183,6 +245,8 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
                             div_css_class='col-6 float-right',
                             div_id='table-right')
         self.add_card_group('table_badge_icon', 'table_copy_truncate',
+                            div_css_class='col-12')
+        self.add_card_group('table_new_features',
                             div_css_class='col-12')
 
     def add_table_tooltip_card(self):
@@ -244,3 +308,20 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='This is a very long description that should be truncated to a reasonable length for display in table cells',
                        label='Description',
                        truncate=40)
+
+    def add_table_new_features_card(self):
+        card = self.add_card('table_new_features',
+                             title='Table New Features',
+                             template_name='table',
+                             header_icon='fas fa-star',
+                             extra_card_context={'table_css_class': 'table table-bordered'})
+        card.add_entry(value='1,250.00', label='Price', prefix='$')
+        card.add_entry(value='75', label='Completion', suffix='%')
+        card.add_entry(value='Active', label='Status', status_dot='green')
+        card.add_entry(value='Error', label='Service', status_dot='red')
+        card.add_entry(value=75, label='Progress', progress_bar=True)
+        card.add_entry(value=90, label='Disk', progress_bar='bg-danger')
+        card.add_entry(value=None, label='Notes', placeholder=True)
+        card.add_entry(value=None, label='Bio', placeholder='Not provided')
+        card.add_entry(value=timezone.now() - datetime.timedelta(hours=5),
+                       label='Updated', timestamp=True)

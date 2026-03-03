@@ -6,6 +6,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
+from django.utils.timesince import timesince
 from django.utils.text import slugify
 from django_datatables.datatables import DatatableTable
 from django_datatables.plugins.reorder import Reorder
@@ -437,7 +438,9 @@ class CardBase:
                   default='N/A', link=None, hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None,
                   html_override=None, value_method=None, value_type=None, default_if=None, row_style=None,
                   tooltip=None, value_link=None, css_class_method=None,
-                  badge=None, icon=None, copy_to_clipboard=False, truncate=None, **kwargs):
+                  badge=None, icon=None, copy_to_clipboard=False, truncate=None,
+                  prefix=None, suffix=None, placeholder=None, status_dot=None,
+                  progress_bar=None, image=None, timestamp=False, **kwargs):
         """
         Adds a single entry (label/value pair) to the card as a new row.
 
@@ -504,6 +507,13 @@ class CardBase:
                                          icon=icon,
                                          copy_to_clipboard=copy_to_clipboard,
                                          truncate=truncate,
+                                         prefix=prefix,
+                                         suffix=suffix,
+                                         placeholder=placeholder,
+                                         status_dot=status_dot,
+                                         progress_bar=progress_bar,
+                                         image=image,
+                                         timestamp=timestamp,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -740,6 +750,8 @@ class CardBase:
                             entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
                             tooltip=None, value_link=None, css_class_method=None,
                             badge=None, icon=None, copy_to_clipboard=False, truncate=None,
+                            prefix=None, suffix=None, placeholder=None, status_dot=None,
+                            progress_bar=None, image=None, timestamp=False,
                             **kwargs):
         """
         Internal method for creating a fully-resolved entry dictionary used in card rows.
@@ -838,6 +850,12 @@ class CardBase:
                 is_default = True
             else:
                 is_default = False
+
+            if is_default and placeholder:
+                if isinstance(placeholder, str):
+                    value = placeholder
+                entry_css_class = ((entry_css_class or '') + ' text-muted fst-italic').strip()
+
             multiple_parts = isinstance(value, (list, tuple))
 
             if value_method is not None:
@@ -887,6 +905,12 @@ class CardBase:
             if css_class_method is not None:
                 css_class = css_class_method(value)
 
+            if timestamp and isinstance(value, (datetime.datetime, datetime.date)):
+                if not tooltip:
+                    fmt = '%Y-%m-%d %H:%M:%S' if isinstance(value, datetime.datetime) else '%Y-%m-%d'
+                    tooltip = value.strftime(fmt)
+                value = timesince(value) + ' ago'
+
             if truncate is not None and isinstance(value, str) and len(value) > truncate:
                 if not tooltip:
                     tooltip = value
@@ -894,6 +918,12 @@ class CardBase:
 
             if badge is True:
                 badge = 'bg-secondary'
+
+            if progress_bar is True:
+                progress_bar = 'bg-primary'
+
+            if image is True:
+                image = '40px'
 
             entry = {'label': label,
                      'html': value,
@@ -908,6 +938,11 @@ class CardBase:
                      'copy_to_clipboard': copy_to_clipboard,
                      'menu': menu,
                      'row_style_html': row_style_html,
+                     'prefix': prefix,
+                     'suffix': suffix,
+                     'status_dot': status_dot,
+                     'progress_bar': progress_bar,
+                     'image': image,
                      **kwargs}
             return entry
 

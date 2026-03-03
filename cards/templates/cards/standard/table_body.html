@@ -9,15 +9,19 @@
                         {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}
                         {% if forloop.first %}{% if entry.label_td %}<td>{{ entry.label|safe }}</td>{% else %}<th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>{% endif %}{% endif %}
                         {% if entry.value_th %}<th{% else %}<td class="{{ table_td_css_class }}"{% endif %}{% if entry.colspan %} colspan="{{ entry.colspan }}"{% endif %}{% if entry.rowspan %} rowspan="{{ entry.rowspan }}"{% endif %}{% if entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.link %}
-                            <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}
+                            <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}{% if entry.progress_bar %}
+                            <div class="progress" style="height:20px"><div class="progress-bar {{ entry.progress_bar }}" style="width:{{ entry.html }}%">{{ entry.html }}%</div></div>
+                        {% elif entry.image %}
+                            <img src="{{ entry.html }}" style="height:{{ entry.image }};object-fit:cover" alt="">
+                        {% else %}{% if entry.status_dot %}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ entry.status_dot }};margin-right:6px"></span>{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}
                             {% if entry.multiple_lines %}
                                 {% for x in entry.html %}
-                                    {{ entry.css_class }}">{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ x|safe }}{% if entry.badge %}</span>{% endif %}<br/>
+                                    {{ entry.css_class }}">{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ x|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}<br/>
                                 {% endfor %}
                             {% else %}
-                                {% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}
+                                {% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}
                             {% endif %}
-                        {% if entry.value_link %}</a>{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}{% if entry.link %}</a>{% endif %}{% if entry.value_th %}</th>{% else %}</td>{% endif %}
+                        {% if entry.value_link %}</a>{% endif %}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}{% if entry.link %}</a>{% endif %}{% if entry.value_th %}</th>{% else %}</td>{% endif %}
                         {% endif %}
                     {% endfor %}{% endif %}</tr>
             {% endfor %}
