@@ -414,6 +414,119 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value=3, label='Quality', rating=10)
 
 
+class NewFeatures2Index(MainMenu, CardMixin, TemplateView):
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_auto_link_card()
+        self.add_show_if_card()
+        self.add_sparkline_card()
+        self.add_old_value_card()
+        self.add_searchable_card()
+        self.add_exportable_card()
+
+        self.add_card_group('auto_link', 'show_if',
+                            div_css_class='col-6 float-left',
+                            group_title='Auto Link & Show If')
+        self.add_card_group('sparkline', 'old_value',
+                            div_css_class='col-6 float-right',
+                            group_title='Sparkline & Old Value')
+        self.add_card_group('searchable', 'exportable',
+                            div_css_class='col-12',
+                            div_css='clear:both')
+
+    def add_auto_link_card(self):
+        card = self.add_card('auto_link', title='Auto Link Examples',
+                             header_icon='fas fa-link')
+        card.add_entry(value='Visit https://example.com for details',
+                       label='URL in text',
+                       auto_link=True)
+        card.add_entry(value='Contact support@example.com for help',
+                       label='Email in text',
+                       auto_link=True)
+        card.add_entry(value='See https://docs.example.com and email info@example.com',
+                       label='Mixed',
+                       auto_link=True)
+        card.add_entry(value='No links here, just plain text',
+                       label='Plain text',
+                       auto_link=True)
+
+    def add_show_if_card(self):
+        company = Company.objects.first()
+        if company is None:
+            card = self.add_card('show_if', title='Show If Examples',
+                                 header_icon='fas fa-eye')
+            card.add_entry(value='Always visible', label='Static')
+            card.add_entry(value='No company object to test with', label='Note')
+        else:
+            card = self.add_card('show_if', title='Show If Examples',
+                                 details_object=company,
+                                 header_icon='fas fa-eye')
+            card.add_entry(value='Always visible', label='Static')
+            card.add_entry(field='name', label='Name (always shown)')
+            card.add_entry(field='name', label='Active only',
+                           show_if=lambda obj: obj.active)
+            card.add_entry(field='name', label='Inactive only',
+                           show_if=lambda obj: not obj.active)
+
+    def add_sparkline_card(self):
+        card = self.add_card('sparkline', title='Sparkline Examples',
+                             header_icon='fas fa-chart-line')
+        card.add_entry(value=[10, 25, 15, 30, 20, 35, 28],
+                       label='Weekly trend',
+                       sparkline=True)
+        card.add_entry(value=[5, 10, 3, 8, 12, 6, 9],
+                       label='Bar chart',
+                       sparkline='bar')
+        card.add_entry(value=[100, 98, 95, 97, 99, 96],
+                       label='Stability',
+                       sparkline=True)
+        card.add_entry(value=[1, 1, 1, 1],
+                       label='Flat line',
+                       sparkline=True)
+
+    def add_old_value_card(self):
+        card = self.add_card('old_value', title='Old Value / Diff Examples',
+                             header_icon='fas fa-exchange-alt')
+        card.add_entry(value='Active', label='Status',
+                       old_value='Pending')
+        card.add_entry(value=1500, label='Revenue',
+                       old_value=1200,
+                       number_format=True, prefix='$')
+        card.add_entry(value=99.5, label='Accuracy',
+                       old_value=97.2,
+                       number_format=2, suffix='%')
+        card.add_entry(value='Production', label='Environment',
+                       old_value='Staging')
+
+    def add_searchable_card(self):
+        card = self.add_card('searchable', title='Searchable Card',
+                             header_icon='fas fa-search',
+                             searchable=True)
+        items = [
+            ('Alice Johnson', 'Engineering'),
+            ('Bob Smith', 'Marketing'),
+            ('Carol Williams', 'Engineering'),
+            ('David Brown', 'Sales'),
+            ('Eve Davis', 'Marketing'),
+            ('Frank Miller', 'Engineering'),
+            ('Grace Wilson', 'Sales'),
+            ('Henry Moore', 'Support'),
+        ]
+        for name, dept in items:
+            card.add_entry(value=dept, label=name)
+
+    def add_exportable_card(self):
+        card = self.add_card('exportable', title='Exportable Card',
+                             header_icon='fas fa-file-export',
+                             exportable=True)
+        card.add_entry(value='Acme Corp', label='Company')
+        card.add_entry(value=1500000, label='Revenue', number_format=True, prefix='$')
+        card.add_entry(value=250, label='Employees', number_format=True)
+        card.add_entry(value='Enterprise', label='Plan')
+        card.add_entry(value='Active', label='Status', badge='bg-success')
+
+
 class TooltipTestIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 

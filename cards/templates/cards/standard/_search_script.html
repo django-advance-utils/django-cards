@@ -1,0 +1,21 @@
+{% if card.searchable %}
+<script>
+(function(){
+    var input = document.getElementById('{{ card.code }}_search');
+    if (!input) return;
+    var timer;
+    var container = document.getElementById('{{ card.code }}_body');
+    input.addEventListener('keyup', function(){
+        clearTimeout(timer);
+        timer = setTimeout(function(){
+            var q = input.value.toLowerCase();
+            var rows = container.querySelectorAll('.list-group > div, .list-group > a, table tr');
+            for (var i = 0; i < rows.length; i++) {
+                var text = rows[i].textContent.toLowerCase();
+                rows[i].style.display = (!q || text.indexOf(q) !== -1) ? '' : 'none';
+            }
+        }, 200);
+    });
+})();
+</script>
+{% endif %}

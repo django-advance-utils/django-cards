@@ -169,6 +169,8 @@ class CardMixin:
                  header_css_class='',
                  ajax_reload=False,
                  reload_interval=None,
+                 searchable=False,
+                 exportable=False,
                  **kwargs):
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -233,6 +235,8 @@ class CardMixin:
                              header_css_class=header_css_class,
                              ajax_reload=ajax_reload,
                              reload_interval=reload_interval,
+                             searchable=searchable,
+                             exportable=exportable,
                              **kwargs)
 
         if card_name is not None:

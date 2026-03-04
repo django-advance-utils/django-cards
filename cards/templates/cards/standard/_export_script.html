@@ -1,0 +1,26 @@
+{% if card.exportable %}
+<script data-export-{{ card.code }}='{{ export_data }}'>
+window.exportCard = window.exportCard || function(code, fmt) {
+    var el = document.querySelector('[data-export-' + code + ']');
+    if (!el) return;
+    var data = JSON.parse(el.getAttribute('data-export-' + code));
+    var blob, filename;
+    if (fmt === 'csv') {
+        var lines = ['Label,Value'];
+        for (var i = 0; i < data.length; i++) {
+            lines.push('"' + (data[i].label||'').replace(/"/g,'""') + '","' + (data[i].value||'').replace(/"/g,'""') + '"');
+        }
+        blob = new Blob([lines.join('\n')], {type: 'text/csv'});
+        filename = code + '.csv';
+    } else {
+        blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        filename = code + '.json';
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+};
+</script>
+{% endif %}

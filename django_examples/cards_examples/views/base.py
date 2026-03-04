@@ -19,6 +19,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:row_styles', 'Row Styles'),
             ('cards_examples:new_features', 'New Features'),
             ('cards_examples:new_features_table', 'New Features (Table)'),
+            ('cards_examples:new_features_2', 'New Features 2'),
             MenuItem(url='admin:index',
                      menu_display='Admin',
                      visible=self.request.user.is_superuser),

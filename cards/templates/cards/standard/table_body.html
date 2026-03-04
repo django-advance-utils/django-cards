@@ -22,7 +22,7 @@
                                     {{ entry.css_class }}">{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ x|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}<br/>
                                 {% endfor %}
                             {% else %}
-                                {% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ entry.html|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}
+                                {% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{% if entry.old_value %}<del class="text-danger">{{ entry.old_value }}</del> <i class="fas fa-arrow-right text-muted" style="font-size:0.7em"></i> <span class="text-success">{{ entry.html|safe }}</span>{% else %}{{ entry.html|safe }}{% endif %}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}
                             {% endif %}
                         {% if entry.value_link %}</a>{% endif %}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}{% if entry.help_text %}<br><small class="text-muted">{{ entry.help_text }}</small>{% endif %}{% if entry.link %}</a>{% endif %}{% if entry.value_th %}</th>{% else %}</td>{% endif %}
                         {% endif %}

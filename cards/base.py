@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 from collections import defaultdict
 
 from ajax_helpers.utils import random_string
@@ -143,6 +144,7 @@ class CardBase:
                  collapsed=None, hidden_if_blank_or_none=None, hidden_if_zero=None,
                  show_header=True, header_icon=None, header_css_class='',
                  ajax_reload=False, reload_interval=None,
+                 searchable=False, exportable=False,
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -223,6 +225,8 @@ class CardBase:
         self.header_css_class = header_css_class
         self.ajax_reload = ajax_reload
         self.reload_interval = reload_interval
+        self.searchable = searchable
+        self.exportable = exportable
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -442,7 +446,9 @@ class CardBase:
                   prefix=None, suffix=None, placeholder=None, status_dot=None,
                   progress_bar=None, image=None, timestamp=False,
                   help_text=None, boolean_icon=False, popover=None, separator=False,
-                  number_format=None, rating=None, **kwargs):
+                  number_format=None, rating=None,
+                  show_if=None, auto_link=False, sparkline=False, old_value=None,
+                  **kwargs):
         """
         Adds a single entry (label/value pair) to the card as a new row.
 
@@ -522,6 +528,10 @@ class CardBase:
                                          separator=separator,
                                          number_format=number_format,
                                          rating=rating,
+                                         show_if=show_if,
+                                         auto_link=auto_link,
+                                         sparkline=sparkline,
+                                         old_value=old_value,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -762,6 +772,7 @@ class CardBase:
                             progress_bar=None, image=None, timestamp=False,
                             help_text=None, boolean_icon=False, popover=None, separator=False,
                             number_format=None, rating=None,
+                            show_if=None, auto_link=False, sparkline=False, old_value=None,
                             **kwargs):
         """
         Internal method for creating a fully-resolved entry dictionary used in card rows.
@@ -820,6 +831,11 @@ class CardBase:
         if hidden or (hidden_if_blank_or_none and (value is None or value == '') or
                       (hidden_if_zero and isinstance(value, (float, int)) and value == 0)):
             return None
+
+        if show_if is not None and callable(show_if):
+            if self.details_object is not None and not show_if(self.details_object):
+                return None
+
         if isinstance(value, bool):
             return self.add_boolean_entry(value=value,
                                           label=label,
@@ -879,6 +895,28 @@ class CardBase:
                 else:
                     value = f"{value:,}"
 
+            if sparkline and isinstance(value, (list, tuple)) and len(value) > 1:
+                nums = [float(v) for v in value if isinstance(v, (int, float))]
+                if len(nums) > 1:
+                    min_v, max_v = min(nums), max(nums)
+                    rng = max_v - min_v or 1
+                    w, h = 80, 20
+                    if sparkline == 'bar':
+                        bar_w = w / len(nums)
+                        bars = ''.join(
+                            f'<rect x="{i * bar_w}" y="{h - (v - min_v) / rng * h}" '
+                            f'width="{bar_w * 0.8}" height="{(v - min_v) / rng * h}" fill="currentColor"/>'
+                            for i, v in enumerate(nums)
+                        )
+                        value = f'<svg width="{w}" height="{h}" style="vertical-align:middle">{bars}</svg>'
+                    else:
+                        points = ' '.join(
+                            f'{i * w / (len(nums) - 1)},{h - (v - min_v) / rng * h}'
+                            for i, v in enumerate(nums)
+                        )
+                        value = (f'<svg width="{w}" height="{h}" style="vertical-align:middle">'
+                                 f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>')
+
             multiple_parts = isinstance(value, (list, tuple))
 
             if value_method is not None:
@@ -934,10 +972,14 @@ class CardBase:
                     tooltip = value.strftime(fmt)
                 value = timesince(value) + ' ago'
 
-            if truncate is not None and isinstance(value, str) and len(value) > truncate:
+            if truncate is not None and not auto_link and isinstance(value, str) and len(value) > truncate:
                 if not tooltip:
                     tooltip = value
                 value = value[:truncate] + '\u2026'
+
+            if auto_link and isinstance(value, str):
+                value = re.sub(r'(https?://\S+)', r'<a href="\1" target="_blank">\1</a>', value)
+                value = re.sub(r'(?<!["\'/=])(\b[\w.+-]+@[\w-]+\.[\w.-]+\b)', r'<a href="mailto:\1">\1</a>', value)
 
             if badge is True:
                 badge = 'bg-secondary'
@@ -957,6 +999,15 @@ class CardBase:
                 if rating is True:
                     rating = 5
                 rating_range = list(range(rating))
+
+            if old_value is not None:
+                if number_format is not None and isinstance(old_value, (int, float)):
+                    if isinstance(number_format, int) and not isinstance(number_format, bool):
+                        old_value = f"{float(old_value):,.{number_format}f}"
+                    else:
+                        old_value = f"{old_value:,}"
+                else:
+                    old_value = str(old_value)
 
             entry = {'label': label,
                      'html': value,
@@ -981,6 +1032,7 @@ class CardBase:
                      'separator': separator,
                      'rating': rating,
                      'rating_range': rating_range,
+                     'old_value': old_value,
                      **kwargs}
             return entry
 
@@ -1251,6 +1303,23 @@ class CardBase:
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
+    def get_export_data(self):
+        data = []
+        for row in self.rows:
+            if row.get('type') == 'html':
+                continue
+            for entry in row.get('entries', []):
+                label = entry.get('label', '')
+                value = entry.get('html', '')
+                if isinstance(value, str):
+                    value = re.sub(r'<[^>]+>', '', value)
+                elif isinstance(value, (list, tuple)):
+                    value = ', '.join(re.sub(r'<[^>]+>', '', str(v)) for v in value)
+                else:
+                    value = str(value)
+                data.append({'label': label or '', 'value': value})
+        return data
+
     def _render_template(self, override_card_context=None):
         extra_card_context = self.extra_card_context
         context = {'card': self,
@@ -1261,6 +1330,9 @@ class CardBase:
                                   'html': CARD_TYPE_HTML},
                    'show_header': self.show_header,
                    }
+
+        if self.exportable:
+            context['export_data'] = json.dumps(self.get_export_data())
 
         if extra_card_context is not None:
             context = {**context, **extra_card_context}

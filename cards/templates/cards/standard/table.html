@@ -4,6 +4,8 @@
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
+                {% include 'cards/standard/_search_input.html' %}
+                {% include 'cards/standard/_export_button.html' %}
                 {% include 'cards/standard/_reload_button.html' %}
                 {% if card.enable_collapse %}
                     <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}"
@@ -30,3 +32,5 @@
         {% endif %}
     </div>
     {% include 'cards/standard/_reload_script.html' %}
+    {% include 'cards/standard/_search_script.html' %}
+    {% include 'cards/standard/_export_script.html' %}

@@ -1,0 +1,9 @@
+{% if card.exportable %}
+<div class="dropdown ml-2">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown" type="button" title="Export"><i class="fas fa-download"></i></button>
+    <div class="dropdown-menu dropdown-menu-right">
+        <a class="dropdown-item" href="#" onclick="exportCard('{{ card.code }}','csv');return false">Export CSV</a>
+        <a class="dropdown-item" href="#" onclick="exportCard('{{ card.code }}','json');return false">Export JSON</a>
+    </div>
+</div>
+{% endif %}
