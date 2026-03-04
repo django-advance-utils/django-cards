@@ -26,6 +26,12 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_progress_bar_card()
         self.add_image_card()
         self.add_timestamp_card()
+        self.add_help_text_card()
+        self.add_boolean_icon_card()
+        self.add_popover_card()
+        self.add_separator_card()
+        self.add_number_format_card()
+        self.add_rating_card()
 
         self.add_card_group('tooltip', 'value_link',
                             div_css_class='col-6 float-left',
@@ -37,12 +43,17 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
                             group_title='CSS & Company Examples',
                             script='console.log("New features examples loaded");')
         self.add_card_group('badge', 'icon', 'copy_truncate',
-                            div_css_class='col-12')
+                            div_css_class='col-12',
+                            div_css='clear:both')
         self.add_card_group('reload',
                             div_css_class='col-12')
         self.add_card_group('prefix_suffix', 'placeholder', 'status_dot',
                             div_css_class='col-12')
         self.add_card_group('progress_bar', 'image', 'timestamp',
+                            div_css_class='col-12')
+        self.add_card_group('help_text', 'boolean_icon', 'popover',
+                            div_css_class='col-12')
+        self.add_card_group('separator', 'number_format', 'rating',
                             div_css_class='col-12')
 
     def add_tooltip_card(self):
@@ -226,6 +237,61 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value=datetime.date.today() - datetime.timedelta(days=30),
                        label='Start date', timestamp=True)
 
+    def add_help_text_card(self):
+        card = self.add_card('help_text', title='Help Text Examples',
+                             header_icon='fas fa-info-circle')
+        card.add_entry(value='admin@example.com', label='Email',
+                       help_text='Primary contact email for notifications')
+        card.add_entry(value='US-East-1', label='Region',
+                       help_text='AWS region where the instance is deployed')
+        card.add_entry(value='Pro Plan', label='Subscription',
+                       help_text='Upgrade to Enterprise for additional features')
+        card.add_entry(value='3', label='Retry count',
+                       help_text='Number of times the job will retry on failure')
+
+    def add_boolean_icon_card(self):
+        card = self.add_card('boolean_icon', title='Boolean Icon Examples',
+                             header_icon='fas fa-toggle-on')
+        card.add_entry(value=True, label='Active', boolean_icon=True)
+        card.add_entry(value=False, label='Verified', boolean_icon=True)
+        card.add_entry(value=True, label='Email confirmed', boolean_icon=True)
+        card.add_entry(value=False, label='Two-factor enabled', boolean_icon=True)
+
+    def add_popover_card(self):
+        card = self.add_card('popover', title='Popover Examples',
+                             header_icon='fas fa-comment-dots')
+        card.add_entry(value='Click me', label='Simple popover',
+                       popover='This is a simple popover with just content')
+        card.add_entry(value='Click me too', label='Rich popover',
+                       popover={'title': 'Details', 'content': 'This popover has a title and content'})
+        card.add_entry(value='Hover instead', label='Tooltip comparison',
+                       tooltip='This uses a tooltip, not a popover')
+
+    def add_separator_card(self):
+        card = self.add_card('separator', title='Separator Examples',
+                             header_icon='fas fa-grip-lines')
+        card.add_entry(value='Section A - Item 1', label='Item')
+        card.add_entry(value='Section A - Item 2', label='Item')
+        card.add_entry(value='Section B - Item 1', label='Item', separator=True)
+        card.add_entry(value='Section B - Item 2', label='Item')
+        card.add_entry(value='Section C - Item 1', label='Item', separator=True)
+
+    def add_number_format_card(self):
+        card = self.add_card('number_format', title='Number Format Examples',
+                             header_icon='fas fa-hashtag')
+        card.add_entry(value=1234567, label='Population', number_format=True)
+        card.add_entry(value=1234567.891, label='Revenue', number_format=2, prefix='$')
+        card.add_entry(value=0.5, label='Rate', number_format=4)
+        card.add_entry(value=42, label='Simple number', number_format=True)
+
+    def add_rating_card(self):
+        card = self.add_card('rating', title='Rating Examples',
+                             header_icon='fas fa-star')
+        card.add_entry(value=4, label='Customer rating', rating=True)
+        card.add_entry(value=2, label='Quality', rating=True)
+        card.add_entry(value=5, label='Perfect score', rating=True)
+        card.add_entry(value=3, label='Out of 10', rating=10)
+
 
 class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
@@ -236,6 +302,7 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         self.add_table_badge_icon_card()
         self.add_table_copy_truncate_card()
         self.add_table_new_features_card()
+        self.add_table_new_features_2_card()
 
         self.add_card_group('table_tooltip',
                             div_css_class='col-6 float-left',
@@ -247,6 +314,8 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group('table_badge_icon', 'table_copy_truncate',
                             div_css_class='col-12')
         self.add_card_group('table_new_features',
+                            div_css_class='col-12')
+        self.add_card_group('table_new_features_2',
                             div_css_class='col-12')
 
     def add_table_tooltip_card(self):
@@ -325,3 +394,59 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value=None, label='Bio', placeholder='Not provided')
         card.add_entry(value=timezone.now() - datetime.timedelta(hours=5),
                        label='Updated', timestamp=True)
+
+    def add_table_new_features_2_card(self):
+        card = self.add_card('table_new_features_2',
+                             title='Table New Features 2',
+                             template_name='table',
+                             header_icon='fas fa-star',
+                             extra_card_context={'table_css_class': 'table table-bordered'})
+        card.add_entry(value='admin@example.com', label='Email',
+                       help_text='Primary contact email')
+        card.add_entry(value=True, label='Active', boolean_icon=True)
+        card.add_entry(value=False, label='Verified', boolean_icon=True)
+        card.add_entry(value='Click me', label='Popover',
+                       popover='Details shown on click')
+        card.add_entry(value='Group B', label='Section', separator=True)
+        card.add_entry(value=1234567, label='Population', number_format=True)
+        card.add_entry(value=1234.5, label='Revenue', number_format=2, prefix='$')
+        card.add_entry(value=4, label='Rating', rating=True)
+        card.add_entry(value=3, label='Quality', rating=10)
+
+
+class TooltipTestIndex(MainMenu, CardMixin, TemplateView):
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_tooltip_card()
+        self.add_value_link_card()
+
+        self.add_card_group('tooltip', 'value_link',
+                            div_css_class='col-6 float-left')
+
+    def add_tooltip_card(self):
+        card = self.add_card('tooltip', title='Tooltip Examples')
+        card.add_entry(value='Hover over me',
+                       label='With tooltip',
+                       tooltip='This is a Bootstrap tooltip')
+        card.add_entry(value='No tooltip here',
+                       label='Without tooltip')
+        card.add_entry(value='Check the tooltip',
+                       label='Status info',
+                       tooltip='Last updated 2 hours ago')
+
+    def add_value_link_card(self):
+        card = self.add_card('value_link', title='Value Link Examples')
+        card.add_entry(value='https://example.com',
+                       label='Website',
+                       value_link='https://example.com')
+        card.add_entry(value='user@example.com',
+                       label='Email',
+                       value_link='mailto:user@example.com')
+        card.add_entry(value='Click the whole row',
+                       label='Row link',
+                       link='https://example.com')
+        card.add_entry(value='Only value is linked',
+                       label='Value link',
+                       value_link='https://example.com',
+                       tooltip='Click the value text')

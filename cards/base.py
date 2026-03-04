@@ -440,7 +440,9 @@ class CardBase:
                   tooltip=None, value_link=None, css_class_method=None,
                   badge=None, icon=None, copy_to_clipboard=False, truncate=None,
                   prefix=None, suffix=None, placeholder=None, status_dot=None,
-                  progress_bar=None, image=None, timestamp=False, **kwargs):
+                  progress_bar=None, image=None, timestamp=False,
+                  help_text=None, boolean_icon=False, popover=None, separator=False,
+                  number_format=None, rating=None, **kwargs):
         """
         Adds a single entry (label/value pair) to the card as a new row.
 
@@ -514,6 +516,12 @@ class CardBase:
                                          progress_bar=progress_bar,
                                          image=image,
                                          timestamp=timestamp,
+                                         help_text=help_text,
+                                         boolean_icon=boolean_icon,
+                                         popover=popover,
+                                         separator=separator,
+                                         number_format=number_format,
+                                         rating=rating,
                                          **kwargs)
         if entry is not None:
             self.rows.append({'type': 'standard', 'entries': [entry]})
@@ -752,6 +760,8 @@ class CardBase:
                             badge=None, icon=None, copy_to_clipboard=False, truncate=None,
                             prefix=None, suffix=None, placeholder=None, status_dot=None,
                             progress_bar=None, image=None, timestamp=False,
+                            help_text=None, boolean_icon=False, popover=None, separator=False,
+                            number_format=None, rating=None,
                             **kwargs):
         """
         Internal method for creating a fully-resolved entry dictionary used in card rows.
@@ -856,6 +866,19 @@ class CardBase:
                     value = placeholder
                 entry_css_class = ((entry_css_class or '') + ' text-muted fst-italic').strip()
 
+            if boolean_icon and not is_default and isinstance(value, bool):
+                if value:
+                    icon = 'fas fa-check text-success'
+                else:
+                    icon = 'fas fa-times text-danger'
+                value = ''
+
+            if number_format is not None and not is_default and isinstance(value, (int, float)):
+                if isinstance(number_format, int) and not isinstance(number_format, bool):
+                    value = f"{float(value):,.{number_format}f}"
+                else:
+                    value = f"{value:,}"
+
             multiple_parts = isinstance(value, (list, tuple))
 
             if value_method is not None:
@@ -925,10 +948,20 @@ class CardBase:
             if image is True:
                 image = '40px'
 
+            if popover is not None:
+                if isinstance(popover, str):
+                    popover = {'content': popover, 'title': ''}
+
+            rating_range = None
+            if rating is not None:
+                if rating is True:
+                    rating = 5
+                rating_range = list(range(rating))
+
             entry = {'label': label,
                      'html': value,
                      'entry_css_class': entry_css_class,
-                     'css_class': css_class,
+                     'css_class': css_class or '',
                      'multiple_lines': multiple_parts,
                      'link': link,
                      'tooltip': tooltip,
@@ -943,6 +976,11 @@ class CardBase:
                      'status_dot': status_dot,
                      'progress_bar': progress_bar,
                      'image': image,
+                     'help_text': help_text,
+                     'popover': popover,
+                     'separator': separator,
+                     'rating': rating,
+                     'rating_range': rating_range,
                      **kwargs}
             return entry
 
