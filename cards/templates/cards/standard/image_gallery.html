@@ -6,14 +6,17 @@
         padding: 8px;
     }
     .image-gallery-grid .gallery-image-tile {
+        width: 120px;
         height: 120px;
         border-radius: 4px;
         cursor: pointer;
         border: 1px solid #dee2e6;
+        background: #f8f9fa;
         transition: opacity 0.2s;
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         text-align: center;
         overflow: hidden;
     }
@@ -21,10 +24,12 @@
         opacity: 0.8;
     }
     .image-gallery-grid .gallery-image-tile img {
-        flex: 1;
-        min-height: 0;
-        max-width: 100%;
+        max-width: 118px;
+        max-height: 118px;
         object-fit: contain;
+    }
+    .image-gallery-grid .gallery-image-tile.has-name img {
+        max-height: 100px;
     }
     .image-gallery-grid .gallery-image-tile .gallery-image-name {
         font-size: 0.75rem;
@@ -120,12 +125,12 @@
         <div class="image-gallery-grid">
             {% for link in links %}
                 {% if link.type == 'image' %}
-                <div class="gallery-image-tile" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
+                <div class="gallery-image-tile{% if show_image_names and link.name %} has-name{% endif %}" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
                     <img src="{{ link.url }}" alt="{{ link.name|default:'Image' }}">
                     {% if show_image_names and link.name %}<span class="gallery-image-name">{{ link.name }}</span>{% endif %}
                 </div>
                 {% elif link.type == 'data_sheet' %}
-                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Data Sheet' }}">
+                <div class="gallery-link-tile" onclick="openPdfModal_{{ card.code }}('{{ link.url|escapejs }}', '{{ link.name|default:'Data Sheet'|escapejs }}')" title="{{ link.name|default:'Data Sheet' }}">
                     <i class="fas fa-file-pdf text-danger"></i>
                     <span class="gallery-link-name">{{ link.name|default:'Data Sheet' }}</span>
                 </div>
@@ -199,6 +204,20 @@
     window['galleryNav_{{ card.code }}'] = function(dir) {
         var newIdx = (currentIndex + dir + images.length) % images.length;
         show(newIdx);
+    };
+
+    window['openPdfModal_{{ card.code }}'] = function(url, title) {
+        var html = '<div class="modal show fade" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">' +
+            '<div class="modal-dialog modal-lg" role="document" style="left:10px;top:10px">' +
+            '<div class="modal-content">' +
+            '<div class="modal-header">' +
+            '<div class="modal-title">' + $('<span>').text(title).html() + '</div>' +
+            '<div><button type="button" data-dismiss="modal"><i class="fas fa-times pt-1"></i></button></div>' +
+            '</div>' +
+            '<div class="modal-body" style="padding:0;height:80vh">' +
+            '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:100%;border:none"></iframe>' +
+            '</div></div></div></div>';
+        ajax_helpers.command_functions.modal_html({html: html});
     };
 })();
 </script>
