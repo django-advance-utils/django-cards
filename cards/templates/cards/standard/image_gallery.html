@@ -6,6 +6,7 @@
         padding: 8px;
     }
     .image-gallery-grid .gallery-image-tile {
+        height: 120px;
         border-radius: 4px;
         cursor: pointer;
         border: 1px solid #dee2e6;
@@ -14,20 +15,27 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
+        overflow: hidden;
     }
     .image-gallery-grid .gallery-image-tile:hover {
         opacity: 0.8;
     }
     .image-gallery-grid .gallery-image-tile img {
-        max-height: 120px;
-        border-radius: 4px 4px 0 0;
+        flex: 1;
+        min-height: 0;
+        max-width: 100%;
+        object-fit: contain;
     }
     .image-gallery-grid .gallery-image-tile .gallery-image-name {
         font-size: 0.75rem;
         line-height: 1.2;
-        padding: 4px 6px;
+        padding: 2px 6px;
         color: #495057;
-        word-break: break-word;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        flex-shrink: 0;
     }
     .image-gallery-grid .gallery-link-tile {
         height: 120px;
@@ -114,7 +122,7 @@
                 {% if link.type == 'image' %}
                 <div class="gallery-image-tile" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
                     <img src="{{ link.url }}" alt="{{ link.name|default:'Image' }}">
-                    {% if link.name %}<span class="gallery-image-name">{{ link.name }}</span>{% endif %}
+                    {% if show_image_names and link.name %}<span class="gallery-image-name">{{ link.name }}</span>{% endif %}
                 </div>
                 {% elif link.type == 'data_sheet' %}
                 <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Data Sheet' }}">
@@ -136,7 +144,7 @@
                 {% for image in images %}
                 <div class="gallery-image-tile" title="{{ image.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
                     <img src="{{ image.url }}" alt="{{ image.name|default:'Image' }}">
-                    {% if image.name %}<span class="gallery-image-name">{{ image.name }}</span>{% endif %}
+                    {% if show_image_names and image.name %}<span class="gallery-image-name">{{ image.name }}</span>{% endif %}
                 </div>
                 {% endfor %}
             {% endfor %}

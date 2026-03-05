@@ -631,7 +631,7 @@ card = self.add_message_card(title='Warning', message='No data available for thi
 
 ### Link Gallery Card
 
-Display a visual gallery of links as tiles. Supports multiple link types: images (thumbnail + lightbox), data sheets (PDF icon + iframe viewer), product pages (web icon + new tab), and other links (link icon + new tab).
+Display a visual gallery of links as uniform 120px-height tiles. Supports multiple link types: images (thumbnail + lightbox), data sheets (PDF icon + new tab), product pages (web icon + new tab), and other links (link icon + new tab).
 
 ```python
 links = [
@@ -642,6 +642,9 @@ links = [
     {'url': 'https://example.com/other', 'name': 'Other Link', 'type': 'other'},
 ]
 card = self.add_link_gallery_card(links, card_name='links', title='Links')
+
+# Optionally show names below image thumbnails
+card = self.add_link_gallery_card(links, card_name='links', title='Links', show_image_names=True)
 ```
 
 `add_link_gallery_card()` parameters:
@@ -651,16 +654,19 @@ card = self.add_link_gallery_card(links, card_name='links', title='Links')
 | `links` | list[dict] | — | List of dicts with `'url'`, `'type'` (required) and `'name'` (optional) keys |
 | `card_name` | str | `None` | Unique card identifier |
 | `title` | str | `'Links'` | Card header title |
+| `show_image_names` | bool | `False` | Show name labels below image thumbnails |
 | `**kwargs` | | | Additional keyword arguments passed to `add_card()` (e.g. `collapsed`, `menu`) |
 
 Link types:
 
 | Type | Icon | Click behaviour |
 |---|---|---|
-| `'image'` | Thumbnail | Opens lightbox modal |
-| `'data_sheet'` | `fa-file-pdf` | Opens iframe modal for inline PDF viewing |
+| `'image'` | Thumbnail (natural aspect ratio) | Opens lightbox modal |
+| `'data_sheet'` | `fa-file-pdf` | Opens URL in new tab |
 | `'product_page'` | `fa-globe` | Opens URL in new tab |
 | `'other'` | `fa-link` | Opens URL in new tab |
+
+All tiles are 120px height. Image thumbnails preserve their aspect ratio using `object-fit: contain`. Icon tiles (data sheet, product page, other) are 120x120px squares with the icon and name label.
 
 Returns `None` if `links` is empty (no card rendered).
 
@@ -678,7 +684,7 @@ card = self.add_image_gallery_card(images, card_name='photos', title='Product Ph
 ```
 
 Features:
-- **Thumbnails**: Flexbox grid of 120px-height thumbnails with `object-fit: cover`
+- **Thumbnails**: 120px-height tiles preserving image aspect ratio
 - **Lightbox**: Click any thumbnail to open a Bootstrap modal with the full-size image
 - **Navigation**: Prev/next buttons when multiple images exist
 - **Multiple galleries**: Each card gets a unique ID, so multiple gallery cards on one page work independently

@@ -439,7 +439,7 @@ class CardMixin:
         )
         return card
 
-    def add_link_gallery_card(self, links, card_name=None, title='Links', **kwargs):
+    def add_link_gallery_card(self, links, card_name=None, title='Links', show_image_names=False, **kwargs):
         """
         Adds a links gallery card with visual tiles for different link types.
 
@@ -448,13 +448,14 @@ class CardMixin:
           - 'name' (str, optional): Display name for the link.
           - 'type' (str): One of 'image', 'data_sheet', 'product_page', 'other'.
 
-        Images are shown as thumbnails with lightbox. Data sheets open in an iframe modal.
+        Images are shown as thumbnails with lightbox. Data sheets open in a new tab.
         Product pages and other links open in a new browser tab.
 
         Args:
             links (list[dict]): List of link dicts.
             card_name (str, optional): Unique card identifier.
             title (str, optional): Card header title. Defaults to 'Links'.
+            show_image_names (bool, optional): Whether to show names below image thumbnails. Defaults to False.
             **kwargs: Additional keyword arguments passed to `add_card`.
 
         Returns:
@@ -472,7 +473,7 @@ class CardMixin:
             card_name=card_name,
             title=title,
             template_name='image_gallery',
-            extra_card_context={'links': links},
+            extra_card_context={'links': links, 'show_image_names': show_image_names},
             **kwargs,
         )
 
