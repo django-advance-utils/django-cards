@@ -439,9 +439,48 @@ class CardMixin:
         )
         return card
 
+    def add_link_gallery_card(self, links, card_name=None, title='Links', **kwargs):
+        """
+        Adds a links gallery card with visual tiles for different link types.
+
+        Each link dict should have:
+          - 'url' (str): The link URL.
+          - 'name' (str, optional): Display name for the link.
+          - 'type' (str): One of 'image', 'data_sheet', 'product_page', 'other'.
+
+        Images are shown as thumbnails with lightbox. Data sheets open in an iframe modal.
+        Product pages and other links open in a new browser tab.
+
+        Args:
+            links (list[dict]): List of link dicts.
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title. Defaults to 'Links'.
+            **kwargs: Additional keyword arguments passed to `add_card`.
+
+        Returns:
+            object: The card object, or None if links is empty.
+        """
+        if not links:
+            return None
+        # Assign image_index for lightbox navigation (only counting image-type links)
+        image_idx = 0
+        for link in links:
+            if link.get('type') == 'image':
+                link['image_index'] = image_idx
+                image_idx += 1
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            template_name='image_gallery',
+            extra_card_context={'links': links},
+            **kwargs,
+        )
+
     def add_image_gallery_card(self, images, card_name=None, title='Images', **kwargs):
         """
         Adds an image gallery card with thumbnail grid and lightbox modal.
+
+        This is a convenience wrapper around ``add_link_gallery_card()`` for image-only galleries.
 
         Args:
             images (list[dict]): List of dicts with 'url' and optional 'name' keys.

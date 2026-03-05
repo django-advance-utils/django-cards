@@ -15,6 +15,39 @@
     .image-gallery-grid .gallery-thumb:hover {
         opacity: 0.8;
     }
+    .image-gallery-grid .gallery-link-tile {
+        height: 120px;
+        width: 120px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        text-decoration: none;
+        color: #495057;
+        transition: background 0.2s, border-color 0.2s;
+        padding: 8px;
+        text-align: center;
+    }
+    .image-gallery-grid .gallery-link-tile:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+    }
+    .image-gallery-grid .gallery-link-tile i {
+        font-size: 2.5rem;
+        margin-bottom: 6px;
+    }
+    .image-gallery-grid .gallery-link-tile .gallery-link-name {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        max-height: 2.4em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+    }
     .image-gallery-lightbox .modal-body {
         text-align: center;
         padding: 0;
@@ -47,6 +80,15 @@
     }
     .image-gallery-lightbox .gallery-nav-prev { left: 0; }
     .image-gallery-lightbox .gallery-nav-next { right: 0; }
+    .image-gallery-pdf-viewer .modal-body {
+        padding: 0;
+        height: 80vh;
+    }
+    .image-gallery-pdf-viewer .modal-body iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
 </style>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
     <div class="card-header {{ card.header_css_class }}">
@@ -63,12 +105,37 @@
     </div>
     <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
         <div class="image-gallery-grid">
-            {% for image in images %}
-            <img class="gallery-thumb"
-                 src="{{ image.url }}"
-                 alt="{{ image.name|default:'Image' }}"
-                 title="{{ image.name|default:'Image' }}"
-                 onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+            {% for link in links %}
+                {% if link.type == 'image' %}
+                <img class="gallery-thumb"
+                     src="{{ link.url }}"
+                     alt="{{ link.name|default:'Image' }}"
+                     title="{{ link.name|default:'Image' }}"
+                     onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
+                {% elif link.type == 'data_sheet' %}
+                <div class="gallery-link-tile" onclick="openPdfViewer_{{ card.code }}('{{ link.url|escapejs }}', '{{ link.name|default:'Data Sheet'|escapejs }}')" title="{{ link.name|default:'Data Sheet' }}">
+                    <i class="fas fa-file-pdf text-danger"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Data Sheet' }}</span>
+                </div>
+                {% elif link.type == 'product_page' %}
+                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Product Page' }}">
+                    <i class="fas fa-globe text-primary"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Product Page' }}</span>
+                </div>
+                {% else %}
+                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Link' }}">
+                    <i class="fas fa-link text-secondary"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Link' }}</span>
+                </div>
+                {% endif %}
+            {% empty %}
+                {% for image in images %}
+                <img class="gallery-thumb"
+                     src="{{ image.url }}"
+                     alt="{{ image.name|default:'Image' }}"
+                     title="{{ image.name|default:'Image' }}"
+                     onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+                {% endfor %}
             {% endfor %}
         </div>
     </div>
@@ -83,10 +150,8 @@
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
-                {% if images|length > 1 %}
-                <button class="gallery-nav gallery-nav-prev" onclick="galleryNav_{{ card.code }}(-1)"><i class="fas fa-chevron-left"></i></button>
-                <button class="gallery-nav gallery-nav-next" onclick="galleryNav_{{ card.code }}(1)"><i class="fas fa-chevron-right"></i></button>
-                {% endif %}
+                <button class="gallery-nav gallery-nav-prev" id="{{ card.code }}_nav_prev" onclick="galleryNav_{{ card.code }}(-1)" style="display:none"><i class="fas fa-chevron-left"></i></button>
+                <button class="gallery-nav gallery-nav-next" id="{{ card.code }}_nav_next" onclick="galleryNav_{{ card.code }}(1)" style="display:none"><i class="fas fa-chevron-right"></i></button>
                 <img id="{{ card.code }}_lightbox_img" src="" alt="">
             </div>
             <div class="gallery-caption" id="{{ card.code }}_lightbox_caption"></div>
@@ -94,11 +159,27 @@
     </div>
 </div>
 
+<!-- PDF viewer modal -->
+<div class="modal fade image-gallery-pdf-viewer" id="{{ card.code }}_pdf_viewer" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="{{ card.code }}_pdf_title"></h6>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="{{ card.code }}_pdf_iframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
-    var images = [{% for image in images %}{"url": "{{ image.url|escapejs }}", "name": "{{ image.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    var images = [{% for link in links %}{% if link.type == 'image' %}{"url": "{{ link.url|escapejs }}", "name": "{{ link.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}];
+    {% if not links %}var images = [{% for image in images %}{"url": "{{ image.url|escapejs }}", "name": "{{ image.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}];{% endif %}
     var currentIndex = 0;
-    var modalId = '{{ card.code }}_lightbox';
+    var lightboxId = '{{ card.code }}_lightbox';
 
     function show(idx) {
         currentIndex = idx;
@@ -106,17 +187,33 @@
         document.getElementById('{{ card.code }}_lightbox_img').src = img.url;
         document.getElementById('{{ card.code }}_lightbox_title').textContent = img.name;
         document.getElementById('{{ card.code }}_lightbox_caption').textContent = img.name;
+        var prevBtn = document.getElementById('{{ card.code }}_nav_prev');
+        var nextBtn = document.getElementById('{{ card.code }}_nav_next');
+        if (prevBtn && nextBtn) {
+            prevBtn.style.display = images.length > 1 ? '' : 'none';
+            nextBtn.style.display = images.length > 1 ? '' : 'none';
+        }
     }
 
     window['openGalleryLightbox_{{ card.code }}'] = function(idx) {
         show(idx);
-        $('#' + modalId).modal('show');
+        $('#' + lightboxId).modal('show');
     };
 
     window['galleryNav_{{ card.code }}'] = function(dir) {
         var newIdx = (currentIndex + dir + images.length) % images.length;
         show(newIdx);
     };
+
+    window['openPdfViewer_{{ card.code }}'] = function(url, title) {
+        document.getElementById('{{ card.code }}_pdf_iframe').src = url;
+        document.getElementById('{{ card.code }}_pdf_title').textContent = title;
+        $('#{{ card.code }}_pdf_viewer').modal('show');
+    };
+
+    $('#{{ card.code }}_pdf_viewer').on('hidden.bs.modal', function() {
+        document.getElementById('{{ card.code }}_pdf_iframe').src = '';
+    });
 })();
 </script>
 {% include 'cards/standard/_reload_script.html' %}

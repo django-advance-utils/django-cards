@@ -531,38 +531,42 @@ class ImageGalleryIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
-        self.add_single_image_gallery()
-        self.add_multi_image_gallery()
+        self.add_image_only_gallery()
+        self.add_mixed_links_gallery()
         self.add_empty_gallery()
 
-        self.add_card_group('single_image', div_css_class='col-6 float-left')
-        self.add_card_group('multi_image', div_css_class='col-6 float-right')
+        self.add_card_group('image_only', div_css_class='col-6 float-left')
+        self.add_card_group('mixed_links', div_css_class='col-6 float-right')
         self.add_card_group('empty_gallery', div_css_class='col-12', div_css='clear:both')
 
-    def add_single_image_gallery(self):
-        images = [
-            {'url': 'https://placehold.co/600x400/007bff/ffffff?text=Product+Front', 'name': 'Front View'},
-        ]
-        self.add_image_gallery_card(images, card_name='single_image', title='Single Image')
-
-    def add_multi_image_gallery(self):
+    def add_image_only_gallery(self):
         images = [
             {'url': 'https://placehold.co/600x400/007bff/ffffff?text=Front', 'name': 'Front View'},
             {'url': 'https://placehold.co/600x400/28a745/ffffff?text=Side', 'name': 'Side View'},
             {'url': 'https://placehold.co/600x400/dc3545/ffffff?text=Back', 'name': 'Back View'},
-            {'url': 'https://placehold.co/600x400/ffc107/000000?text=Detail'},
         ]
-        self.add_image_gallery_card(images, card_name='multi_image', title='Multiple Images')
+        self.add_image_gallery_card(images, card_name='image_only', title='Images (backwards-compatible)')
+
+    def add_mixed_links_gallery(self):
+        image_url = 'https://placehold.co/600x400'
+        links = [
+            {'url': f'{image_url}/007bff/ffffff?text=Product', 'name': 'Product Photo', 'type': 'image'},
+            {'url': f'{image_url}/28a745/ffffff?text=Side', 'name': 'Side View', 'type': 'image'},
+            {'url': 'https://example.com/datasheet.pdf', 'name': 'Data Sheet', 'type': 'data_sheet'},
+            {'url': 'https://example.com/product', 'name': 'Product Page', 'type': 'product_page'},
+            {'url': 'https://example.com/other', 'name': 'Other Resource', 'type': 'other'},
+        ]
+        self.add_link_gallery_card(links, card_name='mixed_links', title='All Link Types')
 
     def add_empty_gallery(self):
         # Returns None — card won't render
-        gallery = self.add_image_gallery_card([], card_name='empty_gallery', title='Empty Gallery')
+        self.add_link_gallery_card([], card_name='empty_gallery', title='Empty Gallery')
 
         # Show a message card instead to demonstrate the empty behaviour
         self.add_message_card(
             card_name='empty_gallery',
             title='Empty Gallery',
-            message='add_image_gallery_card() returns None when images is empty, so no card is rendered.',
+            message='add_link_gallery_card() returns None when links is empty, so no card is rendered.',
         )
 
 

@@ -629,9 +629,44 @@ card = self.add_html_data_card('<div class="alert alert-info">Custom HTML</div>'
 card = self.add_message_card(title='Warning', message='No data available for this period.')
 ```
 
+### Link Gallery Card
+
+Display a visual gallery of links as tiles. Supports multiple link types: images (thumbnail + lightbox), data sheets (PDF icon + iframe viewer), product pages (web icon + new tab), and other links (link icon + new tab).
+
+```python
+links = [
+    {'url': 'https://example.com/front.jpg', 'name': 'Front View', 'type': 'image'},
+    {'url': 'https://example.com/side.jpg', 'name': 'Side View', 'type': 'image'},
+    {'url': 'https://example.com/datasheet.pdf', 'name': 'Data Sheet', 'type': 'data_sheet'},
+    {'url': 'https://example.com/product', 'name': 'Product Page', 'type': 'product_page'},
+    {'url': 'https://example.com/other', 'name': 'Other Link', 'type': 'other'},
+]
+card = self.add_link_gallery_card(links, card_name='links', title='Links')
+```
+
+`add_link_gallery_card()` parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `links` | list[dict] | — | List of dicts with `'url'`, `'type'` (required) and `'name'` (optional) keys |
+| `card_name` | str | `None` | Unique card identifier |
+| `title` | str | `'Links'` | Card header title |
+| `**kwargs` | | | Additional keyword arguments passed to `add_card()` (e.g. `collapsed`, `menu`) |
+
+Link types:
+
+| Type | Icon | Click behaviour |
+|---|---|---|
+| `'image'` | Thumbnail | Opens lightbox modal |
+| `'data_sheet'` | `fa-file-pdf` | Opens iframe modal for inline PDF viewing |
+| `'product_page'` | `fa-globe` | Opens URL in new tab |
+| `'other'` | `fa-link` | Opens URL in new tab |
+
+Returns `None` if `links` is empty (no card rendered).
+
 ### Image Gallery Card
 
-Display a thumbnail grid with a click-to-expand lightbox modal. Useful for product images, photo galleries, or any collection of images.
+`add_image_gallery_card()` is a convenience wrapper around `add_link_gallery_card()` for image-only galleries:
 
 ```python
 images = [
@@ -642,24 +677,13 @@ images = [
 card = self.add_image_gallery_card(images, card_name='photos', title='Product Photos')
 ```
 
-`add_image_gallery_card()` parameters:
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `images` | list[dict] | — | List of dicts with `'url'` (required) and `'name'` (optional) keys |
-| `card_name` | str | `None` | Unique card identifier |
-| `title` | str | `'Images'` | Card header title |
-| `**kwargs` | | | Additional keyword arguments passed to `add_html_card()` (e.g. `collapsed`, `menu`) |
-
-Returns `None` if `images` is empty (no card rendered).
-
 Features:
 - **Thumbnails**: Flexbox grid of 120px-height thumbnails with `object-fit: cover`
 - **Lightbox**: Click any thumbnail to open a Bootstrap modal with the full-size image
 - **Navigation**: Prev/next buttons when multiple images exist
 - **Multiple galleries**: Each card gets a unique ID, so multiple gallery cards on one page work independently
 
-Full example — a product detail view with an image gallery alongside other cards:
+Full example — a product detail view with a links gallery alongside other cards:
 
 ```python
 from cards.standard import CardMixin
@@ -674,10 +698,10 @@ class ProductDetailView(CardMixin, DetailView):
         card = self.add_card('details', title='Product Details', details_object=self.object)
         card.add_rows('name', 'sku', 'description', 'price')
 
-        # Image gallery from related model
-        image_links = self.object.images.all()
-        images = [{'url': img.file.url, 'name': img.caption} for img in image_links]
-        gallery = self.add_image_gallery_card(images, card_name='gallery', title='Product Photos')
+        # Links gallery from related model
+        product_links = self.object.links.all()
+        links = [{'url': l.url, 'name': l.name, 'type': l.link_type} for l in product_links]
+        gallery = self.add_link_gallery_card(links, card_name='links', title='Links')
 
         # Layout: details on the left, gallery on the right
         self.add_card_group('details', div_css_class='col-6 float-left')
