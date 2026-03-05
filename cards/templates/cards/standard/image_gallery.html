@@ -6,21 +6,28 @@
         padding: 8px;
     }
     .image-gallery-grid .gallery-image-tile {
-        height: 120px;
-        width: 120px;
         border-radius: 4px;
         cursor: pointer;
-        overflow: hidden;
         border: 1px solid #dee2e6;
         transition: opacity 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
     .image-gallery-grid .gallery-image-tile:hover {
         opacity: 0.8;
     }
     .image-gallery-grid .gallery-image-tile img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        max-height: 120px;
+        border-radius: 4px 4px 0 0;
+    }
+    .image-gallery-grid .gallery-image-tile .gallery-image-name {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        padding: 4px 6px;
+        color: #495057;
+        word-break: break-word;
     }
     .image-gallery-grid .gallery-link-tile {
         height: 120px;
@@ -107,6 +114,7 @@
                 {% if link.type == 'image' %}
                 <div class="gallery-image-tile" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
                     <img src="{{ link.url }}" alt="{{ link.name|default:'Image' }}">
+                    {% if link.name %}<span class="gallery-image-name">{{ link.name }}</span>{% endif %}
                 </div>
                 {% elif link.type == 'data_sheet' %}
                 <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Data Sheet' }}">
@@ -128,6 +136,7 @@
                 {% for image in images %}
                 <div class="gallery-image-tile" title="{{ image.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
                     <img src="{{ image.url }}" alt="{{ image.name|default:'Image' }}">
+                    {% if image.name %}<span class="gallery-image-name">{{ image.name }}</span>{% endif %}
                 </div>
                 {% endfor %}
             {% endfor %}
