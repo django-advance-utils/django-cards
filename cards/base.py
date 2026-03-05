@@ -117,6 +117,9 @@ class CardBase:
                                                 'tree_themes': json.dumps({'name': 'proton', 'responsive': True}),
                                                 'tree_plugins': json.dumps(['wholerow'])}},
                  'blank': {'name': 'cards/standard/blank.html'},
+                 'image_gallery': {'name': 'cards/standard/image_gallery.html',
+                                   'context': {'card_css_class': 'card django-card',
+                                               'card_body_css_class': 'card-body cards-list'}},
                  'message': {'name': 'cards/standard/message.html',
                              'context': {'card_css_class': 'card django-card',
                                          'alert_css_class': 'alert-warning'}}}

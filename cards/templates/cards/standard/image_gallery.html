@@ -1,0 +1,122 @@
+<style>
+    .image-gallery-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+    }
+    .image-gallery-grid .gallery-thumb {
+        height: 120px;
+        border-radius: 4px;
+        cursor: pointer;
+        object-fit: cover;
+        transition: opacity 0.2s;
+    }
+    .image-gallery-grid .gallery-thumb:hover {
+        opacity: 0.8;
+    }
+    .image-gallery-lightbox .modal-body {
+        text-align: center;
+        padding: 0;
+        position: relative;
+    }
+    .image-gallery-lightbox .modal-body img {
+        max-width: 100%;
+        max-height: 80vh;
+        object-fit: contain;
+    }
+    .image-gallery-lightbox .gallery-caption {
+        padding: 8px;
+        text-align: center;
+        color: #666;
+    }
+    .image-gallery-lightbox .gallery-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.4);
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        z-index: 1;
+    }
+    .image-gallery-lightbox .gallery-nav:hover {
+        background: rgba(0,0,0,0.6);
+    }
+    .image-gallery-lightbox .gallery-nav-prev { left: 0; }
+    .image-gallery-lightbox .gallery-nav-next { right: 0; }
+</style>
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+            {% if card.enable_collapse %}
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+                <i class="expandicon"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
+        <div class="image-gallery-grid">
+            {% for image in images %}
+            <img class="gallery-thumb"
+                 src="{{ image.url }}"
+                 alt="{{ image.name|default:'Image' }}"
+                 title="{{ image.name|default:'Image' }}"
+                 onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox modal -->
+<div class="modal fade image-gallery-lightbox" id="{{ card.code }}_lightbox" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="{{ card.code }}_lightbox_title"></h6>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                {% if images|length > 1 %}
+                <button class="gallery-nav gallery-nav-prev" onclick="galleryNav_{{ card.code }}(-1)"><i class="fas fa-chevron-left"></i></button>
+                <button class="gallery-nav gallery-nav-next" onclick="galleryNav_{{ card.code }}(1)"><i class="fas fa-chevron-right"></i></button>
+                {% endif %}
+                <img id="{{ card.code }}_lightbox_img" src="" alt="">
+            </div>
+            <div class="gallery-caption" id="{{ card.code }}_lightbox_caption"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var images = [{% for image in images %}{"url": "{{ image.url|escapejs }}", "name": "{{ image.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    var currentIndex = 0;
+    var modalId = '{{ card.code }}_lightbox';
+
+    function show(idx) {
+        currentIndex = idx;
+        var img = images[idx];
+        document.getElementById('{{ card.code }}_lightbox_img').src = img.url;
+        document.getElementById('{{ card.code }}_lightbox_title').textContent = img.name;
+        document.getElementById('{{ card.code }}_lightbox_caption').textContent = img.name;
+    }
+
+    window['openGalleryLightbox_{{ card.code }}'] = function(idx) {
+        show(idx);
+        $('#' + modalId).modal('show');
+    };
+
+    window['galleryNav_{{ card.code }}'] = function(dir) {
+        var newIdx = (currentIndex + dir + images.length) % images.length;
+        show(newIdx);
+    };
+})();
+</script>
+{% include 'cards/standard/_reload_script.html' %}

@@ -439,6 +439,29 @@ class CardMixin:
         )
         return card
 
+    def add_image_gallery_card(self, images, card_name=None, title='Images', **kwargs):
+        """
+        Adds an image gallery card with thumbnail grid and lightbox modal.
+
+        Args:
+            images (list[dict]): List of dicts with 'url' and optional 'name' keys.
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title. Defaults to 'Images'.
+            **kwargs: Additional keyword arguments passed to `add_html_card`.
+
+        Returns:
+            object: The card object, or None if images is empty.
+        """
+        if not images:
+            return None
+        return self.add_html_card(
+            context_template_name='cards/standard/image_gallery.html',
+            context={'images': images},
+            card_name=card_name,
+            title=title,
+            **kwargs,
+        )
+
     def row_edit(self, **kwargs):
         """
         Updates a single row in a datatable with edited values received via AJAX.

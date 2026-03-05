@@ -629,6 +629,62 @@ card = self.add_html_data_card('<div class="alert alert-info">Custom HTML</div>'
 card = self.add_message_card(title='Warning', message='No data available for this period.')
 ```
 
+### Image Gallery Card
+
+Display a thumbnail grid with a click-to-expand lightbox modal. Useful for product images, photo galleries, or any collection of images.
+
+```python
+images = [
+    {'url': 'https://example.com/front.jpg', 'name': 'Front View'},
+    {'url': 'https://example.com/side.jpg', 'name': 'Side View'},
+    {'url': 'https://example.com/detail.jpg'},  # name is optional
+]
+card = self.add_image_gallery_card(images, card_name='photos', title='Product Photos')
+```
+
+`add_image_gallery_card()` parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `images` | list[dict] | — | List of dicts with `'url'` (required) and `'name'` (optional) keys |
+| `card_name` | str | `None` | Unique card identifier |
+| `title` | str | `'Images'` | Card header title |
+| `**kwargs` | | | Additional keyword arguments passed to `add_html_card()` (e.g. `collapsed`, `menu`) |
+
+Returns `None` if `images` is empty (no card rendered).
+
+Features:
+- **Thumbnails**: Flexbox grid of 120px-height thumbnails with `object-fit: cover`
+- **Lightbox**: Click any thumbnail to open a Bootstrap modal with the full-size image
+- **Navigation**: Prev/next buttons when multiple images exist
+- **Multiple galleries**: Each card gets a unique ID, so multiple gallery cards on one page work independently
+
+Full example — a product detail view with an image gallery alongside other cards:
+
+```python
+from cards.standard import CardMixin
+from django.views.generic import DetailView
+
+class ProductDetailView(CardMixin, DetailView):
+    model = Product
+    template_name = 'products/detail.html'
+
+    def setup_cards(self):
+        # Main details card
+        card = self.add_card('details', title='Product Details', details_object=self.object)
+        card.add_rows('name', 'sku', 'description', 'price')
+
+        # Image gallery from related model
+        image_links = self.object.images.all()
+        images = [{'url': img.file.url, 'name': img.caption} for img in image_links]
+        gallery = self.add_image_gallery_card(images, card_name='gallery', title='Product Photos')
+
+        # Layout: details on the left, gallery on the right
+        self.add_card_group('details', div_css_class='col-6 float-left')
+        right_cards = [gallery] if gallery else []
+        self.add_card_group(*right_cards, div_css_class='col-6 float-right')
+```
+
 ---
 
 ## License
