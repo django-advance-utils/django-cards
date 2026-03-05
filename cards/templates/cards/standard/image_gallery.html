@@ -5,15 +5,22 @@
         gap: 8px;
         padding: 8px;
     }
-    .image-gallery-grid .gallery-thumb {
+    .image-gallery-grid .gallery-image-tile {
         height: 120px;
+        width: 120px;
         border-radius: 4px;
         cursor: pointer;
-        object-fit: cover;
+        overflow: hidden;
+        border: 1px solid #dee2e6;
         transition: opacity 0.2s;
     }
-    .image-gallery-grid .gallery-thumb:hover {
+    .image-gallery-grid .gallery-image-tile:hover {
         opacity: 0.8;
+    }
+    .image-gallery-grid .gallery-image-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     .image-gallery-grid .gallery-link-tile {
         height: 120px;
@@ -80,15 +87,6 @@
     }
     .image-gallery-lightbox .gallery-nav-prev { left: 0; }
     .image-gallery-lightbox .gallery-nav-next { right: 0; }
-    .image-gallery-pdf-viewer .modal-body {
-        padding: 0;
-        height: 80vh;
-    }
-    .image-gallery-pdf-viewer .modal-body iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
 </style>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
     <div class="card-header {{ card.header_css_class }}">
@@ -107,13 +105,11 @@
         <div class="image-gallery-grid">
             {% for link in links %}
                 {% if link.type == 'image' %}
-                <img class="gallery-thumb"
-                     src="{{ link.url }}"
-                     alt="{{ link.name|default:'Image' }}"
-                     title="{{ link.name|default:'Image' }}"
-                     onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
+                <div class="gallery-image-tile" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
+                    <img src="{{ link.url }}" alt="{{ link.name|default:'Image' }}">
+                </div>
                 {% elif link.type == 'data_sheet' %}
-                <div class="gallery-link-tile" onclick="openPdfViewer_{{ card.code }}('{{ link.url|escapejs }}', '{{ link.name|default:'Data Sheet'|escapejs }}')" title="{{ link.name|default:'Data Sheet' }}">
+                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Data Sheet' }}">
                     <i class="fas fa-file-pdf text-danger"></i>
                     <span class="gallery-link-name">{{ link.name|default:'Data Sheet' }}</span>
                 </div>
@@ -130,11 +126,9 @@
                 {% endif %}
             {% empty %}
                 {% for image in images %}
-                <img class="gallery-thumb"
-                     src="{{ image.url }}"
-                     alt="{{ image.name|default:'Image' }}"
-                     title="{{ image.name|default:'Image' }}"
-                     onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+                <div class="gallery-image-tile" title="{{ image.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+                    <img src="{{ image.url }}" alt="{{ image.name|default:'Image' }}">
+                </div>
                 {% endfor %}
             {% endfor %}
         </div>
@@ -155,21 +149,6 @@
                 <img id="{{ card.code }}_lightbox_img" src="" alt="">
             </div>
             <div class="gallery-caption" id="{{ card.code }}_lightbox_caption"></div>
-        </div>
-    </div>
-</div>
-
-<!-- PDF viewer modal -->
-<div class="modal fade image-gallery-pdf-viewer" id="{{ card.code }}_pdf_viewer" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title" id="{{ card.code }}_pdf_title"></h6>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <iframe id="{{ card.code }}_pdf_iframe" src=""></iframe>
-            </div>
         </div>
     </div>
 </div>
@@ -204,16 +183,6 @@
         var newIdx = (currentIndex + dir + images.length) % images.length;
         show(newIdx);
     };
-
-    window['openPdfViewer_{{ card.code }}'] = function(url, title) {
-        document.getElementById('{{ card.code }}_pdf_iframe').src = url;
-        document.getElementById('{{ card.code }}_pdf_title').textContent = title;
-        $('#{{ card.code }}_pdf_viewer').modal('show');
-    };
-
-    $('#{{ card.code }}_pdf_viewer').on('hidden.bs.modal', function() {
-        document.getElementById('{{ card.code }}_pdf_iframe').src = '';
-    });
 })();
 </script>
 {% include 'cards/standard/_reload_script.html' %}
