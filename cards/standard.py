@@ -447,18 +447,18 @@ class CardMixin:
             images (list[dict]): List of dicts with 'url' and optional 'name' keys.
             card_name (str, optional): Unique card identifier.
             title (str, optional): Card header title. Defaults to 'Images'.
-            **kwargs: Additional keyword arguments passed to `add_html_card`.
+            **kwargs: Additional keyword arguments passed to `add_card`.
 
         Returns:
             object: The card object, or None if images is empty.
         """
         if not images:
             return None
-        return self.add_html_card(
-            context_template_name='cards/standard/image_gallery.html',
-            context={'images': images},
+        return self.add_card(
             card_name=card_name,
             title=title,
+            template_name='image_gallery',
+            extra_card_context={'images': images},
             **kwargs,
         )
 
