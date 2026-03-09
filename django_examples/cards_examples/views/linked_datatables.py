@@ -1,6 +1,7 @@
 from cards_examples.models import Company, CompanyCategory, Person, Payment
 from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
+from django_menus.menu import MenuItem, AjaxButtonMenuItem
 
 from cards.base import CARD_TYPE_LINKED_DATATABLES
 from cards.standard import CardMixin
@@ -16,14 +17,35 @@ class LinkedDatatablesExample(MainMenu, CardMixin, TemplateView):
             card_name='company_drilldown',
             title='Company Drilldown',
             datatables=[
-                {'id': 'ld_categories', 'model': CompanyCategory, 'title': 'Categories'},
+                {'id': 'ld_categories', 'model': CompanyCategory, 'title': 'Categories',
+                 'menu': [AjaxButtonMenuItem(button_name='add_category',
+                                             menu_display='',
+                                             font_awesome='fas fa-plus',
+                                             css_classes='btn btn-sm btn-outline-success')]},
                 {'id': 'ld_companies', 'model': Company, 'title': 'Companies',
-                 'linked_field': 'company_category_id'},
+                 'linked_field': 'company_category_id',
+                 'menu': [AjaxButtonMenuItem(button_name='add_company',
+                                             menu_display='',
+                                             font_awesome='fas fa-plus',
+                                             css_classes='btn btn-sm btn-outline-success')]},
                 {'id': 'ld_people', 'model': Person, 'title': 'People',
                  'linked_field': 'company_id',
-                 'row_link': 'admin:cards_examples_person_change'},
+                 'row_link': 'admin:cards_examples_person_change',
+                 'menu': [AjaxButtonMenuItem(button_name='add_person',
+                                             menu_display='',
+                                             font_awesome='fas fa-plus',
+                                             css_classes='btn btn-sm btn-outline-success')]},
             ]
         )
+
+    def button_add_category(self, **kwargs):
+        return self.command_response('message', text='Add Category clicked')
+
+    def button_add_company(self, **kwargs):
+        return self.command_response('message', text='Add Company clicked')
+
+    def button_add_person(self, **kwargs):
+        return self.command_response('message', text='Add Person clicked')
 
     def setup_cards(self):
         self.add_card_group('company_drilldown', div_css_class='col-12 float-right')

@@ -1197,6 +1197,12 @@ class CardBase:
             else:
                 row_link_url = None
 
+            menu = dt_config.get('menu')
+            if menu and not isinstance(menu, HtmlMenu):
+                html_menu = HtmlMenu(self.request, 'button_group')
+                html_menu.add_items(*menu)
+                menu = html_menu
+
             initialized_tables.append({
                 'table': table,
                 'id': table_id,
@@ -1205,6 +1211,7 @@ class CardBase:
                 'css_class': css_class,
                 'index': i,
                 'row_link': row_link_url,
+                'menu': menu,
             })
 
         self.extra_card_info['initialized_tables'] = initialized_tables

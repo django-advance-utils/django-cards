@@ -22,7 +22,10 @@
                  {% if dt.linked_field %}data-linked-field="{{ dt.linked_field }}"{% endif %}
                  {% if dt.row_link %}data-row-link="{{ dt.row_link }}"{% endif %}
                  style="min-width: 0; overflow: auto;">
-                <h6 class="px-2 pt-2 mb-1 font-weight-bold">{{ dt.title }}</h6>
+                <div class="d-flex align-items-center px-2 pt-2 mb-1">
+                    <h6 class="font-weight-bold mr-auto mb-0">{{ dt.title }}</h6>
+                    {% if dt.menu %}{{ dt.menu.render }}{% endif %}
+                </div>
                 <div class="px-2 pb-1 linked-datatable-status text-muted small" id="{{ dt.id }}_status">&nbsp;</div>
                 {{ dt.table.render|safe }}
             </div>

@@ -789,6 +789,7 @@ class CompanyDrilldown(CardMixin, TemplateView):
 | `linked_field` | str | No | Field name to filter by when the previous table's row is selected |
 | `css_class` | str | No | Additional CSS class for the table's panel container |
 | `row_link` | str | No | URL name for navigation when a row is clicked (last table only) |
+| `menu` | list | No | Menu items (e.g. buttons) displayed next to the table title |
 
 ### Row Link on Final Table
 

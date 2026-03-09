@@ -152,7 +152,6 @@ class AccordionLayoutExample(MainMenu, CardMixin, TemplateView):
 
         self.add_accordion_card(
             card_name='layout_accordion',
-            title='Navigation',
             full_height=True,
             panels=[
                 {'title': 'Summary', 'card': summary_card, 'icon': 'fas fa-chart-bar',
