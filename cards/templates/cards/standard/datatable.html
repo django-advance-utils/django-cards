@@ -2,7 +2,7 @@
 
     {% if show_pivot_table %}
             <div class="{% if pivot_filter_class %}{{ pivot_filter_class }}{% else %}col-12 col-sm-6 col-md-5 col-lg-4 col-xl-2 float-left{% endif %}">
-                <div class="card jms-card">
+                <div class="jms-card">
                     {% filter_control card.extra_card_info.datatable %}
                 </div>
             </div>
