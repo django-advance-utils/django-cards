@@ -4,7 +4,7 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES
 
 
 class CardPostError(Exception):
@@ -72,9 +72,14 @@ class CardMixin:
             if hasattr(self, field_setup_table_field):
                 self.setup_datatable_cards()
                 table = self.tables[table_id]
+                linked_filter_field = request.POST.get('linked_filter_field')
+                linked_filter_value = request.POST.get('linked_filter_value')
                 field_query = f'get_{table_id}_query'
                 if hasattr(self, field_query):
                     results = getattr(self, field_query)(table, **kwargs)
+                elif linked_filter_field and linked_filter_value:
+                    table.filter[linked_filter_field] = linked_filter_value
+                    results = table.get_query(**kwargs)
                 else:
                     results = table.get_query(**kwargs)
                 table_data = table.get_json(request, results)
@@ -438,6 +443,41 @@ class CardMixin:
             **kwargs
         )
         return card
+
+    def add_linked_datatables_card(self, card_name=None, title='Linked Datatables', datatables=None, **kwargs):
+        """
+        Adds a card containing multiple datatables displayed side by side.
+
+        Clicking a row in one datatable filters the next datatable in the chain.
+        Each datatable config is a dict with:
+            - id (str): Unique table identifier, used as the table_id and to find setup_table_<id> methods.
+            - model (Model): The Django model for this datatable.
+            - title (str, optional): Display title above this datatable.
+            - linked_field (str, optional): The model field to filter on when a row is selected in the previous table.
+            - css_class (str, optional): Extra CSS class for the datatable's column div.
+
+        Example:
+            self.add_linked_datatables_card(
+                card_name='drilldown',
+                title='Company Drilldown',
+                datatables=[
+                    {'id': 'categories', 'model': CompanyCategory, 'title': 'Categories'},
+                    {'id': 'companies', 'model': Company, 'title': 'Companies',
+                     'linked_field': 'company_category_id'},
+                    {'id': 'people', 'model': Person, 'title': 'People',
+                     'linked_field': 'company_id'},
+                ]
+            )
+        """
+        if datatables is None:
+            datatables = []
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            group_type=CARD_TYPE_LINKED_DATATABLES,
+            datatables=datatables,
+            **kwargs
+        )
 
     def add_link_gallery_card(self, links, card_name=None, title='Links', show_image_names=False, **kwargs):
         """

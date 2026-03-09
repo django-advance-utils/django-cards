@@ -23,11 +23,22 @@ def random_date(start, end):
     return start + datetime.timedelta(seconds=random_second)
 
 
+def import_categories():
+    category_names = ['Technology', 'Finance', 'Healthcare', 'Manufacturing', 'Retail', 'Services']
+    categories = []
+    for name in category_names:
+        cat, _ = models.CompanyCategory.objects.get_or_create(name=name)
+        categories.append(cat)
+    return categories
+
+
 def import_companies(path):
     # if models.Company.objects.all().count() > 0:
     #     return
     models.Payment.objects.all().delete()
     random.seed(a='import_companies', version=2)
+
+    categories = import_categories()
 
     date_offset = DateOffset()
 
@@ -46,6 +57,9 @@ def import_companies(path):
 
             company = models.Company.objects.get_or_create(name=r['Company'],
                                                            importance=random.randrange(0, 10))[0]
+            if not company.company_category:
+                company.company_category = random.choice(categories)
+                company.save()
             models.Person.objects.get_or_create(company=company,
                                                 first_name=r['First Name'],
                                                 surname=r['Surname'],

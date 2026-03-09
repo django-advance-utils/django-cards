@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
+from django_datatables.columns import ColumnBase
 from django_datatables.datatables import DatatableTable
 from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
@@ -22,6 +23,7 @@ CARD_TYPE_LIST_SELECTION = 5
 CARD_TYPE_CARD_GROUP = 6
 CARD_TYPE_CARD_LAYOUT = 7
 CARD_TYPE_CARD_MESSAGE = 8
+CARD_TYPE_LINKED_DATATABLES = 9
 
 
 class CardBase:
@@ -122,7 +124,10 @@ class CardBase:
                                                'card_body_css_class': 'card-body cards-list'}},
                  'message': {'name': 'cards/standard/message.html',
                              'context': {'card_css_class': 'card django-card',
-                                         'alert_css_class': 'alert-warning'}}}
+                                         'alert_css_class': 'alert-warning'}},
+                 'linked_datatables': {'name': 'cards/standard/linked_datatables.html',
+                                       'context': {'card_css_class': 'card django-card',
+                                                   'card_body_css_class': 'card-body'}}}
 
     ajax_commands = ['datatable']
 
@@ -133,7 +138,8 @@ class CardBase:
                          CARD_TYPE_LIST_SELECTION: 'list_selection',
                          CARD_TYPE_CARD_GROUP: 'card_group',
                          CARD_TYPE_CARD_LAYOUT: 'card_layout',
-                         CARD_TYPE_CARD_MESSAGE: 'message'}
+                         CARD_TYPE_CARD_MESSAGE: 'message',
+                         CARD_TYPE_LINKED_DATATABLES: 'linked_datatables'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -283,6 +289,8 @@ class CardBase:
             extra_info['setup_table'] = kwargs.get('setup_table')
             if group_type == CARD_TYPE_ORDERED_DATATABLE:
                 extra_info['order_field'] = kwargs.get('order_field', 'order')
+        elif group_type == CARD_TYPE_LINKED_DATATABLES:
+            extra_info['datatables'] = kwargs.get('datatables', [])
         elif group_type == CARD_TYPE_HTML:
             extra_info['html'] = kwargs.get('html')
 
@@ -1124,11 +1132,70 @@ class CardBase:
             getattr(self.view, setup_table_field)(details_object=self.details_object, table=table)
             if hasattr(self.view, 'tables'):
                 self.view.tables[self.code] = table
+        elif self.group_type == CARD_TYPE_LINKED_DATATABLES:
+            self._process_linked_datatables()
         elif self.group_type == CARD_TYPE_STANDARD and self.call_details_data:
             if self.code is not None and hasattr(self.view, f'get_{self.code}_data'):
                 getattr(self.view, f'get_{self.code}_data')(card=self, details_object=self.details_object)
             elif hasattr(self.view, 'get_details_data'):
                 getattr(self.view, 'get_details_data')(card=self, details_object=self.details_object)
+
+    def _process_linked_datatables(self):
+        """Initialize all datatables for a linked datatables card."""
+        datatables_config = self.extra_card_info.get('datatables', [])
+        initialized_tables = []
+        total = len(datatables_config)
+
+        for i, dt_config in enumerate(datatables_config):
+            table_id = dt_config['id']
+            model = dt_config['model']
+            title = dt_config.get('title', table_id.replace('_', ' ').title())
+            linked_field = dt_config.get('linked_field')
+            css_class = dt_config.get('css_class', '')
+
+            table = DatatableTable(table_id=table_id, model=model, view=self.view)
+
+            setup_table_field = f'setup_table_{table_id}'
+            if hasattr(self.view, setup_table_field):
+                getattr(self.view, setup_table_field)(details_object=self.details_object, table=table)
+
+            # Add arrow column to tables that link to the next table or to a page
+            row_link = dt_config.get('row_link')
+            if i < total - 1 or row_link:
+                arrow_col = ColumnBase(column_name='_arrow', field=None, table=table, model=model)
+                arrow_col.title = ''
+                arrow_col.options['calculated'] = True
+                arrow_col.column_defs['orderable'] = False
+                arrow_col.column_defs['className'] = 'linked-dt-arrow'
+                arrow_col.column_defs['width'] = '30px'
+                arrow_col.row_result = lambda data_dict, page_results: '\u25B6'
+                table.columns.append(arrow_col)
+
+            # First table loads data normally; subsequent linked tables start empty
+            if i > 0 and linked_field:
+                table.ajax_data = False
+                table.table_data = []
+
+            if hasattr(self.view, 'tables'):
+                self.view.tables[table_id] = table
+
+            if row_link:
+                from django_datatables.helpers import get_url, DUMMY_ID
+                row_link_url = get_url(row_link)
+            else:
+                row_link_url = None
+
+            initialized_tables.append({
+                'table': table,
+                'id': table_id,
+                'title': title,
+                'linked_field': linked_field,
+                'css_class': css_class,
+                'index': i,
+                'row_link': row_link_url,
+            })
+
+        self.extra_card_info['initialized_tables'] = initialized_tables
 
     def add_table(self, model, table_id=None):
         """

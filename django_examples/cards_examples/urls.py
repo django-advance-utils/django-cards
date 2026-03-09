@@ -6,6 +6,9 @@ from cards_examples.views.list import ExampleCompanyCardList, ExampleCompanyCard
 from cards_examples.views.main import ExampleIndex, ExampleCardsIndex
 from cards_examples.views.tree import ExampleCompanyTree
 from cards_examples.views.datatable import DatatableExample, DatatableOrderExample
+from cards_examples.views.linked_datatables import (
+    LinkedDatatablesExample, LinkedDatatablesPaymentExample, LinkedDatatablesFourLevelExample
+)
 
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
@@ -35,6 +38,10 @@ urlpatterns = [
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
     path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
+
+    path('linked-datatables/', LinkedDatatablesExample.as_view(), name='linked_datatables'),
+    path('linked-datatables-payments/', LinkedDatatablesPaymentExample.as_view(), name='linked_datatables_payments'),
+    path('linked-datatables-four/', LinkedDatatablesFourLevelExample.as_view(), name='linked_datatables_four'),
 
     path('new-features/', NewFeaturesIndex.as_view(), name='new_features'),
     path('new-features-table/', NewFeaturesTableIndex.as_view(), name='new_features_table'),

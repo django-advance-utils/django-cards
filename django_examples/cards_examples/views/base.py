@@ -15,6 +15,11 @@ class MainMenu(AjaxHelpers, MenuMixin):
             ('cards_examples:tree,-', 'Tree'),
             ('cards_examples:datatable', 'Datatable'),
             ('cards_examples:datatable_order', 'Datatable Order'),
+            MenuItem(menu_display='Linked DT', dropdown=(
+                ('cards_examples:linked_datatables', 'Company Drilldown'),
+                ('cards_examples:linked_datatables_payments', 'Payment Drilldown'),
+                ('cards_examples:linked_datatables_four', 'Four Level'),
+            )),
             ('cards_examples:child_cards', 'Child Cards'),
             ('cards_examples:row_styles', 'Row Styles'),
             ('cards_examples:new_features', 'New Features'),
