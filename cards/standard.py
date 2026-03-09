@@ -4,7 +4,7 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION
 
 
 class CardPostError(Exception):
@@ -479,6 +479,63 @@ class CardMixin:
             **kwargs
         )
 
+    def add_accordion_card(self, card_name=None, title=None, panels=None, multi_open=False,
+                           full_height=False, min_height='300px', **kwargs):
+        """
+        Adds an accordion card containing multiple collapsible panels.
+
+        Each panel can contain any type of card content. Panels can optionally
+        load their content via AJAX when first expanded.
+
+        Args:
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title. If None, no card header is shown.
+            panels (list): List of panel config dicts, each with:
+                - card (CardBase): A card instance to render as the panel body.
+                - title (str): Panel header text.
+                - id (str, optional): Unique panel identifier.
+                - expanded (bool, optional): Whether panel starts expanded. First panel defaults to True.
+                - icon (str, optional): Font Awesome icon class for the panel header.
+                - header_css_class (str, optional): Extra CSS class for the panel header.
+                - ajax_load (bool, optional): If True, panel content loads via AJAX on first expand.
+            multi_open (bool): If True, multiple panels can be open at once. Default False.
+            full_height (bool): If True, accordion fills remaining viewport height. Default False.
+            min_height (str): Minimum height CSS value when full_height is True. Default '300px'.
+
+        Example:
+            detail_card = self.add_card(title='Details')
+            detail_card.add_rows('name', 'email')
+
+            table_card = self.add_card(
+                card_name='items_table',
+                group_type=CARD_TYPE_DATATABLE,
+                datatable_model=Item
+            )
+
+            self.add_accordion_card(
+                card_name='my_accordion',
+                title='Info',
+                panels=[
+                    {'title': 'Details', 'card': detail_card, 'icon': 'fas fa-info-circle'},
+                    {'title': 'Items', 'card': table_card, 'expanded': False},
+                    {'title': 'Lazy Panel', 'ajax_load': True, 'expanded': False},
+                ]
+            )
+        """
+        if panels is None:
+            panels = []
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            group_type=CARD_TYPE_ACCORDION,
+            panels=panels,
+            multi_open=multi_open,
+            full_height=full_height,
+            min_height=min_height,
+            show_header=title is not None,
+            **kwargs
+        )
+
     def add_link_gallery_card(self, links, card_name=None, title='Links', show_image_names=False, **kwargs):
         """
         Adds a links gallery card with visual tiles for different link types.
@@ -596,4 +653,23 @@ class CardMixin:
         card = self.cards.get(card_code)
         if card is not None:
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
+        return self.command_response('null')
+
+    def button_accordion_load(self, **kwargs):
+        """AJAX handler to load an accordion panel's content on first expand."""
+        accordion_code = kwargs.get('accordion')
+        panel_id = kwargs.get('panel_id')
+        if not hasattr(self, 'object') and hasattr(self, 'get_object'):
+            self.object = self.get_object()
+        self.cards = {}
+        self.card_groups = {}
+        self.tables = {}
+        self.setup_datatable_cards()
+        self.setup_cards()
+        accordion = self.cards.get(accordion_code)
+        if accordion is not None:
+            for panel in accordion.extra_card_info.get('initialized_panels', []):
+                if panel['id'] == panel_id and panel.get('card'):
+                    html = panel['card'].render()
+                    return self.command_response('html', selector=f'#{panel_id}_content', html=html)
         return self.command_response('null')

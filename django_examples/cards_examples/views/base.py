@@ -20,6 +20,12 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:linked_datatables_payments', 'Payment Drilldown'),
                 ('cards_examples:linked_datatables_four', 'Four Level'),
             )),
+            MenuItem(menu_display='Accordion', dropdown=(
+                ('cards_examples:accordion', 'Basic'),
+                ('cards_examples:accordion_ajax', 'AJAX Loading'),
+                ('cards_examples:accordion_multi', 'Multi Open'),
+                ('cards_examples:accordion_layout', 'Layout'),
+            )),
             ('cards_examples:child_cards', 'Child Cards'),
             ('cards_examples:row_styles', 'Row Styles'),
             ('cards_examples:new_features', 'New Features'),

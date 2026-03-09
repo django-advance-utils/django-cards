@@ -1,0 +1,139 @@
+<div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
+    {% if show_header %}
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" style="padding: 0;{% if card.extra_card_info.full_height %} flex: 1; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
+        <div class="accordion" id="{{ card.code }}_accordion"{% if card.extra_card_info.full_height %} style="display: flex; flex-direction: column; flex: 1; overflow: hidden;"{% endif %}>
+            {% for panel in card.extra_card_info.initialized_panels %}
+            <div class="card mb-0 {{ card.code }}-panel-wrap" style="border-radius: 0; border-left: 0; border-right: 0;{% if card.extra_card_info.full_height %} flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
+                <div class="card-header p-0 {{ panel.header_css_class }}" id="{{ panel.id }}_header" style="flex-shrink: 0;">
+                    <button class="btn btn-link btn-block text-left d-flex align-items-center py-2 px-3{% if not panel.expanded %} collapsed{% endif %}"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#{{ panel.id }}_collapse"
+                            aria-expanded="{{ panel.expanded|yesno:'true,false' }}"
+                            aria-controls="{{ panel.id }}_collapse">
+                        {% if panel.icon %}<i class="{{ panel.icon }} mr-2"></i>{% endif %}
+                        <span>{{ panel.title }}</span>
+                        <i class="fas fa-chevron-down ml-auto accordion-chevron"></i>
+                    </button>
+                </div>
+                <div id="{{ panel.id }}_collapse"
+                     class="collapse{% if panel.expanded %} show{% endif %}"
+                     aria-labelledby="{{ panel.id }}_header"
+                     {% if not card.extra_card_info.multi_open %}data-parent="#{{ card.code }}_accordion"{% endif %}
+                     {% if card.extra_card_info.full_height %}style="overflow-y: auto; flex: 1;"{% endif %}>
+                    <div class="card-body p-0" id="{{ panel.id }}_content">
+                        {% if panel.ajax_load and not panel.expanded %}
+                            <div class="text-center text-muted py-3" id="{{ panel.id }}_placeholder">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        {% elif panel.card %}
+                            {{ panel.card.render }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    #{{ card.code }}_accordion .btn-link { text-decoration: none; color: inherit; }
+    #{{ card.code }}_accordion .btn-link:hover { background: #f8f9fa; }
+    #{{ card.code }}_accordion .accordion-chevron { transition: transform 0.2s; }
+    #{{ card.code }}_accordion .btn-link.collapsed .accordion-chevron { transform: rotate(-90deg); }
+    #{{ card.code }}_accordion .card-body .card.django-card { border: none; }
+    #{{ card.code }}_accordion .card-body .card.django-card .card-header { display: none; }
+    {% if card.extra_card_info.full_height %}
+    #{{ card.code }}_card {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .{{ card.code }}-panel-wrap.panel-expanded {
+        flex: 1 !important;
+        overflow: hidden !important;
+    }
+    #{{ card.code }}_accordion .collapse {
+        transition: none !important;
+    }
+    #{{ card.code }}_accordion .collapsing {
+        transition: none !important;
+        height: auto !important;
+        display: block;
+    }
+    {% endif %}
+</style>
+
+<script>
+$(document).ready(function() {
+    {% if card.extra_card_info.full_height %}
+    (function() {
+        var cardEl = document.getElementById('{{ card.code }}_card');
+        var minHeight = parseInt('{{ card.extra_card_info.min_height }}', 10) || 300;
+
+        function setCardHeight() {
+            cardEl.style.height = '';
+            var rect = cardEl.getBoundingClientRect();
+            var height = window.innerHeight - rect.top - 10;
+            if (height < minHeight) height = minHeight;
+            cardEl.style.height = height + 'px';
+        }
+        setCardHeight();
+        $(window).on('resize', setCardHeight);
+
+        // Mark initially expanded panel
+        $('#{{ card.code }}_accordion .collapse.show').closest('.{{ card.code }}-panel-wrap').addClass('panel-expanded');
+
+        // When a panel opens, give its wrapper flex:1
+        $('#{{ card.code }}_accordion').on('show.bs.collapse', function(e) {
+            $(e.target).closest('.{{ card.code }}-panel-wrap').addClass('panel-expanded');
+        });
+        // When a panel closes, remove flex:1
+        $('#{{ card.code }}_accordion').on('hide.bs.collapse', function(e) {
+            $(e.target).closest('.{{ card.code }}-panel-wrap').removeClass('panel-expanded');
+        });
+    })();
+    {% endif %}
+
+    {% for panel in card.extra_card_info.initialized_panels %}
+    {% if panel.ajax_load %}
+    (function() {
+        var loaded = {{ panel.expanded|yesno:"true,false" }};
+        $('#{{ panel.id }}_collapse').on('show.bs.collapse', function() {
+            if (!loaded) {
+                loaded = true;
+                ajax_helpers.post_json({data: {
+                    button: 'accordion_load',
+                    accordion: '{{ card.code }}',
+                    panel_id: '{{ panel.id }}'
+                }});
+            }
+        });
+        {% if panel.expanded %}
+        // Load immediately if expanded on init
+        ajax_helpers.post_json({data: {
+            button: 'accordion_load',
+            accordion: '{{ card.code }}',
+            panel_id: '{{ panel.id }}'
+        }});
+        {% endif %}
+    })();
+    {% endif %}
+    {% endfor %}
+});
+</script>
+{% include 'cards/standard/_reload_script.html' %}

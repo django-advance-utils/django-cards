@@ -10,6 +10,7 @@ from cards_examples.views.linked_datatables import (
     LinkedDatatablesExample, LinkedDatatablesPaymentExample, LinkedDatatablesFourLevelExample
 )
 
+from cards_examples.views.accordion import AccordionExample, AccordionAjaxExample, AccordionMultiExample, AccordionLayoutExample
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
@@ -42,6 +43,11 @@ urlpatterns = [
     path('linked-datatables/', LinkedDatatablesExample.as_view(), name='linked_datatables'),
     path('linked-datatables-payments/', LinkedDatatablesPaymentExample.as_view(), name='linked_datatables_payments'),
     path('linked-datatables-four/', LinkedDatatablesFourLevelExample.as_view(), name='linked_datatables_four'),
+
+    path('accordion/', AccordionExample.as_view(), name='accordion'),
+    path('accordion-ajax/', AccordionAjaxExample.as_view(), name='accordion_ajax'),
+    path('accordion-multi/', AccordionMultiExample.as_view(), name='accordion_multi'),
+    path('accordion-layout/', AccordionLayoutExample.as_view(), name='accordion_layout'),
 
     path('new-features/', NewFeaturesIndex.as_view(), name='new_features'),
     path('new-features-table/', NewFeaturesTableIndex.as_view(), name='new_features_table'),

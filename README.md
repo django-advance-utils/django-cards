@@ -11,7 +11,7 @@ A Django library for building rich, interactive detail cards in your views — w
 
 django-cards gives you a Python API to build Bootstrap-styled information cards directly from your Django views. Instead of writing repetitive template HTML, you declare cards and entries in Python:
 
-- **8 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, and message
+- **10 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, and accordion
 - **30+ entry display options** — badges, icons, sparklines, ratings, progress bars, status dots, popovers, copy-to-clipboard, and more
 - **Interactive features** — AJAX reload, client-side search, CSV/JSON export, collapsible cards
 - **Layout system** — card groups, layout cards, and child card groups for complex page layouts
@@ -95,11 +95,14 @@ Or render individual cards:
 | `CARD_TYPE_CARD_GROUP` (6) | Card Group | Group of cards with a shared header |
 | `CARD_TYPE_CARD_LAYOUT` (7) | Layout | Headerless nested layout container |
 | `CARD_TYPE_CARD_MESSAGE` (8) | Message | Alert/warning message card |
+| `CARD_TYPE_LINKED_DATATABLES` (9) | Linked Datatables | Side-by-side datatables with drill-down filtering |
+| `CARD_TYPE_ACCORDION` (10) | Accordion | Collapsible panels containing any card type |
 
 Import constants from `cards.base`:
 
 ```python
-from cards.base import CARD_TYPE_STANDARD, CARD_TYPE_DATATABLE, CARD_TYPE_HTML
+from cards.base import (CARD_TYPE_STANDARD, CARD_TYPE_DATATABLE, CARD_TYPE_HTML,
+                        CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION)
 ```
 
 ---
@@ -713,6 +716,351 @@ class ProductDetailView(CardMixin, DetailView):
         self.add_card_group('details', div_css_class='col-6 float-left')
         right_cards = [gallery] if gallery else []
         self.add_card_group(*right_cards, div_css_class='col-6 float-right')
+```
+
+---
+
+## Linked Datatables
+
+Display multiple datatables side by side with drill-down filtering. Clicking a row in one table filters the next table in the chain. Supports any number of linked tables.
+
+### Basic Setup
+
+```python
+from cards.base import CARD_TYPE_LINKED_DATATABLES
+from cards.standard import CardMixin
+from django.views.generic import TemplateView
+
+class CompanyDrilldown(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+    ajax_commands = ['datatable', 'row']
+
+    def setup_cards(self):
+        self.add_linked_datatables_card(
+            card_name='drilldown',
+            title='Company Drilldown',
+            datatables=[
+                {'id': 'ld_categories', 'model': CompanyCategory, 'title': 'Categories'},
+                {'id': 'ld_companies', 'model': Company, 'title': 'Companies',
+                 'linked_field': 'company_category_id'},
+                {'id': 'ld_people', 'model': Person, 'title': 'People',
+                 'linked_field': 'company_id'},
+            ]
+        )
+        self.add_card_group('drilldown', div_css_class='col-12')
+
+    def setup_table_ld_categories(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'name')
+
+    def setup_table_ld_companies(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'name', 'importance')
+
+    def setup_table_ld_people(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'first_name', 'surname')
+```
+
+### How It Works
+
+1. The first table loads data normally via AJAX
+2. Subsequent tables start empty — they load when a row is selected in the previous table
+3. Selecting a row sends the `linked_field` value as a filter to the next table's AJAX query
+4. The first row is auto-selected on load (except for the last table)
+5. Selecting a different row clears and reloads all downstream tables
+
+### `add_linked_datatables_card()` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_name` | str | — | Unique card identifier |
+| `title` | str | `''` | Card header title |
+| `datatables` | list[dict] | — | List of datatable configuration dicts (see below) |
+| `**kwargs` | | | Additional keyword arguments passed to `add_card()` |
+
+### Datatable Config Dict
+
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `id` | str | Yes | Unique table identifier (also used for `setup_table_<id>()` method name) |
+| `model` | Model | Yes | Django model class for the table |
+| `title` | str | No | Display title above the table (defaults to id with underscores replaced) |
+| `linked_field` | str | No | Field name to filter by when the previous table's row is selected |
+| `css_class` | str | No | Additional CSS class for the table's panel container |
+| `row_link` | str | No | URL name for navigation when a row is clicked (last table only) |
+
+### Row Link on Final Table
+
+Add a `row_link` to the last table to navigate to another page when a row is clicked:
+
+```python
+from django_datatables.helpers import DUMMY_ID
+
+datatables=[
+    {'id': 'ld_categories', 'model': CompanyCategory, 'title': 'Categories'},
+    {'id': 'ld_companies', 'model': Company, 'title': 'Companies',
+     'linked_field': 'company_category_id'},
+    {'id': 'ld_people', 'model': Person, 'title': 'People',
+     'linked_field': 'company_id',
+     'row_link': f'admin:cards_examples_person_change,{DUMMY_ID}'},
+]
+```
+
+The `row_link` uses the same format as django-datatables row links. `DUMMY_ID` is replaced with the actual row ID on click. Navigation only happens on a real click — auto-selection does not trigger it.
+
+### Custom Query Methods
+
+For complex filtering (e.g. where the linked field isn't a direct FK), define a `get_<table_id>_query` method:
+
+```python
+def get_ld_payments_query(self, table, **kwargs):
+    person_id = self.request.POST.get('linked_filter_value')
+    if person_id:
+        company = Person.objects.get(id=person_id).company
+        table.filter['company_id'] = company.id
+    return table.get_query(**kwargs)
+```
+
+When a custom query method exists, the automatic `linked_field` filter is skipped.
+
+### Features
+
+- **Keyboard navigation**: Arrow keys to move between rows (up/down) and tables (left/right)
+- **Arrow indicator**: A `▶` column is automatically added to tables that link to the next table
+- **Toggle deselect**: Clicking a selected row deselects it and clears downstream tables
+- **Auto-select**: The first row is automatically selected on load for all tables except the last
+
+### Table Setup
+
+Each table is configured via a `setup_table_<id>()` method, just like standard datatable cards:
+
+```python
+def setup_table_ld_companies(self, table, details_object):
+    table.ajax_data = True
+    table.add_columns('id', 'name', 'importance')
+```
+
+Set `table.ajax_data = True` on all tables — the linked datatables system handles starting subsequent tables empty and loading them when needed.
+
+---
+
+## Accordion
+
+Collapsible accordion panels where each panel can contain a different card type (standard detail cards, datatables, HTML cards, etc.).
+
+### Basic Setup
+
+```python
+from cards.base import CARD_TYPE_DATATABLE
+from cards.standard import CardMixin
+from django.views.generic import TemplateView
+
+class AccordionView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+    ajax_commands = ['datatable', 'row']
+
+    def setup_datatable_cards(self):
+        self.add_card('acc_companies',
+                      group_type=CARD_TYPE_DATATABLE,
+                      datatable_model=Company)
+
+    def setup_table_acc_companies(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'name', 'importance')
+
+    def setup_cards(self):
+        # Standard detail card
+        detail_card = self.add_card(title='Overview')
+        detail_card.add_entry(label='Total', value=Company.objects.count())
+
+        # Datatable card
+        companies_card = self.cards['acc_companies']
+
+        # HTML card
+        notes_card = self.add_card(title='Notes')
+        notes_card.add_entry(label='Info', value='Any card type works inside an accordion.')
+
+        self.add_accordion_card(
+            card_name='my_accordion',
+            title='Accordion Example',
+            panels=[
+                {'title': 'Overview', 'card': detail_card, 'icon': 'fas fa-chart-bar',
+                 'expanded': True},
+                {'title': 'Companies', 'card': companies_card, 'icon': 'fas fa-building'},
+                {'title': 'Notes', 'card': notes_card, 'icon': 'fas fa-sticky-note'},
+            ]
+        )
+
+        self.add_card_group('my_accordion', div_css_class='col-12')
+```
+
+### `add_accordion_card()` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_name` | str | — | Unique card identifier |
+| `title` | str | `''` | Card header title |
+| `panels` | list[dict] | — | List of panel configuration dicts (see below) |
+| `multi_open` | bool | `False` | Allow multiple panels to be open simultaneously |
+| `full_height` | bool | `False` | Stretch accordion to fill remaining viewport height |
+| `min_height` | str | `'300px'` | Minimum height when `full_height` is enabled |
+| `**kwargs` | | | Additional keyword arguments passed to `add_card()` |
+
+### Panel Config Dict
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `title` | str | `'Panel N'` | Panel header text |
+| `card` | CardBase | — | Card object to render inside the panel |
+| `icon` | str | `None` | Font Awesome class for the panel header icon |
+| `expanded` | bool | `False` | Whether the panel starts expanded |
+| `ajax_load` | bool | `False` | Load panel content via AJAX on first expand |
+| `header_css_class` | str | `''` | CSS class for the panel header |
+| `id` | str | auto | Custom panel ID (auto-generated if omitted) |
+
+### Single Open (Default)
+
+By default, only one panel can be open at a time. Opening a panel collapses the others:
+
+```python
+self.add_accordion_card(
+    card_name='single',
+    title='Single Open',
+    panels=[
+        {'title': 'Panel A', 'card': card_a, 'expanded': True},
+        {'title': 'Panel B', 'card': card_b},
+        {'title': 'Panel C', 'card': card_c},
+    ]
+)
+```
+
+### Multi Open
+
+Set `multi_open=True` to allow multiple panels open simultaneously:
+
+```python
+self.add_accordion_card(
+    card_name='multi',
+    title='Multi Open',
+    multi_open=True,
+    panels=[
+        {'title': 'Details', 'card': card1, 'expanded': True},
+        {'title': 'Status', 'card': card2, 'expanded': True},
+        {'title': 'Notes', 'card': card3},
+    ]
+)
+```
+
+### AJAX Lazy Loading
+
+Set `ajax_load=True` on a panel to defer loading its content until the panel is first expanded. This is useful for panels with expensive queries or large datatables:
+
+```python
+self.add_accordion_card(
+    card_name='lazy',
+    title='Lazy Loading',
+    panels=[
+        {'title': 'Summary', 'card': summary_card, 'expanded': True},
+        {'title': 'People', 'card': people_card, 'ajax_load': True},
+        {'title': 'Notes', 'card': notes_card, 'ajax_load': True},
+    ]
+)
+```
+
+AJAX-loaded panels show a spinner placeholder until the content is fetched. Content is only loaded once — subsequent expand/collapse toggles use the cached content.
+
+### Full Height
+
+Set `full_height=True` to make the accordion stretch to fill the remaining viewport height. The expanded panel's content area becomes scrollable. A minimum height prevents the accordion from being too small on short viewports:
+
+```python
+self.add_accordion_card(
+    card_name='sidebar',
+    title='Navigation',
+    full_height=True,
+    min_height='400px',
+    panels=[
+        {'title': 'Items', 'card': items_card, 'expanded': True},
+        {'title': 'Settings', 'card': settings_card},
+    ]
+)
+```
+
+This works well for sidebar layouts where the accordion sits alongside other content (see the Layout Example below).
+
+### Panel Icons and Styles
+
+Each panel can have an icon and custom header styling:
+
+```python
+panels=[
+    {'title': 'Overview', 'card': card1, 'icon': 'fas fa-info-circle'},
+    {'title': 'Settings', 'card': card2, 'icon': 'fas fa-cog',
+     'header_css_class': 'bg-light'},
+]
+```
+
+### Nesting Card Types
+
+Any card type can be placed inside an accordion panel. The panel automatically hides the nested card's own header to avoid visual duplication:
+
+- Standard detail cards
+- Datatable cards (define in `setup_datatable_cards()`, reference via `self.cards['name']`)
+- HTML cards
+- Image gallery cards
+- Other card types
+
+### Layout Example — Accordion with Side Panel
+
+Use card groups to place an accordion alongside other cards:
+
+```python
+class DashboardView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+    ajax_commands = ['datatable', 'row']
+
+    def setup_datatable_cards(self):
+        self.add_card('acc_people',
+                      group_type=CARD_TYPE_DATATABLE,
+                      datatable_model=Person)
+
+    def setup_table_acc_people(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'first_name', 'surname')
+
+    def setup_cards(self):
+        # Cards for accordion panels
+        summary_card = self.add_card(title='Summary')
+        summary_card.add_entry(label='Companies', value=Company.objects.count())
+        summary_card.add_entry(label='People', value=Person.objects.count())
+
+        people_card = self.cards['acc_people']
+
+        notes_card = self.add_card(title='Notes')
+        notes_card.add_entry(label='Tip', value='Accordion on the left, details on the right.')
+
+        # Accordion card — fills remaining page height
+        self.add_accordion_card(
+            card_name='nav_accordion',
+            title='Navigation',
+            full_height=True,
+            panels=[
+                {'title': 'Summary', 'card': summary_card, 'icon': 'fas fa-chart-bar',
+                 'expanded': True},
+                {'title': 'People', 'card': people_card, 'icon': 'fas fa-users'},
+                {'title': 'Notes', 'card': notes_card, 'icon': 'fas fa-sticky-note'},
+            ]
+        )
+
+        # Detail card on the right
+        detail_card = self.add_card('details', title='Details', details_object=self.get_object())
+        detail_card.add_rows('name', 'active', 'importance')
+        detail_card.add_entry(field='company_category__name', label='Category')
+
+        # Layout: accordion col-4 left, details col-8 right
+        self.add_card_group('nav_accordion', div_css_class='col-4 float-left')
+        self.add_card_group('details', div_css_class='col-8 float-left')
 ```
 
 ---

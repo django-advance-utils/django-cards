@@ -24,6 +24,7 @@ CARD_TYPE_CARD_GROUP = 6
 CARD_TYPE_CARD_LAYOUT = 7
 CARD_TYPE_CARD_MESSAGE = 8
 CARD_TYPE_LINKED_DATATABLES = 9
+CARD_TYPE_ACCORDION = 10
 
 
 class CardBase:
@@ -127,7 +128,10 @@ class CardBase:
                                          'alert_css_class': 'alert-warning'}},
                  'linked_datatables': {'name': 'cards/standard/linked_datatables.html',
                                        'context': {'card_css_class': 'card django-card',
-                                                   'card_body_css_class': 'card-body'}}}
+                                                   'card_body_css_class': 'card-body'}},
+                 'accordion': {'name': 'cards/standard/accordion.html',
+                               'context': {'card_css_class': 'card django-card',
+                                           'card_body_css_class': 'card-body'}}}
 
     ajax_commands = ['datatable']
 
@@ -139,7 +143,8 @@ class CardBase:
                          CARD_TYPE_CARD_GROUP: 'card_group',
                          CARD_TYPE_CARD_LAYOUT: 'card_layout',
                          CARD_TYPE_CARD_MESSAGE: 'message',
-                         CARD_TYPE_LINKED_DATATABLES: 'linked_datatables'}
+                         CARD_TYPE_LINKED_DATATABLES: 'linked_datatables',
+                         CARD_TYPE_ACCORDION: 'accordion'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -291,6 +296,11 @@ class CardBase:
                 extra_info['order_field'] = kwargs.get('order_field', 'order')
         elif group_type == CARD_TYPE_LINKED_DATATABLES:
             extra_info['datatables'] = kwargs.get('datatables', [])
+        elif group_type == CARD_TYPE_ACCORDION:
+            extra_info['panels'] = kwargs.get('panels', [])
+            extra_info['multi_open'] = kwargs.get('multi_open', False)
+            extra_info['full_height'] = kwargs.get('full_height', False)
+            extra_info['min_height'] = kwargs.get('min_height', '300px')
         elif group_type == CARD_TYPE_HTML:
             extra_info['html'] = kwargs.get('html')
 
@@ -1134,6 +1144,8 @@ class CardBase:
                 self.view.tables[self.code] = table
         elif self.group_type == CARD_TYPE_LINKED_DATATABLES:
             self._process_linked_datatables()
+        elif self.group_type == CARD_TYPE_ACCORDION:
+            self._process_accordion()
         elif self.group_type == CARD_TYPE_STANDARD and self.call_details_data:
             if self.code is not None and hasattr(self.view, f'get_{self.code}_data'):
                 getattr(self.view, f'get_{self.code}_data')(card=self, details_object=self.details_object)
@@ -1196,6 +1208,33 @@ class CardBase:
             })
 
         self.extra_card_info['initialized_tables'] = initialized_tables
+
+    def _process_accordion(self):
+        """Initialize accordion panels. Each panel contains a card rendered as its body content."""
+        panels_config = self.extra_card_info.get('panels', [])
+        initialized_panels = []
+
+        for i, panel in enumerate(panels_config):
+            panel_id = panel.get('id', f'{self.code}_panel_{i}')
+            title = panel.get('title', f'Panel {i + 1}')
+            expanded = panel.get('expanded', i == 0)
+            icon = panel.get('icon')
+            header_css_class = panel.get('header_css_class', '')
+            ajax_load = panel.get('ajax_load', False)
+            card = panel.get('card')
+
+            initialized_panels.append({
+                'id': panel_id,
+                'title': title,
+                'expanded': expanded,
+                'icon': icon,
+                'header_css_class': header_css_class,
+                'ajax_load': ajax_load,
+                'card': card,
+                'index': i,
+            })
+
+        self.extra_card_info['initialized_panels'] = initialized_panels
 
     def add_table(self, model, table_id=None):
         """
