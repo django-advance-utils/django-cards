@@ -27,7 +27,7 @@ DEBUG = True
 SHOW_DEBUG_TOOLBAR = False
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
