@@ -559,7 +559,15 @@ class CardMixin:
             object: The card object, or None if links is empty.
         """
         if not links:
-            return None
+            # language=HTML
+            html = '<div style="padding: 20px;"><p class="text-center">No links</p></div>'
+            return self.add_card(
+                card_name=card_name,
+                title=title,
+                group_type=CARD_TYPE_HTML,
+                html=html,
+                **kwargs,
+            )
         # Assign image_index for lightbox navigation (only counting image-type links)
         image_idx = 0
         for link in links:
