@@ -598,7 +598,15 @@ class CardMixin:
             object: The card object, or None if images is empty.
         """
         if not images:
-            return None
+            # language=HTML
+            html = '<div style="padding: 20px;"><p class="text-center">No images</p></div>'
+            return self.add_card(
+                card_name=card_name,
+                title=title,
+                group_type=CARD_TYPE_HTML,
+                html=html,
+                **kwargs,
+            )
         return self.add_card(
             card_name=card_name,
             title=title,
