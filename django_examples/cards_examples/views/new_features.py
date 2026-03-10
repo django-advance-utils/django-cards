@@ -549,12 +549,17 @@ class ImageGalleryIndex(MainMenu, CardMixin, TemplateView):
 
     def add_mixed_links_gallery(self):
         image_url = 'https://placehold.co/600x400'
+
+        #language=JS
+        message_script = 'alert("Editing")'
+
         links = [
             {'url': f'{image_url}/007bff/ffffff?text=Product', 'name': 'Product Photo', 'type': 'image'},
             {'url': f'{image_url}/28a745/ffffff?text=Side', 'name': 'Side View', 'type': 'image'},
             {'url': 'https://example.com/datasheet.pdf', 'name': 'Data Sheet', 'type': 'data_sheet'},
             {'url': 'https://example.com/product', 'name': 'Product Page', 'type': 'product_page'},
             {'url': 'https://example.com/other', 'name': 'Other Resource', 'type': 'other'},
+            {'url': 'https://example.com/other', 'name': 'With Edit', 'type': 'other', 'edit_url': f'javascript:{message_script}'},
         ]
         self.add_link_gallery_card(links, card_name='mixed_links', title='All Link Types')
 

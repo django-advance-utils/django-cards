@@ -648,13 +648,20 @@ card = self.add_link_gallery_card(links, card_name='links', title='Links')
 
 # Optionally show names below image thumbnails
 card = self.add_link_gallery_card(links, card_name='links', title='Links', show_image_names=True)
+
+# Optionally add edit buttons to individual tiles by supplying 'edit_url' on any item
+links = [
+    {'url': 'https://example.com/front.jpg', 'name': 'Front View', 'type': 'image', 'edit_url': '/images/1/edit/'},
+    {'url': 'https://example.com/datasheet.pdf', 'name': 'Data Sheet', 'type': 'data_sheet'},
+]
+card = self.add_link_gallery_card(links, card_name='links', title='Links')
 ```
 
 `add_link_gallery_card()` parameters:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `links` | list[dict] | — | List of dicts with `'url'`, `'type'` (required) and `'name'` (optional) keys |
+| `links` | list[dict] | — | List of dicts with `'url'`, `'type'` (required), `'name'` and `'edit_url'` (optional) keys |
 | `card_name` | str | `None` | Unique card identifier |
 | `title` | str | `'Links'` | Card header title |
 | `show_image_names` | bool | `False` | Show name labels below image thumbnails |
@@ -671,6 +678,8 @@ Link types:
 
 All tiles are 120px height. Image thumbnails preserve their aspect ratio using `object-fit: contain`. Icon tiles (data sheet, product page, other) are 120x120px squares with the icon and name label.
 
+If a link dict includes an `'edit_url'` key, a small edit button appears in the top-right corner of that tile on hover. Clicking it navigates to the edit URL without triggering the tile's own click action.
+
 Returns `None` if `links` is empty (no card rendered).
 
 ### Image Gallery Card
@@ -680,7 +689,7 @@ Returns `None` if `links` is empty (no card rendered).
 ```python
 images = [
     {'url': 'https://example.com/front.jpg', 'name': 'Front View'},
-    {'url': 'https://example.com/side.jpg', 'name': 'Side View'},
+    {'url': 'https://example.com/side.jpg', 'name': 'Side View', 'edit_url': '/images/2/edit/'},  # edit button on hover
     {'url': 'https://example.com/detail.jpg'},  # name is optional
 ]
 card = self.add_image_gallery_card(images, card_name='photos', title='Product Photos')
