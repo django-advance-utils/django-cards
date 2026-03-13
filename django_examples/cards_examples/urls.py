@@ -15,6 +15,15 @@ from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
 from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex
+from cards_examples.views.panel_layout import (
+    PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
+    PanelLayoutNestedExample, PanelLayoutHolyGrailExample,
+    PanelLayoutWithDatatableExample, PanelLayoutFullscreenExample,
+    PanelLayoutAccordionExample, PanelLayoutIframeExample,
+    PanelLayoutLinkedDatatablesExample,
+    PanelLayoutDetailDatatablesExample,
+    PanelLayoutTabsExample,
+)
 
 app_name = 'cards_examples'
 
@@ -56,6 +65,18 @@ urlpatterns = [
 
     path('new-features-2/', NewFeatures2Index.as_view(), name='new_features_2'),
     path('image-gallery/', ImageGalleryIndex.as_view(), name='image_gallery'),
+
+    path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
+    path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),
+    path('panel-layout/nested/', PanelLayoutNestedExample.as_view(), name='panel_nested'),
+    path('panel-layout/holy-grail/', PanelLayoutHolyGrailExample.as_view(), name='panel_holy_grail'),
+    path('panel-layout/datatable/', PanelLayoutWithDatatableExample.as_view(), name='panel_datatable'),
+    path('panel-layout/fullscreen/', PanelLayoutFullscreenExample.as_view(), name='panel_fullscreen'),
+    path('panel-layout/accordion/', PanelLayoutAccordionExample.as_view(), name='panel_accordion'),
+    path('panel-layout/iframe/', PanelLayoutIframeExample.as_view(), name='panel_iframe'),
+    path('panel-layout/linked-datatables/', PanelLayoutLinkedDatatablesExample.as_view(), name='panel_linked_dt'),
+    path('panel-layout/detail-datatables/', PanelLayoutDetailDatatablesExample.as_view(), name='panel_detail_dt'),
+    path('panel-layout/tabs/', PanelLayoutTabsExample.as_view(), name='panel_tabs'),
 ]
 
 

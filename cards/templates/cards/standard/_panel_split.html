@@ -1,0 +1,151 @@
+{% comment %}
+Recursive template for rendering panel splits and regions.
+Expects 'split' context variable with: direction, resizable, children[]
+{% endcomment %}
+{% load django_cards_tags %}
+<div class="panel-split panel-split--{{ split.direction }}"
+     data-direction="{{ split.direction }}"
+     data-resizable="{{ split.resizable|yesno:'true,false' }}"
+     style="display: grid;
+            {% if split.direction == 'horizontal' %}
+                grid-template-columns: {% for child in split.children %}{% if not forloop.first and split.resizable %} auto {% endif %}{% if child.collapsed %}36px{% else %}{{ child.size }}{% endif %}{% endfor %};
+            {% else %}
+                grid-template-rows: {% for child in split.children %}{% if not forloop.first and split.resizable %} auto {% endif %}{% if child.collapsed %}36px{% else %}{{ child.size }}{% endif %}{% endfor %};
+            {% endif %}
+            width: 100%; height: 100%;">
+
+    {% for child in split.children %}
+        {% if not forloop.first and split.resizable %}
+            <div class="panel-splitter panel-splitter--{{ split.direction }}"
+                 data-splitter-index="{{ forloop.counter0 }}"
+                 data-direction="{{ split.direction }}"
+                 title="Drag to resize">
+                <div class="panel-splitter__handle"></div>
+            </div>
+        {% endif %}
+
+        {% if child.type == "region" %}
+            <div class="panel-region{% if child.collapsed %} panel-region--collapsed{% endif %}"
+                 id="panel_region_{{ child.name }}"
+                 data-region-name="{{ child.name }}"
+                 data-collapsible="{{ child.collapsible|yesno:'true,false' }}"
+                 {% if child.collapse_direction %}data-collapse-direction="{{ child.collapse_direction }}"{% endif %}
+                 {% if child.min_size %}data-min-size="{{ child.min_size }}"{% endif %}
+                 {% if child.max_size %}data-max-size="{{ child.max_size }}"{% endif %}
+                 style="overflow: hidden; display: flex; flex-direction: column; min-width: 0; min-height: 0;">
+
+                {% with collapse_dir=child.collapse_direction|default:split.direction %}
+                {% if child.menu or child.title %}
+                <div class="panel-region__toolbar{% if child.menu_align == 'left' %} panel-region__toolbar--left{% endif %}">
+                    {% if child.collapsible %}
+                    <button class="panel-collapse-btn panel-collapse-btn--inline"
+                            data-target="panel_region_{{ child.name }}"
+                            title="{% if child.collapsed %}Expand{% else %}Collapse{% endif %}">
+                        {% if collapse_dir == 'horizontal' %}
+                            <i class="fas fa-chevron-{% if child.collapsed %}right{% else %}left{% endif %}"></i>
+                        {% else %}
+                            <i class="fas fa-chevron-{% if child.collapsed %}down{% else %}up{% endif %}"></i>
+                        {% endif %}
+                    </button>
+                    {% endif %}
+                    {% if child.title %}<span class="panel-region__title">{{ child.title }}</span>{% endif %}
+                    {% if child.menu %}{{ child.menu.render|default:"" }}{% endif %}
+                </div>
+                {% elif child.collapsible %}
+                <button class="panel-collapse-btn"
+                        data-target="panel_region_{{ child.name }}"
+                        title="{% if child.collapsed %}Expand{% else %}Collapse{% endif %}">
+                    {% if collapse_dir == 'horizontal' %}
+                        <i class="fas fa-chevron-{% if child.collapsed %}right{% else %}left{% endif %}"></i>
+                    {% else %}
+                        <i class="fas fa-chevron-{% if child.collapsed %}down{% else %}up{% endif %}"></i>
+                    {% endif %}
+                </button>
+                {% endif %}
+                {% endwith %}
+
+                {% if child.toolbar %}
+                <div class="panel-region__menubar">
+                    {{ child.toolbar.render|default:"" }}
+                </div>
+                {% endif %}
+
+                {% if child.tabs %}
+                <div class="panel-region__tabbar">
+                    <ul class="nav nav-tabs panel-region__tabs" role="tablist">
+                        {% for tab in child.tabs %}
+                        <li class="nav-item">
+                            <a class="nav-link{% if tab.active %} active{% endif %}"
+                               id="panel_tab_{{ child.name }}_{{ tab.name }}_link"
+                               data-toggle="tab"
+                               href="#panel_tab_{{ child.name }}_{{ tab.name }}"
+                               role="tab"
+                               {% if tab.menu %}data-tab-menu="panel_tabmenu_{{ child.name }}_{{ tab.name }}"{% endif %}>{% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.title }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% for tab in child.tabs %}
+                        {% if tab.menu %}
+                        <div class="panel-region__tabmenu{% if tab.active %} panel-region__tabmenu--active{% endif %}"
+                             id="panel_tabmenu_{{ child.name }}_{{ tab.name }}">
+                            {{ tab.menu.render|default:"" }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="tab-content panel-region__content" style="flex: 1; overflow: auto; height: 0; min-height: 0;">
+                    {% for tab in child.tabs %}
+                    <div class="tab-pane{% if tab.active %} active{% endif %}"
+                         id="panel_tab_{{ child.name }}_{{ tab.name }}"
+                         role="tabpanel"
+                         style="height: 100%;">
+                        {% for card in tab.cards %}
+                            {% show_card card override_card_context=panel_no_header_context %}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="panel-region__content" style="flex: 1; overflow: auto; height: 0; min-height: 0;">
+                    {% for card in child.cards %}
+                        {% if child.menu or child.title %}
+                            {% show_card card override_card_context=panel_no_header_context %}
+                        {% else %}
+                            {% show_card card override_card_context=panel_card_context %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+        {% elif child.type == "split" %}
+            {% if child.collapsible %}
+            <div class="panel-region{% if child.collapsed %} panel-region--collapsed{% endif %}"
+                 id="panel_region_{{ child.name }}"
+                 data-region-name="{{ child.name }}"
+                 data-collapsible="true"
+                 style="overflow: hidden; display: flex; flex-direction: column; min-width: 0; min-height: 0;">
+                {% if child.title %}
+                <div class="panel-region__toolbar">
+                    <button class="panel-collapse-btn panel-collapse-btn--inline"
+                            data-target="panel_region_{{ child.name }}"
+                            title="{% if child.collapsed %}Expand{% else %}Collapse{% endif %}">
+                        {% if split.direction == 'horizontal' %}
+                            <i class="fas fa-chevron-{% if child.collapsed %}right{% else %}left{% endif %}"></i>
+                        {% else %}
+                            <i class="fas fa-chevron-{% if child.collapsed %}down{% else %}up{% endif %}"></i>
+                        {% endif %}
+                    </button>
+                    <span class="panel-region__title">{{ child.title }}</span>
+                </div>
+                {% endif %}
+                <div class="panel-region__content" style="flex: 1; height: 0; min-height: 0;">
+                    {% include "cards/standard/_panel_split.html" with split=child.split panel_card_context=panel_card_context panel_no_header_context=panel_no_header_context %}
+                </div>
+            </div>
+            {% else %}
+            {% include "cards/standard/_panel_split.html" with split=child.split panel_card_context=panel_card_context panel_no_header_context=panel_no_header_context %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</div>

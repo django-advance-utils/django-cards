@@ -109,6 +109,22 @@ $(document).ready(function() {
     })();
     {% endif %}
 
+    {% if not card.extra_card_info.multi_open %}
+    // Prevent collapsing the last open panel (but allow when another is opening)
+    (function() {
+        var opening = false;
+        $('#{{ card.code }}_accordion').on('show.bs.collapse', function() {
+            opening = true;
+        });
+        $('#{{ card.code }}_accordion').on('hide.bs.collapse', function(e) {
+            if (!opening) {
+                e.preventDefault();
+            }
+            opening = false;
+        });
+    })();
+    {% endif %}
+
     {% for panel in card.extra_card_info.initialized_panels %}
     {% if panel.ajax_load %}
     (function() {

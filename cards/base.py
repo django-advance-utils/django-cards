@@ -25,6 +25,8 @@ CARD_TYPE_CARD_LAYOUT = 7
 CARD_TYPE_CARD_MESSAGE = 8
 CARD_TYPE_LINKED_DATATABLES = 9
 CARD_TYPE_ACCORDION = 10
+CARD_TYPE_PANEL_LAYOUT = 11
+CARD_TYPE_IFRAME = 12
 
 
 class CardBase:
@@ -131,7 +133,13 @@ class CardBase:
                                                    'card_body_css_class': 'card-body'}},
                  'accordion': {'name': 'cards/standard/accordion.html',
                                'context': {'card_css_class': 'card django-card',
-                                           'card_body_css_class': 'card-body'}}}
+                                           'card_body_css_class': 'card-body'}},
+                 'panel_layout_card': {'name': 'cards/standard/html.html',
+                                       'context': {'card_css_class': '',
+                                                   'card_body_css_class': ''}},
+                 'iframe': {'name': 'cards/standard/iframe.html',
+                            'context': {'card_css_class': 'card django-card',
+                                        'card_body_css_class': 'card-body p-0'}}}
 
     ajax_commands = ['datatable']
 
@@ -144,7 +152,9 @@ class CardBase:
                          CARD_TYPE_CARD_LAYOUT: 'card_layout',
                          CARD_TYPE_CARD_MESSAGE: 'message',
                          CARD_TYPE_LINKED_DATATABLES: 'linked_datatables',
-                         CARD_TYPE_ACCORDION: 'accordion'}
+                         CARD_TYPE_ACCORDION: 'accordion',
+                         CARD_TYPE_PANEL_LAYOUT: 'panel_layout_card',
+                         CARD_TYPE_IFRAME: 'iframe'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -301,8 +311,13 @@ class CardBase:
             extra_info['multi_open'] = kwargs.get('multi_open', False)
             extra_info['full_height'] = kwargs.get('full_height', False)
             extra_info['min_height'] = kwargs.get('min_height', '300px')
-        elif group_type == CARD_TYPE_HTML:
+        elif group_type in (CARD_TYPE_HTML, CARD_TYPE_PANEL_LAYOUT):
             extra_info['html'] = kwargs.get('html')
+        elif group_type == CARD_TYPE_IFRAME:
+            extra_info['iframe_url'] = kwargs.get('iframe_url', '')
+            extra_info['iframe_srcdoc'] = kwargs.get('iframe_srcdoc', '')
+            extra_info['iframe_height'] = kwargs.get('iframe_height', '400px')
+            extra_info['iframe_sandbox'] = kwargs.get('iframe_sandbox', 'allow-scripts allow-same-origin')
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,

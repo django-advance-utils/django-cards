@@ -1,0 +1,15 @@
+{% load static %}
+<div id="{{ layout_id }}"
+     class="panel-layout {{ css_class }}"
+     style="{% if full_height %}min-height: {{ min_height }};{% endif %} {{ css_style }}"
+     data-panel-layout="true"
+     {% if full_height %}data-full-height="true" data-min-height="{{ min_height }}"{% endif %}>
+    {% include "cards/standard/_panel_split.html" with split=root panel_card_context=panel_card_context panel_no_header_context=panel_no_header_context %}
+</div>
+<link rel="stylesheet" href="{% static 'cards/panel_layout/css/panel_layout.css' %}">
+<script src="{% static 'cards/panel_layout/js/panel_layout.js' %}"></script>
+<script>document.addEventListener('DOMContentLoaded', function() { PanelLayout.init('{{ layout_id }}', {persist: {{ persist|yesno:'true,false' }}}); });</script>
+{% if linked_tables_json %}
+<script src="{% static 'cards/panel_layout/js/panel_linked_tables.js' %}"></script>
+<script>$(document).ready(function() { PanelLinkedTables.init('{{ layout_id }}', {{ linked_tables_json }}); });</script>
+{% endif %}

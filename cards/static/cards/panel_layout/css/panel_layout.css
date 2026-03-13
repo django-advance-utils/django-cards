@@ -1,0 +1,342 @@
+/* Panel Layout - CSS Grid based resizable panel system */
+
+.panel-layout {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Split containers */
+.panel-split {
+    overflow: hidden;
+}
+
+.panel-split > .panel-split {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* Regions */
+.panel-region {
+    transition: none;
+}
+
+.panel-region--collapsed {
+    overflow: hidden !important;
+}
+
+.panel-region--collapsed .panel-region__content {
+    display: none;
+}
+
+/* Splitter bars */
+.panel-splitter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9ecef;
+    flex-shrink: 0;
+    z-index: 10;
+    user-select: none;
+}
+
+.panel-splitter--horizontal {
+    width: 5px;
+    cursor: col-resize;
+}
+
+.panel-splitter--vertical {
+    height: 5px;
+    cursor: row-resize;
+}
+
+.panel-splitter:hover,
+.panel-splitter--active {
+    background: #adb5bd;
+}
+
+.panel-splitter__handle {
+    border-radius: 2px;
+}
+
+.panel-splitter--horizontal .panel-splitter__handle {
+    width: 3px;
+    height: 30px;
+    border-left: 1px solid #adb5bd;
+    border-right: 1px solid #adb5bd;
+}
+
+.panel-splitter--vertical .panel-splitter__handle {
+    height: 3px;
+    width: 30px;
+    border-top: 1px solid #adb5bd;
+    border-bottom: 1px solid #adb5bd;
+}
+
+.panel-splitter:hover .panel-splitter__handle,
+.panel-splitter--active .panel-splitter__handle {
+    border-color: #6c757d;
+}
+
+/* Collapse button */
+.panel-collapse-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    background: #f8f9fa;
+    color: #495057;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.panel-region:hover .panel-collapse-btn {
+    opacity: 1;
+}
+
+.panel-collapse-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+/* Inline collapse button inside toolbar */
+.panel-collapse-btn--inline {
+    position: static;
+    opacity: 1;
+    flex-shrink: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+}
+
+.panel-collapse-btn--inline:hover {
+    background: #e9ecef;
+}
+
+.panel-region--collapsed .panel-collapse-btn:not(.panel-collapse-btn--inline) {
+    opacity: 1;
+    position: static;
+    margin: 4px auto;
+    display: flex;
+}
+
+/* Region toolbar */
+.panel-region__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    min-height: 32px;
+    flex-shrink: 0;
+}
+
+.panel-region__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    margin-right: auto;
+}
+
+.panel-region__toolbar .btn-group {
+    margin-left: auto;
+}
+
+.panel-region__toolbar--left .btn-group {
+    margin-left: 0;
+}
+
+.panel-region__toolbar--left .panel-region__title {
+    margin-right: 0;
+}
+
+/* Separate menu bar below the header toolbar */
+.panel-region__menubar {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+    min-height: 30px;
+}
+
+.panel-region__menubar .btn-group {
+    margin-left: 0;
+}
+
+.panel-region__menubar .btn {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+}
+
+.panel-region__toolbar .btn {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+}
+
+/* Hide card header when region toolbar replaces it */
+.panel-card.panel-card--no-header > .card-header {
+    display: none;
+}
+
+.panel-card.panel-card--no-header > .card-body {
+    padding: 0;
+}
+
+/* Compact cards inside panels */
+.panel-card .card-header {
+    padding: 0.25rem 0.5rem;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.panel-card .card-header .d-flex {
+    width: 100%;
+}
+
+.panel-card .card-header h5 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.panel-card .card-body {
+    padding: 0.4rem 0.75rem;
+}
+
+/* Compact accordion headers inside panels to match toolbar size */
+.panel-region .accordion .card-header {
+    padding: 0 !important;
+}
+
+.panel-region .accordion .btn-link {
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-height: 32px;
+}
+
+/* Accordion fills panel region height */
+.panel-region__content > .panel-card:has(.accordion) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-region__content > .panel-card:has(.accordion) > .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
+.panel-region__content .accordion {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel-region__content .accordion > .card {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-region__content .accordion > .card.panel-expanded {
+    flex: 1 !important;
+    overflow: hidden !important;
+}
+
+.panel-region__content .accordion > .card > .collapse.show,
+.panel-region__content .accordion > .card > .collapsing {
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Tabs inside panel regions */
+.panel-region__tabbar {
+    display: flex;
+    align-items: flex-end;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+    min-height: 32px;
+}
+
+.panel-region__tabs {
+    flex: 1;
+    border-bottom: none;
+    padding: 0 0.5rem;
+    margin-bottom: 0;
+}
+
+.panel-region__tabs .nav-link {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 3px 3px 0 0;
+}
+
+.panel-region__tabs .nav-link.active {
+    background: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+}
+
+.panel-region__tabmenu {
+    display: none;
+    padding: 0 0.5rem 0.25rem 0;
+    flex-shrink: 0;
+}
+
+.panel-region__tabmenu--active {
+    display: block;
+}
+
+.panel-region__tabmenu .btn {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+}
+
+.panel-region__content.tab-content > .tab-pane {
+    display: none;
+}
+
+.panel-region__content.tab-content > .tab-pane.active {
+    display: block;
+}
+
+/* Overlay shown during drag to prevent iframes capturing mouse */
+.panel-layout--resizing {
+    cursor: col-resize;
+}
+
+.panel-layout--resizing-v {
+    cursor: row-resize;
+}
+
+.panel-layout--resizing::after,
+.panel-layout--resizing-v::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+}

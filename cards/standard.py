@@ -4,7 +4,8 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME
+from cards.panel_layout import PanelLayout, PanelSplit
 
 
 class CardPostError(Exception):
@@ -282,6 +283,58 @@ class CardMixin:
                              group_type=CARD_TYPE_CARD_LAYOUT)
 
 
+    def add_panel_layout(self, card_name='panel_layout', layout_id=None,
+                         direction=PanelSplit.HORIZONTAL,
+                         resizable=True, full_height=True, min_height='400px',
+                         css_class='', css_style='', persist=True):
+        """
+        Creates a CSS Grid-based panel layout with resizable and collapsible regions.
+
+        Returns a PanelLayout object. Define the structure using its root split,
+        then add cards to regions. Call layout.render() to get the card for use
+        in add_card_group().
+
+        Example:
+            layout = self.add_panel_layout()
+            root = layout.root
+
+            sidebar = root.add_region('sidebar', size='250px', collapsible=True)
+            right = root.add_split(direction='vertical')
+            header = right.add_region('header', size='auto')
+            main = right.add_region('main', size='1fr')
+
+            sidebar.add_card(nav_card)
+            main.add_card(content_card)
+
+            self.add_card_group(layout.render(), div_css_class='col-12')
+
+        Args:
+            card_name (str, optional): Card name for the wrapper card. Defaults to 'panel_layout'.
+            layout_id (str, optional): HTML id for the layout container.
+            direction (str, optional): Root split direction - 'horizontal' or 'vertical'.
+            resizable (bool, optional): Whether panels can be resized by dragging. Defaults to True.
+            full_height (bool, optional): Whether to fill viewport height. Defaults to True.
+            min_height (str, optional): CSS min-height when full_height is True. Defaults to '400px'.
+            css_class (str, optional): Additional CSS classes for the layout container.
+            css_style (str, optional): Additional inline styles for the layout container.
+
+        Returns:
+            PanelLayout: The layout object to configure and render.
+        """
+        layout = PanelLayout(
+            view=self,
+            card_name=card_name,
+            layout_id=layout_id,
+            direction=direction,
+            resizable=resizable,
+            full_height=full_height,
+            min_height=min_height,
+            css_class=css_class,
+            css_style=css_style,
+            persist=persist,
+        )
+        return layout
+
     def add_list_card(self, list_entries, card_name=None, list_title='Entries',
                       selected_id='', list_menu=None, list_template_name='list_selection',
                       empty_list_message='No entries setup yet!',
@@ -534,6 +587,57 @@ class CardMixin:
             min_height=min_height,
             show_header=title is not None,
             **kwargs
+        )
+
+    def add_iframe_card(self, card_name=None, title=None, iframe_url='', iframe_srcdoc='',
+                        iframe_height='400px', iframe_sandbox='allow-scripts allow-same-origin',
+                        **kwargs):
+        """
+        Adds an iframe card that embeds external content or inline HTML in a sandboxed iframe.
+
+        Use `iframe_url` to load a URL, or `iframe_srcdoc` to provide inline HTML content
+        (e.g. a Three.js scene, a chart, or any self-contained HTML page).
+
+        Args:
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title. If None, no header is shown.
+            iframe_url (str, optional): URL to load in the iframe.
+            iframe_srcdoc (str, optional): Inline HTML content for the iframe.
+            iframe_height (str, optional): CSS height of the iframe. Defaults to '400px'.
+                Use '100%' when inside a panel layout region for full-height.
+            iframe_sandbox (str, optional): Sandbox attribute value. Defaults to
+                'allow-scripts allow-same-origin'.
+            **kwargs: Additional keyword arguments passed to `add_card`.
+
+        Returns:
+            object: The card object.
+
+        Example:
+            # Load an external URL
+            self.add_iframe_card(
+                card_name='docs',
+                title='Documentation',
+                iframe_url='https://docs.djangoproject.com/',
+            )
+
+            # Inline HTML (e.g. Three.js, D3, etc.)
+            self.add_iframe_card(
+                card_name='scene',
+                title='3D Viewer',
+                iframe_srcdoc='<html><body><h1>Hello</h1></body></html>',
+                iframe_height='500px',
+            )
+        """
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            group_type=CARD_TYPE_IFRAME,
+            iframe_url=iframe_url,
+            iframe_srcdoc=iframe_srcdoc,
+            iframe_height=iframe_height,
+            iframe_sandbox=iframe_sandbox,
+            show_header=title is not None,
+            **kwargs,
         )
 
     def add_link_gallery_card(self, links, card_name=None, title='Links', show_image_names=False, **kwargs):

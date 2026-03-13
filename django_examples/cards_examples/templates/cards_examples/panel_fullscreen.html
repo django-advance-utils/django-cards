@@ -1,0 +1,17 @@
+{% load ajax_helpers %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel Layout Demo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
+    {% lib_include module='django_menus.includes' %}
+    {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' 'ColourPicker' module='django_modals.includes' %}
+    {% lib_include 'datatable' module='django_datatables.includes' %}
+    {% lib_include 'standard' module='cards_examples.includes' %}
+</head>
+<body style="margin: 0; padding: 0;">
+    {{ card_groups.main }}
+</body>
+</html>
