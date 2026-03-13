@@ -65,7 +65,7 @@
 
     <a class="{{ card_link_css_class }}{% if enable_reorder %} draggable-entry{% endif %}"
        id="list_{{ entry.pk }}"
-       href="javascript:load_details({{ entry.pk }})"
+       href="javascript:load_details('{{ entry.pk }}')"
        {% if enable_reorder %} draggable="true" data-entry-id="{{ entry.pk }}"{% endif %}
     >
             <div class="row">
@@ -79,7 +79,7 @@
             </div>
         </a>
         {% if selected_id == entry.pk %}
-            <script>load_details({{ entry.pk }});</script>
+            <script>load_details('{{ entry.pk }}');</script>
         {% endif %}
         {% empty %}
         <div class="list-group-item">
