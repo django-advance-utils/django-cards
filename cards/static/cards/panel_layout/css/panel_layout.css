@@ -229,6 +229,19 @@
     min-height: 32px;
 }
 
+/* Iframe fills panel region height */
+.panel-region__content > .panel-card:has(iframe) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-region__content > .panel-card:has(iframe) > .card-body {
+    flex: 1;
+    padding: 0;
+    min-height: 0;
+}
+
 /* Accordion fills panel region height */
 .panel-region__content > .panel-card:has(.accordion) {
     height: 100%;
