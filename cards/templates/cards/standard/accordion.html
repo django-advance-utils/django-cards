@@ -52,7 +52,7 @@
 
 <style>
     #{{ card.code }}_accordion .btn-link { text-decoration: none; color: inherit; }
-    #{{ card.code }}_accordion .btn-link:hover { background: #f8f9fa; }
+    #{{ card.code }}_accordion .btn-link:hover { filter: brightness(0.9); }
     #{{ card.code }}_accordion .accordion-chevron { transition: transform 0.2s; }
     #{{ card.code }}_accordion .btn-link.collapsed .accordion-chevron { transform: rotate(-90deg); }
     #{{ card.code }}_accordion .card-body .card.django-card { border: none; }
@@ -88,7 +88,7 @@ $(document).ready(function() {
         function setCardHeight() {
             cardEl.style.height = '';
             var rect = cardEl.getBoundingClientRect();
-            var height = window.innerHeight - rect.top - 10;
+            var height = window.innerHeight - rect.top;
             if (height < minHeight) height = minHeight;
             cardEl.style.height = height + 'px';
         }
