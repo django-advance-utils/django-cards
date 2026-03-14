@@ -253,6 +253,16 @@ var PanelLayout = (function() {
         var children = _getSplitChildren(splitContainer);
         var sizes = [];
 
+        // Find the last non-splitter, non-collapsed region index
+        var lastRegionIndex = -1;
+        for (var k = children.length - 1; k >= 0; k--) {
+            if (!children[k].classList.contains('panel-splitter') &&
+                !children[k].classList.contains('panel-region--collapsed')) {
+                lastRegionIndex = k;
+                break;
+            }
+        }
+
         for (var i = 0; i < children.length; i++) {
             if (i === splitterIndex - 1) {
                 sizes.push(prevSize + 'px');
@@ -262,6 +272,11 @@ var PanelLayout = (function() {
                 var current = isHorizontal ? children[i].offsetWidth : children[i].offsetHeight;
                 sizes.push(current + 'px');
             }
+        }
+
+        // Make last non-collapsed region use 1fr so the grid always fills available space
+        if (lastRegionIndex >= 0 && lastRegionIndex !== splitterIndex - 1 && lastRegionIndex !== splitterIndex) {
+            sizes[lastRegionIndex] = '1fr';
         }
 
         var tracks = [];

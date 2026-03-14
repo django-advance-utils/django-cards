@@ -130,6 +130,24 @@
     display: flex;
 }
 
+.panel-region--collapsed .panel-region__toolbar {
+    padding: 0;
+    justify-content: center;
+}
+
+.panel-region--collapsed .panel-region__title {
+    display: none;
+}
+
+.panel-region--collapsed .panel-region__toolbar .btn-group {
+    display: none;
+}
+
+.panel-region--collapsed .panel-collapse-btn--inline {
+    opacity: 1;
+    margin: 4px auto;
+}
+
 /* Region toolbar */
 .panel-region__toolbar {
     display: flex;
@@ -217,6 +235,11 @@
     padding: 0.4rem 0.75rem;
 }
 
+/* Remove border from accordion card wrapper inside panels */
+.panel-region__content > .panel-card:has(.accordion) {
+    border: none;
+}
+
 /* Compact accordion headers inside panels to match toolbar size */
 .panel-region .accordion .card-header {
     padding: 0 !important;
@@ -284,6 +307,7 @@
     flex-direction: column;
     overflow: hidden;
 }
+
 
 .panel-region__content .accordion > .card.panel-expanded {
     flex: 1 !important;

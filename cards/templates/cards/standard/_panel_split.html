@@ -37,6 +37,8 @@ Expects 'split' context variable with: direction, resizable, children[]
                 {% with collapse_dir=child.collapse_direction|default:split.direction %}
                 {% if child.menu or child.title %}
                 <div class="panel-region__toolbar{% if child.menu_align == 'left' %} panel-region__toolbar--left{% endif %}">
+                    {% if child.title %}<span class="panel-region__title">{{ child.title }}</span>{% endif %}
+                    {% if child.menu %}{{ child.menu.render|default:"" }}{% endif %}
                     {% if child.collapsible %}
                     <button class="panel-collapse-btn panel-collapse-btn--inline"
                             data-target="panel_region_{{ child.name }}"
@@ -48,8 +50,6 @@ Expects 'split' context variable with: direction, resizable, children[]
                         {% endif %}
                     </button>
                     {% endif %}
-                    {% if child.title %}<span class="panel-region__title">{{ child.title }}</span>{% endif %}
-                    {% if child.menu %}{{ child.menu.render|default:"" }}{% endif %}
                 </div>
                 {% elif child.collapsible %}
                 <button class="panel-collapse-btn"
