@@ -11,7 +11,9 @@
     <div class="{{ card_body_css_class }}">
         <iframe {% if card.extra_card_info.iframe_url %}src="{{ card.extra_card_info.iframe_url }}"{% endif %}
                 {% if card.extra_card_info.iframe_srcdoc %}srcdoc="{{ card.extra_card_info.iframe_srcdoc }}"{% endif %}
-                sandbox="{{ card.extra_card_info.iframe_sandbox }}"
+                {% if card.extra_card_info.iframe_sandbox %}sandbox="{{ card.extra_card_info.iframe_sandbox }}"{% endif %}
+                {% if card.extra_card_info.iframe_id %}id="{{ card.extra_card_info.iframe_id }}"{% endif %}
+                {% if card.extra_card_info.iframe_name %}name="{{ card.extra_card_info.iframe_name }}"{% endif %}
                 style="width: 100%; height: {{ card.extra_card_info.iframe_height }}; border: none; display: block;"
                 allowfullscreen></iframe>
     </div>

@@ -318,6 +318,8 @@ class CardBase:
             extra_info['iframe_srcdoc'] = kwargs.get('iframe_srcdoc', '')
             extra_info['iframe_height'] = kwargs.get('iframe_height', '400px')
             extra_info['iframe_sandbox'] = kwargs.get('iframe_sandbox', 'allow-scripts allow-same-origin')
+            extra_info['iframe_id'] = kwargs.get('iframe_id', '')
+            extra_info['iframe_name'] = kwargs.get('iframe_name', '')
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,
