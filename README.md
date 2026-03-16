@@ -11,7 +11,7 @@ A Django library for building rich, interactive detail cards in your views — w
 
 django-cards gives you a Python API to build Bootstrap-styled information cards directly from your Django views. Instead of writing repetitive template HTML, you declare cards and entries in Python:
 
-- **10 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, and accordion
+- **12 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, accordion, panel layout, and iframe
 - **30+ entry display options** — badges, icons, sparklines, ratings, progress bars, status dots, popovers, copy-to-clipboard, and more
 - **Interactive features** — AJAX reload, client-side search, CSV/JSON export, collapsible cards
 - **Layout system** — card groups, layout cards, and child card groups for complex page layouts
@@ -97,12 +97,15 @@ Or render individual cards:
 | `CARD_TYPE_CARD_MESSAGE` (8) | Message | Alert/warning message card |
 | `CARD_TYPE_LINKED_DATATABLES` (9) | Linked Datatables | Side-by-side datatables with drill-down filtering |
 | `CARD_TYPE_ACCORDION` (10) | Accordion | Collapsible panels containing any card type |
+| `CARD_TYPE_PANEL_LAYOUT` (11) | Panel Layout | CSS Grid resizable/collapsible panel regions |
+| `CARD_TYPE_IFRAME` (12) | Iframe | Embedded external URL or inline HTML content |
 
 Import constants from `cards.base`:
 
 ```python
 from cards.base import (CARD_TYPE_STANDARD, CARD_TYPE_DATATABLE, CARD_TYPE_HTML,
-                        CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION)
+                        CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION,
+                        CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME)
 ```
 
 ---
@@ -1071,6 +1074,340 @@ class DashboardView(CardMixin, TemplateView):
         # Layout: accordion col-4 left, details col-8 right
         self.add_card_group('nav_accordion', div_css_class='col-4 float-left')
         self.add_card_group('details', div_css_class='col-8 float-left')
+```
+
+---
+
+## Panel Layout
+
+A CSS Grid-based panel layout system for building IDE-style interfaces with resizable and collapsible regions. Supports nested splits, tabbed content, header toolbars, linked datatables across regions, and persistent state via localStorage.
+
+### Basic Setup
+
+```python
+from cards.standard import CardMixin
+from django.views.generic import TemplateView
+
+class DashboardView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+
+    def setup_cards(self):
+        layout = self.add_panel_layout(min_height='500px')
+        root = layout.root
+
+        sidebar = root.add_region('sidebar', size='250px', collapsible=True, min_size=150,
+                                  title='Navigation')
+        main_region = root.add_region('main', size='1fr', min_size=200,
+                                      title='Dashboard')
+
+        nav_card = self.add_card(title='Navigation')
+        nav_card.add_rows(
+            {'label': 'Dashboard', 'value': 'Overview of all data'},
+            {'label': 'Companies', 'value': 'Manage company records'},
+        )
+        sidebar.add_card(nav_card)
+
+        main_card = self.add_card(title='Dashboard')
+        main_card.add_rows(
+            {'label': 'Info', 'value': 'Drag the splitter bar to resize panels'},
+        )
+        main_region.add_card(main_card)
+
+        self.add_card_group(layout.render(), div_css_class='col-12')
+```
+
+### `add_panel_layout()` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_name` | str | `'panel_layout'` | Unique card identifier |
+| `layout_id` | str | auto | DOM id for the layout container |
+| `direction` | str | `'horizontal'` | Root split direction — `'horizontal'` or `'vertical'` |
+| `resizable` | bool | `True` | Whether panels can be resized by dragging |
+| `full_height` | bool | `True` | Automatically size the layout to fill viewport height |
+| `min_height` | str | `'400px'` | CSS min-height value |
+| `css_class` | str | `''` | Extra CSS classes on the layout container |
+| `css_style` | str | `''` | Extra inline styles on the layout container |
+| `persist` | bool | `True` | Save/restore panel sizes and collapse state to localStorage |
+
+### Splits
+
+Splits arrange child items (regions or nested splits) horizontally or vertically using CSS Grid. Splits can be nested to create complex layouts.
+
+```python
+# Nested layout: sidebar + right side split into top and bottom
+layout = self.add_panel_layout(min_height='550px')
+root = layout.root
+
+sidebar = root.add_region('sidebar', size='250px', collapsible=True)
+
+right = root.add_split(direction='vertical')
+top_region = right.add_region('top', size='200px')
+bottom_region = right.add_region('bottom', size='1fr')
+```
+
+`add_split()` parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `direction` | str | opposite of parent | `'horizontal'` or `'vertical'` |
+| `sizes` | list | `None` | Explicit CSS grid track sizes |
+| `resizable` | bool | `True` | Show splitter bars between children |
+| `name` | str | `None` | Identifier (required if collapsible) |
+| `collapsible` | bool | `False` | Allow collapsing the whole split |
+| `collapsed` | bool | `False` | Start collapsed |
+| `title` | str | `None` | Title for the collapse toolbar |
+
+### Regions
+
+Regions are the leaf containers that hold cards, tabs, or nested layouts. Each region occupies a cell in its parent split.
+
+```python
+region = root.add_region(
+    'editor', size='1fr',
+    title='Editor',
+    menu=[MenuItem(...)],           # right side of title bar
+    toolbar=[MenuItem(...)],        # separate bar below title
+    collapsible=True,
+    min_size=200,
+)
+region.add_card(content_card)
+```
+
+`add_region()` parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | str | — | Unique region identifier |
+| `size` | str | `'1fr'` | CSS grid track size (e.g. `'250px'`, `'1fr'`, `'auto'`) |
+| `min_size` | int | `None` | Minimum pixel size during drag resize |
+| `max_size` | int | `None` | Maximum pixel size during drag resize |
+| `collapsible` | bool | `False` | Allow collapsing |
+| `collapsed` | bool | `False` | Start collapsed |
+| `collapse_direction` | str | auto | Override chevron direction (`'horizontal'` or `'vertical'`) |
+| `overflow` | str | `'auto'` | CSS overflow value |
+| `title` | str | `None` | Title in the header toolbar |
+| `menu` | list | `None` | Menu items in the header toolbar (right-aligned by default) |
+| `menu_align` | str | `'right'` | Alignment of menu — `'right'` or `'left'` |
+| `toolbar` | list | `None` | Menu items for a separate left-aligned bar below the header |
+
+Visual structure of a region:
+
+```
+┌─────────────────────────────────────┐
+│ Header toolbar  (title + menu)      │  ← title/menu params
+├─────────────────────────────────────┤
+│ Menu bar  (left-aligned buttons)    │  ← toolbar param
+├─────────────────────────────────────┤
+│ Tab bar  (tabs + per-tab menu)      │  ← add_tab()
+├─────────────────────────────────────┤
+│                                     │
+│ Content area  (cards)               │  ← add_card() / tab.add_card()
+│                                     │
+└─────────────────────────────────────┘
+```
+
+All layers are optional. A region with just `add_card()` has only the content area.
+
+### Tabs
+
+Add tabbed content within a region. Each tab can have its own cards and per-tab menu:
+
+```python
+from django_menus.menu import AjaxButtonMenuItem
+
+region = root.add_region('main', size='1fr', title='Data')
+
+companies_menu = [
+    AjaxButtonMenuItem(button_name='add_company', menu_display='',
+                       font_awesome='fas fa-plus',
+                       css_classes='btn btn-sm btn-outline-success'),
+]
+companies_tab = region.add_tab('companies', title='Companies',
+                                icon='fas fa-building', active=True,
+                                menu=companies_menu)
+companies_tab.add_card(companies_datatable)
+
+people_tab = region.add_tab('people', title='People',
+                             icon='fas fa-users')
+people_tab.add_card(people_datatable)
+```
+
+`add_tab()` parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | str | — | Unique tab identifier |
+| `title` | str | — | Display label on the tab |
+| `icon` | str | `None` | Font Awesome class for a tab icon |
+| `active` | bool | `False` | Whether this tab is initially selected (first tab is active by default) |
+| `menu` | list | `None` | Per-tab menu items shown to the right of the tab bar when active |
+
+### Linked Datatables in Panel Layout
+
+Place linked datatables in separate resizable regions:
+
+```python
+class DrilldownView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+    ajax_commands = ['datatable', 'row']
+
+    def setup_datatable_cards(self):
+        layout = self.add_panel_layout(min_height='550px')
+        root = layout.root
+
+        cat_region = root.add_region('categories', size='1fr', title='Categories')
+        comp_region = root.add_region('companies', size='1fr', title='Companies')
+        people_region = root.add_region('people', size='1fr', title='People')
+
+        cat_card = self.add_card('pl_categories', group_type=CARD_TYPE_DATATABLE,
+                                  datatable_model=CompanyCategory)
+        cat_region.add_card(cat_card)
+
+        comp_card = self.add_card('pl_companies', group_type=CARD_TYPE_DATATABLE,
+                                   datatable_model=Company)
+        comp_region.add_card(comp_card)
+
+        people_card = self.add_card('pl_people', group_type=CARD_TYPE_DATATABLE,
+                                     datatable_model=Person)
+        people_region.add_card(people_card)
+
+        layout.linked_tables = [
+            {'table_id': 'pl_categories'},
+            {'table_id': 'pl_companies', 'linked_field': 'company_category_id'},
+            {'table_id': 'pl_people', 'linked_field': 'company_id'},
+        ]
+
+        self.add_card_group(layout.render(), div_css_class='col-12')
+
+    def setup_table_pl_categories(self, table, details_object):
+        table.ajax_data = True
+        table.add_columns('id', 'name')
+
+    def setup_table_pl_companies(self, table, details_object):
+        table.ajax_data = False
+        table.table_data = []
+        table.add_columns('id', 'name', 'importance')
+
+    def setup_table_pl_people(self, table, details_object):
+        table.ajax_data = False
+        table.table_data = []
+        table.add_columns('id', 'first_name', 'surname')
+```
+
+Set `linked_tables` on the layout as a list of dicts. Subsequent tables start empty and load when a row is selected in the previous table.
+
+### Holy Grail Layout
+
+A classic header/sidebar/content/sidebar/footer layout using nested splits:
+
+```python
+layout = self.add_panel_layout(min_height='600px', direction='vertical')
+root = layout.root
+
+header = root.add_region('header', size='auto')
+middle = root.add_split(direction='horizontal')
+footer = root.add_region('footer', size='auto')
+
+left = middle.add_region('left_nav', size='200px', collapsible=True)
+centre = middle.add_region('content', size='1fr')
+right = middle.add_region('aside', size='220px', collapsible=True)
+```
+
+### Features
+
+- **Drag-resizable** splitter bars between regions
+- **Collapsible** regions with animated chevron icons
+- **Tabbed content** within regions with per-tab menus
+- **Header toolbars** and separate menu bars on regions
+- **Linked datatables** across regions
+- **Accordion cards** that fill region height
+- **Nested splits** for complex multi-pane layouts
+- **Full-height mode** fills viewport minus surrounding content
+- **Persistent state** via localStorage (sizes + collapse state)
+
+---
+
+## Iframe Card
+
+Embed external URLs or inline HTML content in a sandboxed iframe.
+
+### Basic Usage
+
+```python
+from cards.standard import CardMixin
+from django.views.generic import TemplateView
+
+class IframeView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+
+    def setup_cards(self):
+        # Load an external URL
+        self.add_iframe_card(
+            card_name='docs',
+            title='Documentation',
+            iframe_url='https://docs.djangoproject.com/',
+        )
+
+        # Inline HTML content (e.g. Three.js, D3, charts)
+        self.add_iframe_card(
+            card_name='scene',
+            title='3D Viewer',
+            iframe_srcdoc='<html><body><h1>Hello</h1></body></html>',
+            iframe_height='500px',
+        )
+
+        self.add_card_group('docs', div_css_class='col-6 float-left')
+        self.add_card_group('scene', div_css_class='col-6 float-left')
+```
+
+### `add_iframe_card()` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_name` | str | `None` | Unique card identifier |
+| `title` | str | `None` | Card header title. If `None`, no header is shown |
+| `iframe_url` | str | `''` | URL to load in the iframe |
+| `iframe_srcdoc` | str | `''` | Inline HTML content for the iframe |
+| `iframe_height` | str | `'400px'` | CSS height of the iframe. Use `'100%'` inside panel layout regions |
+| `iframe_sandbox` | str | `'allow-scripts allow-same-origin'` | Sandbox attribute value |
+| `**kwargs` | | | Additional keyword arguments passed to `add_card()` |
+
+### Inside Panel Layout
+
+Iframe cards work well inside panel layout regions. Use `iframe_height='100%'` to fill the region:
+
+```python
+def setup_cards(self):
+    layout = self.add_panel_layout(min_height='550px')
+    root = layout.root
+
+    sidebar = root.add_region('sidebar', size='280px', collapsible=True)
+    right = root.add_split(direction='vertical')
+    top = right.add_region('top', size='1fr')
+    bottom = right.add_region('bottom', size='1fr')
+
+    info_card = self.add_card(title='Info')
+    info_card.add_entry(label='Top', value='Three.js demo')
+    sidebar.add_card(info_card)
+
+    threejs_card = self.add_iframe_card(
+        card_name='threejs',
+        title='Three.js Demo',
+        iframe_srcdoc='<html>...</html>',
+        iframe_height='100%',
+    )
+    top.add_card(threejs_card)
+
+    chart_card = self.add_iframe_card(
+        card_name='chart',
+        title='Chart',
+        iframe_srcdoc='<html>...</html>',
+        iframe_height='100%',
+    )
+    bottom.add_card(chart_card)
+
+    self.add_card_group(layout.render(), div_css_class='col-12')
 ```
 
 ---
