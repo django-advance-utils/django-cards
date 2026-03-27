@@ -93,8 +93,7 @@ class CardTreeMixin(CardListBaseMixin):
                     self.open_parent(tree_data=tree_data, parent_id=row['parent'])
                     break
 
-    @staticmethod
-    def get_tree_card_extra_kwargs():
+    def get_tree_card_extra_kwargs(self):
         return {}
 
     def setup_cards(self):
