@@ -20,6 +20,8 @@ class CardTreeMixin(CardListBaseMixin):
     """
 
     show_details_for_parents = False
+    tree_card_group_id = 'tree_card_group'
+    details_card_group_id = 'details_card_group'
 
     def get_default_selected_id(self):
         """
@@ -30,7 +32,14 @@ class CardTreeMixin(CardListBaseMixin):
         """
         return ''
 
-    def add_tree_card(self):
+    @property
+    def selected_id(self):
+        selected_id = self.slug.get('pk')
+        if not selected_id or selected_id == '-':
+            return self.get_default_selected_id()
+        return selected_id
+
+    def add_tree_card(self, tree_data, extra_kwargs):
         """
         Adds a tree navigation card to the card layout.
 
@@ -39,15 +48,8 @@ class CardTreeMixin(CardListBaseMixin):
         """
         list_menu = self.get_list_menu()
 
-        selected_id = self.slug.get('pk')
-
-        if not selected_id or selected_id == '-':
-            selected_id = self.get_default_selected_id()
-
-        tree_data = self.get_tree_data(selected_id=selected_id)
-
         for row in tree_data:
-            if row['id'] == selected_id:
+            if row['id'] == self.selected_id:
                 if 'state' in row:
                     row['state']['selected'] = True
                 else:
@@ -57,16 +59,20 @@ class CardTreeMixin(CardListBaseMixin):
 
         context = {'list_title': self.list_title,
                    'data': json.dumps(tree_data),
-                   'selected_id': selected_id,
+                   'selected_id': self.selected_id,
                    'details_button_action_name': 'details_html',
                    'show_details_for_parents': self.show_details_for_parents}
 
-        self.add_card('tree_card',
-                      title=self.list_title,
-                      menu=list_menu,
-                      group_type=CARD_TYPE_HTML,
-                      template_name='tree_selection',
-                      extra_card_context=context)
+        card_kwargs = dict(
+            title=self.list_title,
+            menu=list_menu,
+            group_type=CARD_TYPE_HTML,
+            template_name='tree_selection',
+            extra_card_context=context
+        )
+        card_kwargs.update(extra_kwargs)
+        card = self.add_card('tree_card', **card_kwargs)
+        return card
 
     def open_parent(self, tree_data, parent_id):
         """
@@ -87,6 +93,10 @@ class CardTreeMixin(CardListBaseMixin):
                     self.open_parent(tree_data=tree_data, parent_id=row['parent'])
                     break
 
+    @staticmethod
+    def get_tree_card_extra_kwargs():
+        return {}
+
     def setup_cards(self):
         """
         Defines and groups cards for the tree and detail view.
@@ -94,13 +104,16 @@ class CardTreeMixin(CardListBaseMixin):
         This method is automatically called during context setup, and
         it adds both the tree navigation card and the blank detail card.
         """
-        self.add_tree_card()
+        selected_id = self.selected_id
+        tree_data = self.get_tree_data(selected_id=selected_id)
+        extra_tree_card_kwargs = self.get_tree_card_extra_kwargs()
+        self.add_tree_card(tree_data=tree_data, extra_kwargs=extra_tree_card_kwargs)
         self.add_card('details_card',
                       group_type=CARD_TYPE_HTML,
                       template_name='blank')
 
-        self.add_card_group('tree_card', div_css_class=self.list_class)
-        self.add_card_group('details_card', div_css_class=self.details_class)
+        self.add_card_group('tree_card', div_css_class=self.list_class, div_id=self.tree_card_group_id)
+        self.add_card_group('details_card', div_css_class=self.details_class, div_id=self.details_card_group_id)
 
     def get_tree_data(self, selected_id):
         """
