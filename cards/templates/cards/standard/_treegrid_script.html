@@ -267,7 +267,8 @@
     function startCellEdit($td, node) {
         if (READ_ONLY) return;
         if ($td.hasClass('treegrid-editing')) return;
-        var colIdx = $td.index();
+        var colIdx = $td.index() - TD_OFFSET;
+        if (colIdx < 0) return;
         var editInfo = EDITABLE_FIELDS[colIdx];
         if (!editInfo) return;
 

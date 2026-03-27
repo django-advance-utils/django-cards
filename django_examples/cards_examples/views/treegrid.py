@@ -184,9 +184,9 @@ def _treegrid_multi_data_children(parent_key):
             payment_count=Count('company__payment')
         ).order_by('surname', 'first_name')
 
+        has_payments = Payment.objects.filter(company_id=company_id).exists()
         children = []
         for person in people:
-            has_payments = Payment.objects.filter(company_id=company_id).exists()
             children.append({
                 'title': f'{person.first_name} {person.surname}',
                 'key': f'person_{person.id}',

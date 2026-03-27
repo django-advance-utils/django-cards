@@ -1,5 +1,4 @@
 """Browser tests for treegrid batch save and column filters using Playwright."""
-import sys
 from playwright.sync_api import sync_playwright
 
 BASE = 'http://0.0.0.0:8011'
