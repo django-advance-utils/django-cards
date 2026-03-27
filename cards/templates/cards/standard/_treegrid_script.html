@@ -1,0 +1,886 @@
+{% load i18n %}
+<script>
+(function() {
+    var CARD_CODE = '{{ card.code }}';
+    var DATA_URL = '{{ card.extra_card_info.treegrid_data_url }}';
+    var DATA_MODE = '{{ card.extra_card_info.treegrid_data_mode }}';
+    var STATIC_DATA = {{ card.extra_card_info.treegrid_static_data_json|safe }};
+    var READ_ONLY = {{ card.extra_card_info.treegrid_read_only|yesno:"true,false" }};
+    var INDENTATION = {{ card.extra_card_info.treegrid_indentation }};
+    var ICON_MAP = {{ card.extra_card_info.treegrid_icon_map_json|safe }};
+    var COLUMNS = {{ card.extra_card_info.treegrid_columns_json|safe }};
+    var EXPAND_ALL = {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }};
+    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }};
+    var TOOLBAR = {{ card.extra_card_info.treegrid_toolbar_json|safe }};
+    var NODE_COLUMN = {{ card.extra_card_info.treegrid_node_column }};
+    var SAVE_MODE = '{{ card.extra_card_info.treegrid_save_mode }}';
+    var CHECKBOX = {{ card.extra_card_info.treegrid_checkbox|yesno:"true,false" }};
+    var CHECKBOX_COLUMN = {{ card.extra_card_info.treegrid_checkbox_column }};
+    var CONTEXT_MENU = {{ card.extra_card_info.treegrid_context_menu_json|safe }};
+    var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
+
+    // Global treegrid registry for reload and external access
+    if (!window._treegridRegistry) window._treegridRegistry = {};
+
+    function reloadTreegrid() {
+        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+        if (tree) {
+            tree.reload();
+            pendingChanges = {};
+            updateBatchUI();
+        }
+    }
+
+    // Register this treegrid for external access
+    function getSelectedKeys() {
+        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+        if (!tree) return [];
+        return tree.getSelectedNodes().map(function(n) { return n.key; });
+    }
+
+    function updateSelectCount() {
+        var $el = $('#' + CARD_CODE + '_select_count');
+        if ($el.length) {
+            var count = getSelectedKeys().length;
+            $el.text(count > 0 ? count + ' selected' : '');
+        }
+    }
+
+    // Offset for td indexing when checkbox column is prepended
+    var TD_OFFSET = CHECKBOX ? 1 : 0;
+
+    window._treegridRegistry[CARD_CODE] = {
+        reload: reloadTreegrid,
+        renderRow: function(node) { renderCells(node); },
+        columns: COLUMNS,
+        nodeColumnIdx: NODE_COLUMN,
+        tdOffset: TD_OFFSET,
+        getSelectedKeys: getSelectedKeys
+    };
+
+    // Register ajax_helpers commands (once)
+    if (ajax_helpers.command_functions && !ajax_helpers.command_functions.reload_treegrid) {
+        ajax_helpers.command_functions.reload_treegrid = function(command) {
+            var card = command.card;
+            if (card && window._treegridRegistry[card]) {
+                window._treegridRegistry[card].reload();
+            }
+        };
+
+        // Update a single cell value: {card, key, field, value}
+        ajax_helpers.command_functions.treegrid_update_cell = function(command) {
+            var reg = window._treegridRegistry[command.card];
+            if (!reg) return;
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var node = tree.getNodeByKey(command.key);
+            if (!node) return;
+            // Update node data
+            node.data[command.field] = command.value;
+            if (command.field === 'title') {
+                node.setTitle(command.value);
+            }
+            // Update any existing widget in the cell
+            if (node.tr) {
+                var columns = reg.columns;
+                var offset = reg.tdOffset || 0;
+                var $tds = $(node.tr).find('>td');
+                for (var i = 0; i < columns.length; i++) {
+                    if (columns[i].field === command.field) {
+                        var $td = $tds.eq(i + offset);
+                        var $select = $td.find('select');
+                        var $checkbox = $td.find('input[type="checkbox"]');
+                        if ($select.length) {
+                            $select.val(String(command.value));
+                        } else if ($checkbox.length) {
+                            var checked = (command.value === true || command.value === 'true' || command.value === 'Yes' || command.value === 1);
+                            $checkbox.prop('checked', checked);
+                        } else if (i !== reg.nodeColumnIdx) {
+                            // Plain text cell - just update text
+                            $td.text(command.value);
+                        }
+                        break;
+                    }
+                }
+                // Also update the tree title if field is 'title'
+                if (command.field === 'title') {
+                    node.renderTitle();
+                }
+            }
+        };
+
+        // Style a cell: {card, key, field, bg, color, css_class, remove_class}
+        ajax_helpers.command_functions.treegrid_style_cell = function(command) {
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var node = tree.getNodeByKey(command.key);
+            if (!node || !node.tr) return;
+            var reg = window._treegridRegistry[command.card];
+            var columns = reg.columns;
+            var offset = reg.tdOffset || 0;
+            var $tr = $(node.tr);
+            var $tds = $tr.find('>td');
+            for (var i = 0; i < columns.length; i++) {
+                if (columns[i].field === command.field) {
+                    var $td = $tds.eq(i + offset);
+                    if (command.bg) $td.css('background-color', command.bg);
+                    if (command.color) $td.css('color', command.color);
+                    if (command.css_class) $td.addClass(command.css_class);
+                    if (command.remove_class) $td.removeClass(command.remove_class);
+                    break;
+                }
+            }
+        };
+
+        // Style a whole row: {card, key, bg, color, css_class, remove_class}
+        ajax_helpers.command_functions.treegrid_style_row = function(command) {
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var node = tree.getNodeByKey(command.key);
+            if (!node || !node.tr) return;
+            var $tr = $(node.tr);
+            if (command.bg) $tr.css('background-color', command.bg);
+            if (command.color) $tr.css('color', command.color);
+            if (command.css_class) $tr.addClass(command.css_class);
+            if (command.remove_class) $tr.removeClass(command.remove_class);
+        };
+
+        // Add a node: {card, parent_key, node_data, mode}
+        // node_data: {title, key, folder, data, ...}
+        // mode: 'child' (default), 'before', 'after'
+        ajax_helpers.command_functions.treegrid_add_node = function(command) {
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var mode = command.mode || 'child';
+            if (command.parent_key) {
+                var target = tree.getNodeByKey(command.parent_key);
+                if (!target) return;
+                if (mode === 'before') {
+                    target.addNode(command.node_data, 'before');
+                } else if (mode === 'after') {
+                    target.addNode(command.node_data, 'after');
+                } else {
+                    target.addChildren(command.node_data);
+                    target.setExpanded(true);
+                }
+            } else {
+                tree.getRootNode().addChildren(command.node_data);
+            }
+        };
+
+        // Remove a node: {card, key}
+        ajax_helpers.command_functions.treegrid_remove_node = function(command) {
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var node = tree.getNodeByKey(command.key);
+            if (node) node.remove();
+        };
+
+        // Move a node: {card, key, target_key, mode}
+        ajax_helpers.command_functions.treegrid_move_node = function(command) {
+            var tree = $.ui.fancytree.getTree('#' + command.card + '_table');
+            if (!tree) return;
+            var node = tree.getNodeByKey(command.key);
+            var target = tree.getNodeByKey(command.target_key);
+            if (!node || !target) return;
+            node.moveTo(target, command.mode || 'child');
+        };
+    }
+
+    // Build editable field map: {colIndex: {field, type, options, inline}} for editable columns
+    var EDITABLE_FIELDS = {};
+    if (!READ_ONLY) {
+        for (var i = 0; i < COLUMNS.length; i++) {
+            if (COLUMNS[i].editable) {
+                EDITABLE_FIELDS[i] = {
+                    field: COLUMNS[i].field || (i === NODE_COLUMN ? 'title' : ''),
+                    type: COLUMNS[i].type || 'text',
+                    options: COLUMNS[i].options || [],
+                    inline: COLUMNS[i].inline !== false  // default true
+                };
+            }
+        }
+    }
+
+    // Batch save: pending changes keyed by "nodeKey:field"
+    var pendingChanges = {};
+
+    function updateBatchUI() {
+        if (SAVE_MODE !== 'batch') return;
+        var count = Object.keys(pendingChanges).length;
+        var $btn = $('#' + CARD_CODE + '_save_btn');
+        var $discard = $('#' + CARD_CODE + '_discard_btn');
+        var $info = $('#' + CARD_CODE + '_changes');
+        $btn.prop('disabled', count === 0);
+        $discard.prop('disabled', count === 0);
+        $info.text(count > 0 ? count + ' unsaved change' + (count > 1 ? 's' : '') : '');
+    }
+
+    function getOnChange(fieldName) {
+        for (var i = 0; i < COLUMNS.length; i++) {
+            if (COLUMNS[i].field === fieldName) return COLUMNS[i].on_change || null;
+        }
+        return null;
+    }
+
+    function buildPostData(node, fieldName, value) {
+        // Include all node data fields so the server can recalculate
+        var data = {
+            button: CARD_CODE + '_save',
+            key: node.key,
+            field: fieldName,
+            value: value
+        };
+        // Add all current data values (excluding style keys)
+        for (var k in node.data) {
+            if (node.data.hasOwnProperty(k) && k.indexOf('__') === -1 && k.charAt(0) !== '_') {
+                data['row_' + k] = node.data[k];
+            }
+        }
+        return data;
+    }
+
+    function recordChange(node, fieldName, value) {
+        if (SAVE_MODE === 'batch') {
+            pendingChanges[node.key + ':' + fieldName] = {
+                key: node.key,
+                field: fieldName,
+                value: value
+            };
+            updateBatchUI();
+        } else {
+            var onChangeAction = getOnChange(fieldName);
+            var postData = buildPostData(node, fieldName, value);
+            if (onChangeAction === 'reload') {
+                ajax_helpers.post_json({data: postData, success: function(response) {
+                    if (typeof response === 'object') {
+                        ajax_helpers.process_commands(response);
+                    }
+                    reloadTreegrid();
+                }});
+            } else {
+                ajax_helpers.post_json({data: postData});
+            }
+        }
+    }
+
+    function startCellEdit($td, node) {
+        if (READ_ONLY) return;
+        if ($td.hasClass('treegrid-editing')) return;
+        var colIdx = $td.index();
+        var editInfo = EDITABLE_FIELDS[colIdx];
+        if (!editInfo) return;
+
+        // For non-inline selects/checkboxes, activate on double-click
+        if (!editInfo.inline && (editInfo.type === 'select' || editInfo.type === 'checkbox')) {
+            var fieldName = editInfo.field;
+            var val = (fieldName && node.data[fieldName] != null) ? node.data[fieldName] : '';
+            $td.addClass('treegrid-editing');
+
+            if (editInfo.type === 'select') {
+                var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                var opts = editInfo.options || [];
+                for (var o = 0; o < opts.length; o++) {
+                    var optVal = typeof opts[o] === 'object' ? opts[o].value : opts[o];
+                    var optLabel = typeof opts[o] === 'object' ? opts[o].label : opts[o];
+                    var $opt = $('<option>').val(optVal).text(optLabel);
+                    if (String(val) === String(optVal)) $opt.prop('selected', true);
+                    $sel.append($opt);
+                }
+                $td.empty().append($sel);
+                $sel.focus();
+                (function(f, n, sel, td) {
+                    sel.on('change', function() {
+                        var newVal = $(this).val();
+                        n.data[f] = newVal;
+                        td.removeClass('treegrid-editing');
+                        // Resolve display label
+                        var label = sel.find('option:selected').text();
+                        td.text(label);
+                        recordChange(n, f, newVal);
+                    });
+                    sel.on('blur', function() {
+                        td.removeClass('treegrid-editing');
+                        var label = sel.find('option:selected').text();
+                        td.text(label);
+                    });
+                })(fieldName, node, $sel, $td);
+                return;
+            }
+
+            if (editInfo.type === 'checkbox') {
+                var checked = (val === true || val === 'true' || val === 'Yes' || val === 1);
+                var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                $sel.append($('<option>').val('true').text('Yes'));
+                $sel.append($('<option>').val('false').text('No'));
+                $sel.val(checked ? 'true' : 'false');
+                $td.empty().append($sel);
+                $sel.focus();
+                (function(f, n, sel, td) {
+                    function finish() {
+                        var newVal = sel.val() === 'true';
+                        n.data[f] = newVal;
+                        td.removeClass('treegrid-editing');
+                        td.html(renderBoolIcon(newVal));
+                        recordChange(n, f, newVal);
+                    }
+                    sel.on('change', function() { finish(); });
+                    sel.on('blur', function() {
+                        td.removeClass('treegrid-editing');
+                        td.html(renderBoolIcon(n.data[f]));
+                    });
+                })(fieldName, node, $sel, $td);
+                return;
+            }
+        }
+
+        if (editInfo.type !== 'text') return;
+
+        var fieldName = editInfo.field;
+        var isTreeColumn = (colIdx === NODE_COLUMN);
+        var currentVal;
+        var $editTarget;
+
+        if (isTreeColumn) {
+            var $titleSpan = $td.find('.fancytree-title');
+            currentVal = $titleSpan.text().trim();
+            $editTarget = $titleSpan;
+        } else {
+            currentVal = $td.text().trim();
+            $editTarget = $td;
+        }
+
+        $td.addClass('treegrid-editing');
+        var $input = $('<input type="text">').val(currentVal);
+        $editTarget.empty().append($input);
+        $input.focus().select();
+
+        function endEdit(save) {
+            var newVal = $input.val().trim();
+            $td.removeClass('treegrid-editing');
+            if (save && newVal !== currentVal) {
+                if (fieldName === 'title') {
+                    node.setTitle(newVal);
+                } else {
+                    node.data[fieldName] = newVal;
+                }
+                if (isTreeColumn) {
+                    node.renderTitle();
+                }
+                renderCells(node);
+                recordChange(node, fieldName, newVal);
+            } else {
+                if (isTreeColumn) {
+                    node.renderTitle();
+                }
+                renderCells(node);
+            }
+        }
+
+        $input.on('keydown', function(e) {
+            if (e.key === 'Enter') { endEdit(true); }
+            if (e.key === 'Escape') { endEdit(false); }
+        });
+        $input.on('blur', function() { endEdit(true); });
+    }
+
+    function renderBoolIcon(val) {
+        var truthy = (val === true || val === 'true' || val === 'True' || val === 'Yes' || val === 1 || val === '1');
+        if (truthy) {
+            return '<i class="fas fa-check treegrid-icon-true"></i>';
+        }
+        if (val === false || val === 'false' || val === 'False' || val === 'No' || val === 0 || val === '0') {
+            return '<i class="fas fa-times treegrid-icon-false"></i>';
+        }
+        return '';
+    }
+
+    function isVisibleFor(col, node) {
+        // If visible_for is defined, only show widget for matching node types
+        if (col.visible_for) {
+            var nodeType = node.data.type || '';
+            for (var v = 0; v < col.visible_for.length; v++) {
+                if (col.visible_for[v] === nodeType) return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function renderCells(node) {
+        var $tr = $(node.tr);
+        var $tds = $tr.find('>td');
+        var d = node.data;
+
+        // Row-level styling from data: _row_bg, _row_color, _row_class
+        if (d._row_bg) $tr.css('background-color', d._row_bg);
+        if (d._row_color) $tr.css('color', d._row_color);
+        if (d._row_class) $tr.addClass(d._row_class);
+
+        // Node column (tree title) styling
+        var nodeField = COLUMNS[NODE_COLUMN] ? COLUMNS[NODE_COLUMN].field : '';
+        if (nodeField) {
+            var $nodeTd = $tds.eq(NODE_COLUMN + TD_OFFSET);
+            if (d[nodeField + '__bg']) $nodeTd.css('background-color', d[nodeField + '__bg']);
+            if (d[nodeField + '__color']) $nodeTd.css('color', d[nodeField + '__color']);
+            if (d[nodeField + '__class']) $nodeTd.addClass(d[nodeField + '__class']);
+        }
+
+        for (var i = 0; i < COLUMNS.length; i++) {
+            if (i === NODE_COLUMN) continue;  // Skip tree node column value (rendered by Fancytree)
+            var col = COLUMNS[i];
+            var field = col.field;
+            var val = (field && d[field] != null) ? d[field] : '';
+            var $td = $tds.eq(i + TD_OFFSET);
+            var editInfo = EDITABLE_FIELDS[i];
+            var colType = col.type || 'text';
+            var visible = isVisibleFor(col, node);
+
+            // Per-cell styling from data: field__bg, field__color, field__class
+            if (field) {
+                if (d[field + '__bg']) $td.css('background-color', d[field + '__bg']);
+                if (d[field + '__color']) $td.css('color', d[field + '__color']);
+                if (d[field + '__class']) $td.addClass(d[field + '__class']);
+            }
+
+            // If this column should not show for this node type, render empty
+            if (!visible) {
+                $td.empty();
+                continue;
+            }
+
+            // --- Editable widgets ---
+            if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && editInfo.inline) {
+                if (!$td.find('input[type="checkbox"]').length) {
+                    var checked = (val === true || val === 'true' || val === 'Yes' || val === 1);
+                    var $cb = $('<input type="checkbox" class="treegrid-checkbox">');
+                    $cb.prop('checked', checked);
+                    $td.empty().append($('<div style="text-align:center">').append($cb));
+                    (function(f, n, cb) {
+                        cb.on('change', function() {
+                            n.data[f] = $(this).prop('checked');
+                            recordChange(n, f, $(this).prop('checked'));
+                        });
+                    })(field, node, $cb);
+                }
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && !editInfo.inline) {
+                // Non-inline checkbox: show as tick/empty, double-click to toggle
+                $td.html(renderBoolIcon(val));
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && editInfo.inline) {
+                if (!$td.find('select').length) {
+                    var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                    var opts = editInfo.options || [];
+                    for (var o = 0; o < opts.length; o++) {
+                        var optVal = typeof opts[o] === 'object' ? opts[o].value : opts[o];
+                        var optLabel = typeof opts[o] === 'object' ? opts[o].label : opts[o];
+                        var $opt = $('<option>').val(optVal).text(optLabel);
+                        if (String(val) === String(optVal)) $opt.prop('selected', true);
+                        $sel.append($opt);
+                    }
+                    $td.empty().append($sel);
+                    (function(f, n, sel) {
+                        sel.on('change', function() {
+                            n.data[f] = $(this).val();
+                            recordChange(n, f, $(this).val());
+                        });
+                    })(field, node, $sel);
+                }
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && !editInfo.inline) {
+                // Non-inline select: show display label, double-click to activate
+                var displayLabel = val;
+                var opts = editInfo.options || [];
+                for (var o = 0; o < opts.length; o++) {
+                    var optVal = typeof opts[o] === 'object' ? opts[o].value : opts[o];
+                    var optLabel = typeof opts[o] === 'object' ? opts[o].label : opts[o];
+                    if (String(val) === String(optVal)) { displayLabel = optLabel; break; }
+                }
+                $td.text(displayLabel);
+
+            // --- Display-only types ---
+            } else if (colType === 'boolean') {
+                $td.html(renderBoolIcon(val));
+            } else if (colType === 'html') {
+                $td.html(val);
+            } else if (colType === 'actions') {
+                if (!$td.find('.treegrid-action-btn').length) {
+                    var actions = col.actions || [];
+                    var html = '';
+                    for (var a = 0; a < actions.length; a++) {
+                        var act = actions[a];
+                        html += '<button class="treegrid-action-btn" data-action="' + act.name + '" title="' + (act.title || act.name) + '">';
+                        html += '<i class="' + (act.icon || 'fas fa-cog') + '"></i>';
+                        html += '</button> ';
+                    }
+                    $td.html(html);
+                    // Bind action handlers
+                    $td.find('.treegrid-action-btn').on('click', function(e) {
+                        e.stopPropagation();
+                        var actionName = $(this).data('action');
+                        ajax_helpers.post_json({data: {
+                            button: CARD_CODE + '_action',
+                            key: node.key,
+                            action: actionName
+                        }});
+                    });
+                }
+            } else {
+                // Default: plain text
+                $td.text(val);
+            }
+        }
+    }
+
+    function updateInfo() {
+        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+        if (!tree) return;
+        var total = tree.count();
+        var visible = tree.count(true);
+        $('#' + CARD_CODE + '_info').text('Showing ' + visible + ' of ' + total + ' entries');
+    }
+
+    // Build fancytree source/lazyLoad based on data mode
+    function getTreeSource() {
+        if (DATA_MODE === 'static') {
+            return STATIC_DATA;
+        } else if (DATA_MODE === 'url') {
+            return {url: DATA_URL, cache: false};
+        } else {
+            // 'ajax' mode: POST to same page via ajax_helpers
+            return function(event, data) {
+                return $.ajax({
+                    url: window.location.pathname,
+                    method: 'POST',
+                    data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: null}),
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.setRequestHeader('X-CSRFToken', ajax_helpers.getCookie('csrftoken'));
+                    }
+                });
+            };
+        }
+    }
+
+    function getLazyLoad() {
+        if (DATA_MODE === 'static') {
+            return undefined;
+        } else if (DATA_MODE === 'url') {
+            return function(event, data) {
+                data.result = {url: DATA_URL, data: {parent: data.node.key}, cache: false};
+            };
+        } else {
+            // 'ajax' mode
+            return function(event, data) {
+                data.result = $.ajax({
+                    url: window.location.pathname,
+                    method: 'POST',
+                    data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: data.node.key}),
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.setRequestHeader('X-CSRFToken', ajax_helpers.getCookie('csrftoken'));
+                    }
+                });
+            };
+        }
+    }
+
+    $(function() {
+        var treeConfig = {
+            extensions: ['table', 'filter'],
+            checkbox: CHECKBOX,
+            selectMode: CHECKBOX ? 3 : 1,
+            source: getTreeSource(),
+            table: {
+                indentation: INDENTATION,
+                nodeColumnIdx: CHECKBOX ? NODE_COLUMN + 1 : NODE_COLUMN,
+                checkboxColumnIdx: CHECKBOX ? CHECKBOX_COLUMN : null
+            },
+            filter: {
+                autoApply: true,
+                autoExpand: true,
+                counter: true,
+                highlight: true,
+                mode: 'hide'
+            },
+            renderColumns: function(event, data) {
+                renderCells(data.node);
+            },
+            init: function(event, data) {
+                updateInfo();
+                if (EXPAND_ALL) {
+                    data.tree.expandAll(true);
+                }
+            },
+            select: function() { updateSelectCount(); },
+            loadChildren: function() { updateInfo(); },
+            expand: function() { updateInfo(); },
+            collapse: function() { updateInfo(); },
+            icon: function(event, data) {
+                var nodeType = data.node.data.type;
+                if (nodeType && ICON_MAP[nodeType]) {
+                    return ICON_MAP[nodeType];
+                }
+                if (data.node.folder) return 'fas fa-folder';
+                return 'fas fa-file';
+            }
+        };
+        var lazyFn = getLazyLoad();
+        if (lazyFn) treeConfig.lazyLoad = lazyFn;
+        $('#' + CARD_CODE + '_table').fancytree(treeConfig);
+
+        // Inline editing via double-click (text fields only)
+        if (!READ_ONLY) {
+            $('#' + CARD_CODE + '_table').on('dblclick', 'td', function(e) {
+                if ($(e.target).is('input, select, option') || $(e.target).closest('.treegrid-action-btn').length) return;
+                var $td = $(this);
+                var $tr = $td.closest('tr');
+                var node = $.ui.fancytree.getNode($tr);
+                if (node) {
+                    startCellEdit($td, node);
+                }
+            });
+        }
+
+        // Per-column filters
+        if (SHOW_COL_FILTERS) {
+            $('#' + CARD_CODE + '_table').on('keyup change', '.treegrid-col-filter', function() {
+                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                var filters = [];
+                $('#' + CARD_CODE + '_table .treegrid-col-filter').each(function() {
+                    var val = $(this).val().trim().toLowerCase();
+                    var colIdx = parseInt($(this).data('col-idx'));
+                    if (val) {
+                        filters.push({colIdx: colIdx, val: val});
+                    }
+                });
+                if (filters.length === 0) {
+                    tree.clearFilter();
+                } else {
+                    tree.filterNodes(function(node) {
+                        for (var f = 0; f < filters.length; f++) {
+                            var fi = filters[f];
+                            var cellVal = '';
+                            if (fi.colIdx === NODE_COLUMN) {
+                                cellVal = node.title || '';
+                            } else {
+                                var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
+                                cellVal = (field && node.data[field] != null) ? String(node.data[field]) : '';
+                            }
+                            if (cellVal.toLowerCase().indexOf(fi.val) === -1) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+                updateInfo();
+            });
+        }
+
+        // Global filter controls
+        function applyFilter() {
+            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+            var val = $('#' + CARD_CODE + '_filter_input').val().trim();
+            if (val) {
+                var count = tree.filterNodes(val);
+                $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
+            } else {
+                tree.clearFilter();
+                $('#' + CARD_CODE + '_matches').text('');
+            }
+            updateInfo();
+        }
+
+        $('#' + CARD_CODE + '_filter_btn').on('click', applyFilter);
+        $('#' + CARD_CODE + '_filter_input').on('keydown', function(e) {
+            if (e.key === 'Enter') applyFilter();
+        });
+        $('#' + CARD_CODE + '_filter_clear').on('click', function() {
+            $('#' + CARD_CODE + '_filter_input').val('');
+            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+            tree.clearFilter();
+            $('#' + CARD_CODE + '_matches').text('');
+            updateInfo();
+        });
+
+        // Expand/Collapse All
+        $('#' + CARD_CODE + '_expand_all').on('click', function() {
+            $.ui.fancytree.getTree('#' + CARD_CODE + '_table').expandAll(true);
+        });
+        $('#' + CARD_CODE + '_collapse_all').on('click', function() {
+            $.ui.fancytree.getTree('#' + CARD_CODE + '_table').expandAll(false);
+        });
+
+        // Select All / Deselect All
+        if (CHECKBOX) {
+            $('#' + CARD_CODE + '_select_all').on('click', function() {
+                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
+                updateSelectCount();
+            });
+            $('#' + CARD_CODE + '_deselect_all').on('click', function() {
+                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
+                updateSelectCount();
+            });
+            $('#' + CARD_CODE + '_get_selected').on('click', function() {
+                var keys = getSelectedKeys();
+                ajax_helpers.post_json({data: {
+                    button: CARD_CODE + '_selected',
+                    selected_keys: JSON.stringify(keys)
+                }});
+            });
+        }
+
+        // Toolbar buttons
+        $('#' + CARD_CODE + '_card').on('click', '.treegrid-toolbar-btn', function() {
+            var action = $(this).data('action');
+            ajax_helpers.post_json({data: {
+                button: CARD_CODE + '_' + action
+            }});
+        });
+
+        // Batch save controls
+        if (SAVE_MODE === 'batch') {
+            $('#' + CARD_CODE + '_save_btn').on('click', function() {
+                var changes = Object.values(pendingChanges);
+                if (changes.length === 0) return;
+                ajax_helpers.post_json({data: {
+                    button: CARD_CODE + '_batch_save',
+                    changes: JSON.stringify(changes)
+                }});
+                pendingChanges = {};
+                updateBatchUI();
+            });
+            $('#' + CARD_CODE + '_discard_btn').on('click', function() {
+                pendingChanges = {};
+                updateBatchUI();
+                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                tree.reload();
+            });
+        }
+
+        // Context menu - supports MenuItem HTML (server-rendered) and dict items (JS-built)
+        var $ctxMenu = $('#' + CARD_CODE + '_context_menu-menu');
+
+        if ($ctxMenu.length === 0 && CONTEXT_MENU.length > 0) {
+            // No server-rendered menu, build entirely from dicts
+            var menuHtml = '<div id="' + CARD_CODE + '_context_menu" class="dropdown-menu treegrid-context-menu">';
+            for (var m = 0; m < CONTEXT_MENU.length; m++) {
+                var item = CONTEXT_MENU[m];
+                if (item.divider) {
+                    menuHtml += '<div class="dropdown-divider"></div>';
+                } else {
+                    menuHtml += '<a class="dropdown-item treegrid-ctx-item" data-action="' + item.name + '" href="#">';
+                    if (item.icon) menuHtml += '<i class="' + item.icon + ' mr-2"></i>';
+                    menuHtml += item.label + '</a>';
+                }
+            }
+            menuHtml += '</div>';
+            $('body').append(menuHtml);
+            $ctxMenu = $('#' + CARD_CODE + '_context_menu');
+        } else if ($ctxMenu.length > 0 && CONTEXT_MENU.length > 0) {
+            // Server-rendered menu exists, append dict items to it
+            for (var m = 0; m < CONTEXT_MENU.length; m++) {
+                var item = CONTEXT_MENU[m];
+                if (item.divider) {
+                    $ctxMenu.append('<div class="dropdown-divider"></div>');
+                } else {
+                    $ctxMenu.append('<a class="dropdown-item treegrid-ctx-item" data-action="' + item.name + '" href="#">' +
+                        (item.icon ? '<i class="' + item.icon + ' mr-2"></i>' : '') + item.label + '</a>');
+                }
+            }
+        }
+        if ($ctxMenu.length > 0) {
+            $ctxMenu.addClass('treegrid-context-menu');
+            // Move to body for correct fixed positioning
+            $ctxMenu.detach().appendTo('body');
+        }
+
+        if ($ctxMenu.length > 0) {
+            var ctxNodeKey = null;
+
+            // Store original hrefs so we can re-inject the key each time
+            $ctxMenu.find('.dropdown-item:not(.treegrid-ctx-item)').each(function() {
+                $(this).data('original-href', $(this).attr('href') || '');
+                var onclick = $(this).attr('onclick');
+                if (onclick) $(this).data('original-onclick', onclick);
+            });
+
+            $('#' + CARD_CODE + '_table').on('contextmenu', 'tr', function(e) {
+                e.preventDefault();
+                var node = $.ui.fancytree.getNode(this);
+                if (!node) return;
+                ctxNodeKey = node.key;
+                node.setActive(true);
+
+                // Inject node key into all MenuItem hrefs
+                $ctxMenu.find('.dropdown-item:not(.treegrid-ctx-item)').each(function() {
+                    var origHref = $(this).data('original-href');
+                    if (origHref) {
+                        $(this).attr('href', origHref.replace(/__node_key__/g, ctxNodeKey));
+                    }
+                    var origOnclick = $(this).data('original-onclick');
+                    if (origOnclick) {
+                        $(this).attr('onclick', origOnclick.replace(/__node_key__/g, ctxNodeKey));
+                    }
+                });
+
+                $ctxMenu.css({
+                    top: e.clientY + 'px',
+                    left: e.clientX + 'px',
+                    display: 'block',
+                    position: 'fixed',
+                    'z-index': 1050
+                });
+            });
+
+            $(document).on('click', function() {
+                $ctxMenu.hide();
+            });
+
+            // Simple dict-based menu items post via ajax
+            $ctxMenu.on('click', '.treegrid-ctx-item', function(e) {
+                e.preventDefault();
+                var action = $(this).data('action');
+                $ctxMenu.hide();
+                if (ctxNodeKey) {
+                    ajax_helpers.post_json({data: {
+                        button: CARD_CODE + '_context',
+                        key: ctxNodeKey,
+                        action: action
+                    }});
+                }
+            });
+        }
+
+        // Column resizing
+        if (RESIZABLE) {
+            var $table = $('#' + CARD_CODE + '_table');
+            $table.find('thead tr:last th').each(function(i) {
+                if (i === 0 && CHECKBOX) return;  // Skip checkbox column
+                var $th = $(this);
+                var $handle = $('<div class="treegrid-resize-handle"></div>');
+                $th.css('position', 'relative');
+                $th.append($handle);
+                var startX, startWidth;
+                $handle.on('mousedown', function(e) {
+                    e.preventDefault();
+                    startX = e.pageX;
+                    startWidth = $th.outerWidth();
+                    $(document).on('mousemove.treegrid-resize', function(e2) {
+                        var newWidth = startWidth + (e2.pageX - startX);
+                        if (newWidth > 30) {
+                            $th.css('width', newWidth + 'px');
+                            // Update the matching col element
+                            $table.find('colgroup col').eq(i).css('width', newWidth + 'px');
+                        }
+                    });
+                    $(document).on('mouseup.treegrid-resize', function() {
+                        $(document).off('.treegrid-resize');
+                    });
+                });
+            });
+        }
+    });
+})();
+</script>
