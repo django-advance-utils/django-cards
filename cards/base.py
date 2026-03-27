@@ -27,6 +27,7 @@ CARD_TYPE_LINKED_DATATABLES = 9
 CARD_TYPE_ACCORDION = 10
 CARD_TYPE_PANEL_LAYOUT = 11
 CARD_TYPE_IFRAME = 12
+CARD_TYPE_TREEGRID = 13
 
 
 class CardBase:
@@ -139,7 +140,10 @@ class CardBase:
                                                    'card_body_css_class': ''}},
                  'iframe': {'name': 'cards/standard/iframe.html',
                             'context': {'card_css_class': 'card django-card',
-                                        'card_body_css_class': 'card-body p-0'}}}
+                                        'card_body_css_class': 'card-body p-0'}},
+                 'treegrid': {'name': 'cards/standard/treegrid.html',
+                              'context': {'card_css_class': 'card django-card',
+                                          'card_body_css_class': 'card-body cards-list'}}}
 
     ajax_commands = ['datatable']
 
@@ -154,7 +158,8 @@ class CardBase:
                          CARD_TYPE_LINKED_DATATABLES: 'linked_datatables',
                          CARD_TYPE_ACCORDION: 'accordion',
                          CARD_TYPE_PANEL_LAYOUT: 'panel_layout_card',
-                         CARD_TYPE_IFRAME: 'iframe'}
+                         CARD_TYPE_IFRAME: 'iframe',
+                         CARD_TYPE_TREEGRID: 'treegrid'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -320,6 +325,34 @@ class CardBase:
             extra_info['iframe_sandbox'] = kwargs.get('iframe_sandbox', 'allow-scripts allow-same-origin')
             extra_info['iframe_id'] = kwargs.get('iframe_id', '')
             extra_info['iframe_name'] = kwargs.get('iframe_name', '')
+        elif group_type == CARD_TYPE_TREEGRID:
+            extra_info['treegrid_data_url'] = kwargs.get('treegrid_data_url', '')
+            extra_info['treegrid_data_mode'] = kwargs.get('treegrid_data_mode', 'ajax')
+            extra_info['treegrid_static_data'] = kwargs.get('treegrid_static_data', [])
+            extra_info['treegrid_columns'] = kwargs.get('treegrid_columns', [])
+            extra_info['treegrid_read_only'] = kwargs.get('treegrid_read_only', True)
+            extra_info['treegrid_height'] = kwargs.get('treegrid_height', '600px')
+            extra_info['treegrid_indentation'] = kwargs.get('treegrid_indentation', 20)
+            extra_info['treegrid_icon_map'] = kwargs.get('treegrid_icon_map', {})
+            extra_info['treegrid_show_filter'] = kwargs.get('treegrid_show_filter', True)
+            extra_info['treegrid_expand_all'] = kwargs.get('treegrid_expand_all', False)
+            extra_info['treegrid_show_column_filters'] = kwargs.get('treegrid_show_column_filters', False)
+            extra_info['treegrid_toolbar'] = kwargs.get('treegrid_toolbar', [])
+            extra_info['treegrid_header_rows'] = kwargs.get('treegrid_header_rows', [])
+            extra_info['treegrid_node_column'] = kwargs.get('treegrid_node_column', 0)
+            extra_info['treegrid_save_mode'] = kwargs.get('treegrid_save_mode', 'auto')
+            extra_info['treegrid_checkbox'] = kwargs.get('treegrid_checkbox', False)
+            extra_info['treegrid_checkbox_column'] = kwargs.get('treegrid_checkbox_column', 0)
+            extra_info['treegrid_context_menu'] = kwargs.get('treegrid_context_menu', [])
+            extra_info['treegrid_context_menu_json'] = json.dumps(
+                [i for i in extra_info['treegrid_context_menu'] if isinstance(i, dict)])
+            extra_info['treegrid_context_menu_html'] = kwargs.get('treegrid_context_menu_html', '')
+            extra_info['treegrid_resizable'] = kwargs.get('treegrid_resizable', False)
+            # Pre-serialise for template JS
+            extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
+            extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])
+            extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
+            extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,

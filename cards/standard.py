@@ -1,10 +1,10 @@
 import json
 
 from ajax_helpers.utils import is_ajax
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
@@ -85,6 +85,20 @@ class CardMixin:
                     results = table.get_query(**kwargs)
                 table_data = table.get_json(request, results)
                 return HttpResponse(table_data, content_type='application/json')
+        # Treegrid self-dispatch: treegrid_data + card_id in JSON body
+        if is_ajax(request) and request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+            except (json.JSONDecodeError, ValueError):
+                body = {}
+            if body.get('treegrid_data'):
+                card_id = body.get('card_id', '')
+                parent_key = body.get('parent')
+                method_name = f'get_treegrid_{card_id}_data'
+                if hasattr(self, method_name):
+                    data = getattr(self, method_name)(parent=parent_key)
+                    return JsonResponse(data, safe=False)
+                return JsonResponse([], safe=False)
         # noinspection PyUnresolvedReferences
         if hasattr(super(), 'post'):
             # noinspection PyUnresolvedReferences
@@ -639,6 +653,218 @@ class CardMixin:
             show_header=title is not None,
             **kwargs,
         )
+
+    def add_treegrid_card(self, card_name=None, title=None, treegrid_data_url='',
+                          treegrid_columns=None, treegrid_read_only=True,
+                          treegrid_height='600px', treegrid_indentation=20,
+                          treegrid_icon_map=None, treegrid_show_filter=True,
+                          treegrid_expand_all=False, treegrid_show_column_filters=False,
+                          treegrid_toolbar=None, treegrid_header_rows=None,
+                          treegrid_node_column=0, treegrid_save_mode='auto',
+                          treegrid_data_mode='ajax', treegrid_static_data=None,
+                          treegrid_checkbox=False, treegrid_checkbox_column=0,
+                          treegrid_context_menu=None, treegrid_resizable=False,
+                          **kwargs):
+        """
+        Adds a treegrid card using Fancytree for hierarchical data display.
+
+        The treegrid renders a tree table with lazy-loaded children, optional inline
+        editing, filtering, and expand/collapse controls.
+
+        Args:
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title.
+            treegrid_data_url (str): URL that returns JSON tree data. Must support
+                a `parent` query parameter for lazy loading child nodes.
+            treegrid_columns (list): Column definitions. Each is a dict with:
+                - 'title' (str): Column header text.
+                - 'field' (str): Data field name (from node.data).
+                - 'width' (str, optional): CSS width.
+                - 'editable' (bool, optional): Whether this column is editable.
+            treegrid_read_only (bool): If True, disables inline editing. Defaults to True.
+            treegrid_height (str): CSS max-height for the scrollable area. Defaults to '600px'.
+            treegrid_indentation (int): Pixels of indentation per tree level. Defaults to 20.
+            treegrid_icon_map (dict, optional): Maps node data 'type' values to FontAwesome
+                classes, e.g. {'company': 'fas fa-building', 'person': 'fas fa-user'}.
+            treegrid_show_filter (bool): If True, shows the search/filter toolbar. Defaults to True.
+            treegrid_expand_all (bool): If True, expands all nodes on initial load. Defaults to False.
+            treegrid_show_column_filters (bool): If True, shows a per-column filter row below headers.
+            treegrid_toolbar (list, optional): Custom toolbar buttons. Each is a dict with:
+                - 'label' (str): Button text.
+                - 'icon' (str, optional): FontAwesome class (e.g. 'fas fa-plus').
+                - 'name' (str): Identifier posted back as button_{card_name}_{name}.
+            **kwargs: Additional keyword arguments passed to `add_card`.
+
+        Returns:
+            object: The card object.
+
+        Example:
+            self.add_treegrid_card(
+                card_name='org_tree',
+                title='Organisation',
+                treegrid_data_url=reverse('org_tree_data'),
+                treegrid_columns=[
+                    {'title': 'Name', 'field': 'title', 'width': '40%'},
+                    {'title': 'Role', 'field': 'role', 'width': '30%', 'editable': True},
+                    {'title': 'Email', 'field': 'email', 'width': '30%'},
+                ],
+                treegrid_read_only=False,
+                treegrid_icon_map={
+                    'department': 'fas fa-building',
+                    'person': 'fas fa-user',
+                },
+            )
+        """
+        if treegrid_columns is None:
+            treegrid_columns = []
+        if treegrid_icon_map is None:
+            treegrid_icon_map = {}
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            group_type=CARD_TYPE_TREEGRID,
+            treegrid_data_url=treegrid_data_url,
+            treegrid_columns=treegrid_columns,
+            treegrid_read_only=treegrid_read_only,
+            treegrid_height=treegrid_height,
+            treegrid_indentation=treegrid_indentation,
+            treegrid_icon_map=treegrid_icon_map,
+            treegrid_show_filter=treegrid_show_filter,
+            treegrid_expand_all=treegrid_expand_all,
+            treegrid_show_column_filters=treegrid_show_column_filters,
+            treegrid_toolbar=treegrid_toolbar or [],
+            treegrid_header_rows=treegrid_header_rows or [],
+            treegrid_node_column=treegrid_node_column,
+            treegrid_save_mode=treegrid_save_mode,
+            treegrid_data_mode=self._resolve_treegrid_data_mode(
+                treegrid_data_mode, treegrid_data_url, treegrid_static_data),
+            treegrid_static_data=treegrid_static_data or [],
+            treegrid_checkbox=treegrid_checkbox,
+            treegrid_checkbox_column=treegrid_checkbox_column,
+            treegrid_context_menu=treegrid_context_menu or [],
+            treegrid_context_menu_html=self._build_context_menu_html(
+                treegrid_context_menu, card_name),
+            treegrid_resizable=treegrid_resizable,
+            show_header=title is not None,
+            **kwargs,
+        )
+
+    def _build_context_menu_html(self, menu_items, card_name):
+        """Build context menu HTML from MenuItem/DividerItem objects.
+
+        Dicts are skipped (handled by JS). MenuItems are rendered into
+        a dropdown-menu div that the JS positions on right-click.
+        """
+        if not menu_items:
+            return ''
+        from django_menus.menu import HtmlMenu, BaseMenuItem
+        # Filter to MenuItem/DividerItem objects only
+        menu_objs = [i for i in menu_items if isinstance(i, BaseMenuItem)]
+        if not menu_objs:
+            return ''
+        menu = HtmlMenu(request=self.request, template='dropdown',
+                        menu_id=f'{card_name}_context_menu', no_hover=True)
+        menu.add_items(*menu_objs)
+        return menu.render()
+
+    @staticmethod
+    def _resolve_treegrid_data_mode(explicit_mode, data_url, static_data):
+        """Infer data mode: url if a URL is given, static if data is given, else ajax."""
+        if explicit_mode != 'ajax':
+            return explicit_mode  # User explicitly chose
+        if data_url:
+            return 'url'
+        if static_data:
+            return 'static'
+        return 'ajax'
+
+    def treegrid_update_cell(self, card_name, key, field, value):
+        """Add a command to update a single cell value in the treegrid.
+
+        Example::
+
+            self.treegrid_update_cell('my_tree', 'company_1', 'name', 'New Name')
+            return self.command_response()
+        """
+        self.add_command('treegrid_update_cell', card=card_name, key=key, field=field, value=value)
+
+    def treegrid_style_cell(self, card_name, key, field, bg=None, color=None,
+                            css_class=None, remove_class=None):
+        """Add a command to style a specific cell in the treegrid.
+
+        Example::
+
+            self.treegrid_style_cell('my_tree', 'company_1', 'status',
+                                     bg='#d4edda', color='#155724')
+            return self.command_response()
+        """
+        cmd = {'card': card_name, 'key': key, 'field': field}
+        if bg:
+            cmd['bg'] = bg
+        if color:
+            cmd['color'] = color
+        if css_class:
+            cmd['css_class'] = css_class
+        if remove_class:
+            cmd['remove_class'] = remove_class
+        self.add_command('treegrid_style_cell', **cmd)
+
+    def treegrid_style_row(self, card_name, key, bg=None, color=None,
+                           css_class=None, remove_class=None):
+        """Add a command to style an entire row in the treegrid.
+
+        Example::
+
+            self.treegrid_style_row('my_tree', 'company_1', bg='#fff3cd')
+            return self.command_response()
+        """
+        cmd = {'card': card_name, 'key': key}
+        if bg:
+            cmd['bg'] = bg
+        if color:
+            cmd['color'] = color
+        if css_class:
+            cmd['css_class'] = css_class
+        if remove_class:
+            cmd['remove_class'] = remove_class
+        self.add_command('treegrid_style_row', **cmd)
+
+    def treegrid_reload_response(self, card_name, **kwargs):
+        """Return a command response that reloads the specified treegrid.
+
+        Can be combined with other commands, e.g.::
+
+            from ajax_helpers.utils import toast_commands
+            self.add_command(toast_commands(header='Saved', text='Done'))
+            return self.treegrid_reload_response('my_tree')
+        """
+        self.add_command('reload_treegrid', card=card_name)
+        return self.command_response(**kwargs) if kwargs else self.command_response()
+
+    def treegrid_add_node(self, card_name, parent_key, node_data, mode='child'):
+        """Add a command to insert a node into the treegrid.
+
+        Args:
+            card_name: The treegrid card name.
+            parent_key: Key of the target node. None to add to root.
+            node_data: Dict with node properties (title, key, folder, data, etc.)
+            mode: 'child' (add as child), 'before', or 'after' the target node.
+        """
+        self.add_command('treegrid_add_node', card=card_name,
+                         parent_key=parent_key, node_data=node_data, mode=mode)
+
+    def treegrid_remove_node(self, card_name, key):
+        """Add a command to remove a node from the treegrid."""
+        self.add_command('treegrid_remove_node', card=card_name, key=key)
+
+    def treegrid_move_node(self, card_name, key, target_key, mode='child'):
+        """Add a command to move a node within the treegrid.
+
+        Args:
+            mode: 'child' (move into target), 'before', or 'after' the target.
+        """
+        self.add_command('treegrid_move_node', card=card_name,
+                         key=key, target_key=target_key, mode=mode)
 
     def add_link_gallery_card(self, links, card_name=None, title='Links', show_image_names=False, **kwargs):
         """

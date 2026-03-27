@@ -15,6 +15,15 @@ from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
 from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex
+from cards_examples.views.treegrid import (
+    TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
+    TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
+    TreegridWidgetsExample, TreegridFullExample, TreegridBatchExample, TreegridColspanExample,
+    TreegridStyledExample, TreegridCalculatorExample, TreegridDualExample,
+    TreegridSelfDispatchExample, TreegridStaticExample, TreegridSelectExample,
+    TreegridAdvancedExample,
+    TreegridData,
+)
 from cards_examples.views.panel_layout import (
     PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
     PanelLayoutNestedExample, PanelLayoutHolyGrailExample,
@@ -65,6 +74,25 @@ urlpatterns = [
 
     path('new-features-2/', NewFeatures2Index.as_view(), name='new_features_2'),
     path('image-gallery/', ImageGalleryIndex.as_view(), name='image_gallery'),
+
+    path('treegrid/', TreegridBasicExample.as_view(), name='treegrid'),
+    path('treegrid/editable/', TreegridEditableExample.as_view(), name='treegrid_editable'),
+    path('treegrid/multi-level/', TreegridMultiLevelExample.as_view(), name='treegrid_multi'),
+    path('treegrid/compact/', TreegridCompactExample.as_view(), name='treegrid_compact'),
+    path('treegrid/payments/', TreegridPaymentsExample.as_view(), name='treegrid_payments'),
+    path('treegrid/expanded/', TreegridExpandedExample.as_view(), name='treegrid_expanded'),
+    path('treegrid/widgets/', TreegridWidgetsExample.as_view(), name='treegrid_widgets'),
+    path('treegrid/data/', TreegridData.as_view(), name='treegrid_data'),
+    path('treegrid/batch/', TreegridBatchExample.as_view(), name='treegrid_batch'),
+    path('treegrid/self-dispatch/', TreegridSelfDispatchExample.as_view(), name='treegrid_self'),
+    path('treegrid/select/', TreegridSelectExample.as_view(), name='treegrid_select'),
+    path('treegrid/advanced/', TreegridAdvancedExample.as_view(), name='treegrid_advanced'),
+    path('treegrid/static/', TreegridStaticExample.as_view(), name='treegrid_static'),
+    path('treegrid/dual/', TreegridDualExample.as_view(), name='treegrid_dual'),
+    path('treegrid/calculator/', TreegridCalculatorExample.as_view(), name='treegrid_calculator'),
+    path('treegrid/styled/', TreegridStyledExample.as_view(), name='treegrid_styled'),
+    path('treegrid/full/', TreegridFullExample.as_view(), name='treegrid_full'),
+    path('treegrid/colspan/', TreegridColspanExample.as_view(), name='treegrid_colspan'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),

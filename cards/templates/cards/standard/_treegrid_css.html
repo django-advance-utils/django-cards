@@ -1,0 +1,232 @@
+<style>
+    /*
+     * Fix: fancytree skin-awesome expects FA4 (font-family: "FontAwesome")
+     * but most projects load FA5 (font-family: "Font Awesome 5 Free").
+     */
+    .fancytree-expander::before,
+    .fancytree-icon::before,
+    .fancytree-checkbox::before,
+    .fancytree-loading .fancytree-expander::before,
+    .fancytree-statusnode-wait .fancytree-icon::before {
+        font-family: "Font Awesome 5 Free" !important;
+        font-weight: 900 !important;
+    }
+
+    /* Selection checkboxes */
+    .fancytree-checkbox {
+        display: inline-block !important;
+        width: 1.2em;
+        text-align: center;
+        cursor: pointer;
+    }
+    span.fancytree-checkbox::before {
+        content: "\f0c8" !important;
+        font-weight: 400 !important;
+    }
+    .fancytree-selected span.fancytree-checkbox::before {
+        content: "\f14a" !important;
+        font-weight: 900 !important;
+        color: #007bff;
+    }
+    .fancytree-partsel span.fancytree-checkbox::before {
+        content: "\f146" !important;
+        font-weight: 900 !important;
+        color: #6c757d;
+    }
+
+    /* Collapsed: outline square-plus (far fa-plus-square) */
+    .fancytree-exp-cd .fancytree-expander::before,
+    .fancytree-exp-cdl .fancytree-expander::before,
+    .fancytree-exp-c .fancytree-expander::before,
+    .fancytree-exp-cl .fancytree-expander::before {
+        content: "\f0fe" !important;
+        font-weight: 400 !important;
+    }
+
+    /* Expanded: outline square-minus (far fa-minus-square) */
+    .fancytree-exp-ed .fancytree-expander::before,
+    .fancytree-exp-edl .fancytree-expander::before,
+    .fancytree-exp-e .fancytree-expander::before,
+    .fancytree-exp-el .fancytree-expander::before {
+        content: "\f146" !important;
+        font-weight: 400 !important;
+    }
+
+    /* Loading spinner */
+    .fancytree-exp-ld .fancytree-expander::before,
+    .fancytree-exp-ldl .fancytree-expander::before {
+        content: "\f110" !important;
+        animation: fancytree-spin 1s infinite linear;
+    }
+
+    @keyframes fancytree-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .fancytree-ext-table .fancytree-expander {
+        color: #6c757d;
+        font-size: 14px;
+        width: 1.2em;
+        cursor: pointer;
+        display: inline-block;
+        text-align: center;
+    }
+    .fancytree-ext-table .fancytree-expander:hover {
+        color: #343a40;
+    }
+
+    /* Match datatable header and cell styling */
+    .fancytree-ext-table thead th {
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .fancytree-ext-table tbody tr {
+        font-size: 12px;
+    }
+    .fancytree-ext-table tbody td {
+        padding: 3px 10px;
+        vertical-align: middle;
+    }
+
+    .fancytree-ext-table tbody tr.fancytree-active {
+        background-color: #e8f0fe !important;
+    }
+
+    .fancytree-ext-table td.treegrid-editing {
+        padding: 0;
+    }
+    .fancytree-ext-table td.treegrid-editing input {
+        width: 100%;
+        border: 2px solid #80bdff;
+        padding: 2px 6px;
+        outline: none;
+        box-sizing: border-box;
+        font-size: 12px;
+    }
+
+    .fancytree-ext-table tr.fancytree-folder > td {
+        font-weight: 600;
+    }
+    .fancytree-ext-table tbody tr.fancytree-folder > td {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    .fancytree-ext-table tbody tr.fancytree-folder:hover > td {
+        background-color: rgba(0, 0, 0, 0.06);
+    }
+
+    /* Cell hover highlight matching datatable */
+    .fancytree-ext-table tbody td:hover {
+        background-color: #a2bbd333;
+    }
+
+    /* Inline checkbox */
+    .fancytree-ext-table .treegrid-checkbox {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Context menu */
+    .treegrid-context-menu {
+        font-size: 13px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        min-width: 160px;
+    }
+    .treegrid-context-menu .dropdown-item {
+        padding: 4px 16px;
+    }
+    .treegrid-context-menu .dropdown-item:hover {
+        background-color: #e8f0fe;
+    }
+
+    /* Column resize handle */
+    .treegrid-resize-handle {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 5px;
+        height: 100%;
+        cursor: col-resize;
+    }
+    .treegrid-resize-handle:hover {
+        background-color: #80bdff;
+    }
+
+    /* Inline select */
+    .fancytree-ext-table .treegrid-select {
+        font-size: 12px;
+        padding: 1px 4px;
+        height: auto;
+        border: 1px solid #ced4da;
+    }
+
+    /* Multi-row headers */
+    .fancytree-ext-table thead th[colspan],
+    .fancytree-ext-table thead th[rowspan] {
+        border: 1px solid #dee2e6;
+    }
+    .treegrid-hidden-header th {
+        padding: 0 !important;
+        height: 0 !important;
+        border: none !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+    }
+    .treegrid-hidden-header {
+        height: 0 !important;
+    }
+
+    /* Column filter row */
+    .treegrid-column-filters th {
+        padding: 3px 6px !important;
+        font-weight: normal !important;
+        background-color: #f8f9fa;
+    }
+    .treegrid-column-filters .treegrid-col-filter {
+        font-size: 11px;
+        padding: 2px 4px;
+        height: auto;
+    }
+
+    /* Toolbar */
+    .treegrid-toolbar {
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+    .treegrid-toolbar-btn {
+        font-size: 12px;
+    }
+
+    /* Action buttons in cells */
+    .treegrid-action-btn {
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 1px 4px;
+        font-size: 13px;
+        color: #6c757d;
+        border-radius: 3px;
+    }
+    .treegrid-action-btn:hover {
+        color: #007bff;
+        background-color: #e9ecef;
+    }
+
+    /* HTML cell icons */
+    .treegrid-icon-true {
+        color: #28a745;
+    }
+    .treegrid-icon-false {
+        color: #dc3545;
+    }
+    .treegrid-icon-info {
+        color: #17a2b8;
+        cursor: pointer;
+    }
+</style>
