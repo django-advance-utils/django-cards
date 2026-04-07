@@ -338,6 +338,8 @@ class CardBase:
             extra_info['treegrid_expand_all'] = kwargs.get('treegrid_expand_all', False)
             extra_info['treegrid_show_column_filters'] = kwargs.get('treegrid_show_column_filters', False)
             extra_info['treegrid_toolbar'] = kwargs.get('treegrid_toolbar', [])
+            extra_info['treegrid_toolbar_after'] = kwargs.get('treegrid_toolbar_after', [])
+            extra_info['treegrid_submit_label'] = kwargs.get('treegrid_submit_label', 'Submit Selected')
             extra_info['treegrid_header_rows'] = kwargs.get('treegrid_header_rows', [])
             extra_info['treegrid_node_column'] = kwargs.get('treegrid_node_column', 0)
             extra_info['treegrid_save_mode'] = kwargs.get('treegrid_save_mode', 'auto')
