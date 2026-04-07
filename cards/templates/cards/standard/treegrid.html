@@ -32,8 +32,14 @@
                     <i class="far fa-square"></i> Deselect All
                 </button>
                 <button id="{{ card.code }}_get_selected" class="btn btn-sm btn-primary">
-                    <i class="fas fa-check"></i> Submit Selected
+                    <i class="fas fa-check"></i> {{ card.extra_card_info.treegrid_submit_label }}
                 </button>
+                {% for btn in card.extra_card_info.treegrid_toolbar_after %}
+                <button class="btn btn-sm {% if btn.button_class %} {{ btn.button_class }} {% else %} btn-outline-secondary {% endif %} treegrid-toolbar-btn"
+                        data-action="{{ btn.name }}" data-card="{{ card.code }}">
+                    {% if btn.icon %}<i class="{{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+                </button>
+                {% endfor %}
                 <span id="{{ card.code }}_select_count" class="ml-2 text-muted small"></span>
                 {% endif %}
                 {% if card.extra_card_info.treegrid_show_filter %}

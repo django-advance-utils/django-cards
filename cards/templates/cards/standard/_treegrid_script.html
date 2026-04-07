@@ -613,8 +613,31 @@
                     data.tree.expandAll(true);
                 }
             },
-            select: function() { updateSelectCount(); },
-            loadChildren: function() { updateInfo(); },
+            select: function(event, data) {
+                updateSelectCount();
+                // When a lazy node with unloaded children is deselected, fancytree
+                // leaves it as partially selected — force it to fully unselected.
+                if (CHECKBOX && !data.node.isSelected() && data.node.lazy && !data.node.isLoaded()) {
+                    data.node.partsel = false;
+                    data.node.renderStatus();
+                }
+            },
+            loadChildren: function(event, data) {
+                updateInfo();
+                if (CHECKBOX) {
+                    if (data.node.isSelected()) {
+                        data.node.visit(function(child) {
+                            child.setSelected(true);
+                        });
+                    } else if (!data.node.partsel) {
+                        // Parent was explicitly deselected — propagate to newly loaded children
+                        data.node.visit(function(child) {
+                            child.setSelected(false);
+                        });
+                    }
+                    updateSelectCount();
+                }
+            },
             expand: function() { updateInfo(); },
             collapse: function() { updateInfo(); },
             icon: function(event, data) {
@@ -735,9 +758,11 @@
         // Toolbar buttons
         $('#' + CARD_CODE + '_card').on('click', '.treegrid-toolbar-btn', function() {
             var action = $(this).data('action');
-            ajax_helpers.post_json({data: {
-                button: CARD_CODE + '_' + action
-            }});
+            var postData = {button: CARD_CODE + '_' + action};
+            if (CHECKBOX) {
+                postData.selected_keys = JSON.stringify(getSelectedKeys());
+            }
+            ajax_helpers.post_json({data: postData});
         });
 
         // Batch save controls
