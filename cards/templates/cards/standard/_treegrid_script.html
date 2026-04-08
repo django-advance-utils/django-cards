@@ -18,6 +18,8 @@
     var CHECKBOX_COLUMN = {{ card.extra_card_info.treegrid_checkbox_column }};
     var CONTEXT_MENU = {{ card.extra_card_info.treegrid_context_menu_json|safe }};
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
+    var $modal = $('#' + CARD_CODE + '_card').closest('.modal');
+    var LOCATION_URL = $modal.length ? $modal.attr('data-url') : window.location.href;
 
     // Global treegrid registry for reload and external access
     if (!window._treegridRegistry) window._treegridRegistry = {};
@@ -549,7 +551,7 @@
             // 'ajax' mode: POST to same page via ajax_helpers
             return function(event, data) {
                 return $.ajax({
-                    url: window.location.pathname,
+                    url: LOCATION_URL,
                     method: 'POST',
                     data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: null}),
                     contentType: 'application/json',
@@ -573,7 +575,7 @@
             // 'ajax' mode
             return function(event, data) {
                 data.result = $.ajax({
-                    url: window.location.pathname,
+                    url: LOCATION_URL,
                     method: 'POST',
                     data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: data.node.key}),
                     contentType: 'application/json',
@@ -748,10 +750,12 @@
             });
             $('#' + CARD_CODE + '_get_selected').on('click', function() {
                 var keys = getSelectedKeys();
-                ajax_helpers.post_json({data: {
-                    button: CARD_CODE + '_selected',
-                    selected_keys: JSON.stringify(keys)
-                }});
+                ajax_helpers.post_json({
+                    data: {
+                        button: CARD_CODE + '_selected',
+                        selected_keys: JSON.stringify(keys)
+                    }, url: LOCATION_URL
+                });
             });
         }
 
