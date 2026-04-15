@@ -351,6 +351,7 @@ class CardBase:
             extra_info['treegrid_context_menu_html'] = kwargs.get('treegrid_context_menu_html', '')
             extra_info['treegrid_resizable'] = kwargs.get('treegrid_resizable', False)
             extra_info['treegrid_pagination'] = kwargs.get('treegrid_pagination', False)
+            extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
             # Pre-serialise for template JS
             extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
             extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])

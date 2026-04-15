@@ -103,13 +103,6 @@ class CardMixin:
                         data = getattr(self, method_name)(parent=parent_key)
                     return JsonResponse(data, safe=False)
                 return JsonResponse([], safe=False)
-            if body.get('treegrid_ids'):
-                card_id = body.get('card_id', '')
-                method_name = f'get_treegrid_{card_id}_ids'
-                if hasattr(self, method_name):
-                    data = getattr(self, method_name)()
-                    return JsonResponse(data, safe=False)
-                return JsonResponse({}, safe=False)
         # noinspection PyUnresolvedReferences
         if hasattr(super(), 'post'):
             # noinspection PyUnresolvedReferences
@@ -677,7 +670,7 @@ class CardMixin:
                           treegrid_data_mode='ajax', treegrid_static_data=None,
                           treegrid_checkbox=False, treegrid_checkbox_column=0,
                           treegrid_context_menu=None, treegrid_resizable=False,
-                          treegrid_pagination=False,
+                          treegrid_pagination=False, treegrid_page_size=50,
                           **kwargs):
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -762,6 +755,7 @@ class CardMixin:
                 treegrid_context_menu, card_name),
             treegrid_resizable=treegrid_resizable,
             treegrid_pagination=treegrid_pagination,
+            treegrid_page_size=treegrid_page_size,
             show_header=title is not None,
             **kwargs,
         )

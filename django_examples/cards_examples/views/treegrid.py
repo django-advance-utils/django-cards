@@ -1977,10 +1977,8 @@ class TreegridDualExample(MainMenu, CardMixin, TemplateView):
 
 
 class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
-    """Treegrid with server-side pagination. Root nodes are split into pages."""
+    """Treegrid with client-side pagination. All root nodes load once, paged in the browser."""
     template_name = 'cards_examples/cards.html'
-
-    PAGE_SIZE = 5
 
     def setup_cards(self):
         self.add_treegrid_card(
@@ -1997,43 +1995,19 @@ class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
             },
             treegrid_checkbox=True,
             treegrid_pagination=True,
-            footer=f'Root nodes are loaded {self.PAGE_SIZE} at a time. '
-                   'Use the prev/next buttons to page through companies. '
+            treegrid_page_size=5,
+            footer='All root nodes load in one request; the browser pages through them. '
                    'Children still lazy-load normally.',
         )
         self.add_card_group('paginated_tree', div_css_class='col-12')
 
-    def get_treegrid_paginated_tree_ids(self):
-        """Initial load: returns all root keys (for pagination) plus the first page of nodes."""
-        all_ids = list(
-            Company.objects.annotate(people_count=Count('person'))
-            .filter(people_count__gt=0)
-            .order_by('name')
-            .values_list('id', flat=True)
-        )
-        all_keys = [f'company_{pk}' for pk in all_ids]
-        first_page_qs = (
-            Company.objects.filter(id__in=all_ids[:self.PAGE_SIZE])
-            .select_related('company_category')
-            .annotate(people_count=Count('person'))
-            .order_by('name')
-        )
-        return {
-            'all_keys': all_keys,
-            'page_size': self.PAGE_SIZE,
-            'nodes': self._companies_to_nodes(first_page_qs),
-        }
-
-    def get_treegrid_paginated_tree_data(self, parent=None, page_keys=None):
+    def get_treegrid_paginated_tree_data(self, parent=None):
         if parent is not None:
             return self._get_people(parent)
-        if not page_keys:
-            return []
-        page_ids = [int(k.replace('company_', '')) for k in page_keys if k.startswith('company_')]
         companies = (
-            Company.objects.filter(id__in=page_ids)
+            Company.objects.annotate(people_count=Count('person'))
+            .filter(people_count__gt=0)
             .select_related('company_category')
-            .annotate(people_count=Count('person'))
             .order_by('name')
         )
         return self._companies_to_nodes(companies)

@@ -24,9 +24,10 @@
     var LOCATION_URL = $modal.length ? $modal.attr('data-url') : window.location.href;
 
     // Pagination state
+    var _allNodes = [];
     var _allKeys = [];
     var _currentPage = 1;
-    var _pageSize = 50;
+    var _pageSize = {{ card.extra_card_info.treegrid_page_size|default:50 }};
     // Cross-page selection tracking (only used when PAGINATION && CHECKBOX)
     var _pagedSelectedKeys = {};
     // Maps root-level node key → count of selected descendants (for partsel restoration)
@@ -562,25 +563,25 @@
         } else if (DATA_MODE === 'url') {
             return {url: DATA_URL, cache: false};
         } else if (PAGINATION) {
-            // Pagination mode: single request fetches all IDs + first page nodes together.
-            // Subsequent pages use _loadPage() via the normal treegrid_data channel.
+            // Pagination mode: fetch all root nodes once, then slice client-side.
+            // No further server requests are needed when changing pages.
             return function(event, data) {
                 var deferred = $.Deferred();
                 $.ajax({
                     url: LOCATION_URL,
                     method: 'POST',
-                    data: JSON.stringify({treegrid_ids: true, card_id: CARD_CODE}),
+                    data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: null}),
                     contentType: 'application/json',
                     beforeSend: function(xhr) {
                         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                         xhr.setRequestHeader('X-CSRFToken', ajax_helpers.getCookie('csrftoken'));
                     }
                 }).done(function(resp) {
-                    _allKeys = resp.all_keys || [];
-                    _pageSize = resp.page_size || 50;
+                    _allNodes = Array.isArray(resp) ? resp : (resp.nodes || []);
+                    _allKeys = _allNodes.map(function(n) { return n.key; });
                     _currentPage = 1;
                     _updatePaginationUI();
-                    deferred.resolve(resp.nodes || []);
+                    deferred.resolve(_allNodes.slice(0, _pageSize));
                 }).fail(function() {
                     deferred.reject(arguments);
                 });
@@ -616,37 +617,26 @@
     }
 
     function _loadPage(page) {
+        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+        if (!tree) return;
         var start = (page - 1) * _pageSize;
-        var pageKeys = _allKeys.slice(start, start + _pageSize);
-        $.ajax({
-            url: LOCATION_URL,
-            method: 'POST',
-            data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: null, page_keys: pageKeys}),
-            contentType: 'application/json',
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                xhr.setRequestHeader('X-CSRFToken', ajax_helpers.getCookie('csrftoken'));
-            }
-        }).done(function(resp) {
-            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-            if (!tree) return;
-            var root = tree.getRootNode();
-            root.removeChildren();
-            root.addChildren(Array.isArray(resp) ? resp : (resp.nodes || []));
-            if (CHECKBOX) {
-                tree.visit(function(node) {
-                    if (node.key in _pagedSelectedKeys) {
-                        node.setSelected(true);
-                    } else if (node.key in _childSelectionCounts) {
-                        // Restore partial selection indicator without loading children
-                        node.partsel = true;
-                        node.renderStatus();
-                    }
-                });
-            }
-            _currentPage = page;
-            _updatePaginationUI();
-        });
+        var pageNodes = _allNodes.slice(start, start + _pageSize);
+        var root = tree.getRootNode();
+        root.removeChildren();
+        root.addChildren(pageNodes);
+        if (CHECKBOX) {
+            tree.visit(function(node) {
+                if (node.key in _pagedSelectedKeys) {
+                    node.setSelected(true);
+                } else if (node.key in _childSelectionCounts) {
+                    // Restore partial selection indicator without loading children
+                    node.partsel = true;
+                    node.renderStatus();
+                }
+            });
+        }
+        _currentPage = page;
+        _updatePaginationUI();
     }
 
     function getLazyLoad() {
@@ -941,7 +931,7 @@
             if (_currentPage > 1) _loadPage(_currentPage - 1);
         });
         $('#' + CARD_CODE + '_next_page').on('click', function() {
-            if (_currentPage < Math.ceil(_allIds.length / _pageSize)) _loadPage(_currentPage + 1);
+            if (_currentPage < Math.ceil(_allKeys.length / _pageSize)) _loadPage(_currentPage + 1);
         });
 
         // Context menu - supports MenuItem HTML (server-rendered) and dict items (JS-built)
