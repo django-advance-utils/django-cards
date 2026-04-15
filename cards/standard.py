@@ -94,11 +94,22 @@ class CardMixin:
             if body.get('treegrid_data'):
                 card_id = body.get('card_id', '')
                 parent_key = body.get('parent')
+                extra = {k: v for k, v in body.items() if k not in ('treegrid_data', 'card_id', 'parent')}
                 method_name = f'get_treegrid_{card_id}_data'
                 if hasattr(self, method_name):
-                    data = getattr(self, method_name)(parent=parent_key)
+                    if extra:
+                        data = getattr(self, method_name)(parent=parent_key, **extra)
+                    else:
+                        data = getattr(self, method_name)(parent=parent_key)
                     return JsonResponse(data, safe=False)
                 return JsonResponse([], safe=False)
+            if body.get('treegrid_ids'):
+                card_id = body.get('card_id', '')
+                method_name = f'get_treegrid_{card_id}_ids'
+                if hasattr(self, method_name):
+                    data = getattr(self, method_name)()
+                    return JsonResponse(data, safe=False)
+                return JsonResponse({}, safe=False)
         # noinspection PyUnresolvedReferences
         if hasattr(super(), 'post'):
             # noinspection PyUnresolvedReferences
@@ -666,6 +677,7 @@ class CardMixin:
                           treegrid_data_mode='ajax', treegrid_static_data=None,
                           treegrid_checkbox=False, treegrid_checkbox_column=0,
                           treegrid_context_menu=None, treegrid_resizable=False,
+                          treegrid_pagination=False,
                           **kwargs):
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -749,6 +761,7 @@ class CardMixin:
             treegrid_context_menu_html=self._build_context_menu_html(
                 treegrid_context_menu, card_name),
             treegrid_resizable=treegrid_resizable,
+            treegrid_pagination=treegrid_pagination,
             show_header=title is not None,
             **kwargs,
         )

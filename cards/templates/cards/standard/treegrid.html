@@ -25,12 +25,27 @@
                 </button>
                 {% endfor %}
                 {% if card.extra_card_info.treegrid_checkbox %}
+                {% if card.extra_card_info.treegrid_pagination %}
+                <button id="{{ card.code }}_select_all_pages" class="btn btn-sm btn-outline-secondary">
+                    <i class="far fa-check-square"></i> Select All
+                </button>
+                <button id="{{ card.code }}_deselect_all_pages" class="btn btn-sm btn-outline-secondary">
+                    <i class="far fa-square"></i> Deselect All
+                </button>
+                <button id="{{ card.code }}_select_page" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-check-square"></i> Select Page
+                </button>
+                <button id="{{ card.code }}_deselect_page" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-minus-square"></i> Deselect Page
+                </button>
+                {% else %}
                 <button id="{{ card.code }}_select_all" class="btn btn-sm btn-outline-secondary">
                     <i class="far fa-check-square"></i> Select All
                 </button>
                 <button id="{{ card.code }}_deselect_all" class="btn btn-sm btn-outline-secondary">
                     <i class="far fa-square"></i> Deselect All
                 </button>
+                {% endif %}
                 <button id="{{ card.code }}_get_selected" class="btn btn-sm btn-primary">
                     <i class="fas fa-check"></i> {{ card.extra_card_info.treegrid_submit_label }}
                 </button>
@@ -128,6 +143,17 @@
 
         <div class="d-flex justify-content-between align-items-center px-2 py-2">
             <div id="{{ card.code }}_info" class="text-muted small"></div>
+            {% if card.extra_card_info.treegrid_pagination %}
+            <div id="{{ card.code }}_pagination" class="d-none align-items-center">
+                <button id="{{ card.code }}_prev_page" class="btn btn-sm btn-outline-secondary mr-1" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="{{ card.code }}_page_info" class="text-muted small mx-1"></span>
+                <button id="{{ card.code }}_next_page" class="btn btn-sm btn-outline-secondary ml-1">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
             {% if card.extra_card_info.treegrid_save_mode == 'batch' %}
             <div>
                 <span id="{{ card.code }}_changes" class="text-muted small mr-2"></span>

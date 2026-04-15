@@ -1976,6 +1976,118 @@ class TreegridDualExample(MainMenu, CardMixin, TemplateView):
         return self.command_response()
 
 
+class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
+    """Treegrid with server-side pagination. Root nodes are split into pages."""
+    template_name = 'cards_examples/cards.html'
+
+    PAGE_SIZE = 5
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='paginated_tree',
+            title='Company Tree (Paginated)',
+            treegrid_columns=[
+                {'title': 'Name', 'field': 'title', 'width': '50%'},
+                {'title': 'Category', 'field': 'category', 'width': '25%'},
+                {'title': 'People', 'field': 'people_count', 'width': '25%'},
+            ],
+            treegrid_icon_map={
+                'company': 'fas fa-building',
+                'person': 'fas fa-user',
+            },
+            treegrid_checkbox=True,
+            treegrid_pagination=True,
+            footer=f'Root nodes are loaded {self.PAGE_SIZE} at a time. '
+                   'Use the prev/next buttons to page through companies. '
+                   'Children still lazy-load normally.',
+        )
+        self.add_card_group('paginated_tree', div_css_class='col-12')
+
+    def get_treegrid_paginated_tree_ids(self):
+        """Initial load: returns all root keys (for pagination) plus the first page of nodes."""
+        all_ids = list(
+            Company.objects.annotate(people_count=Count('person'))
+            .filter(people_count__gt=0)
+            .order_by('name')
+            .values_list('id', flat=True)
+        )
+        all_keys = [f'company_{pk}' for pk in all_ids]
+        first_page_qs = (
+            Company.objects.filter(id__in=all_ids[:self.PAGE_SIZE])
+            .select_related('company_category')
+            .annotate(people_count=Count('person'))
+            .order_by('name')
+        )
+        return {
+            'all_keys': all_keys,
+            'page_size': self.PAGE_SIZE,
+            'nodes': self._companies_to_nodes(first_page_qs),
+        }
+
+    def get_treegrid_paginated_tree_data(self, parent=None, page_keys=None):
+        if parent is not None:
+            return self._get_people(parent)
+        if not page_keys:
+            return []
+        page_ids = [int(k.replace('company_', '')) for k in page_keys if k.startswith('company_')]
+        companies = (
+            Company.objects.filter(id__in=page_ids)
+            .select_related('company_category')
+            .annotate(people_count=Count('person'))
+            .order_by('name')
+        )
+        return self._companies_to_nodes(companies)
+
+    @staticmethod
+    def _companies_to_nodes(companies):
+        return [
+            {
+                'title': company.name,
+                'key': f'company_{company.id}',
+                'folder': company.people_count > 0,
+                'lazy': company.people_count > 0,
+                'data': {
+                    'type': 'company',
+                    'category': company.company_category.name if company.company_category else '',
+                    'people_count': company.people_count,
+                },
+            }
+            for company in companies
+        ]
+
+    @staticmethod
+    def _get_people(parent_key):
+        try:
+            company_id = int(parent_key.replace('company_', ''))
+        except (ValueError, AttributeError):
+            return []
+        people = Person.objects.filter(
+            company_id=company_id
+        ).order_by('surname', 'first_name')
+        return [
+            {
+                'title': f'{p.first_name} {p.surname}',
+                'key': f'person_{p.id}',
+                'folder': False,
+                'data': {'type': 'person', 'category': '', 'people_count': ''},
+            }
+            for p in people
+        ]
+
+
+    def button_paginated_tree_selected(self, **kwargs):
+        import json
+        keys = json.loads(kwargs.get('selected_keys', '[]'))
+        count = len(keys)
+        details = ', '.join(keys[:10])
+        if count > 10:
+            details += f' ... and {count - 10} more'
+        self.add_command(toast_commands(
+            header=f'{count} item{"s" if count != 1 else ""} selected',
+            text=details))
+        return self.command_response()
+
+
 # Keep the original example for backwards compatibility
 class TreegridExample(TreegridEditableExample):
     pass
