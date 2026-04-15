@@ -149,6 +149,11 @@
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <span id="{{ card.code }}_page_info" class="text-muted small mx-1"></span>
+                <input type="number" id="{{ card.code }}_page_jump" class="form-control form-control-sm mx-1"
+                       style="width:60px" min="1" placeholder="Go…">
+                <button id="{{ card.code }}_page_jump_btn" class="btn btn-sm btn-outline-secondary mr-1">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
                 <button id="{{ card.code }}_next_page" class="btn btn-sm btn-outline-secondary ml-1">
                     <i class="fas fa-chevron-right"></i>
                 </button>

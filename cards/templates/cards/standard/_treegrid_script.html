@@ -1,6 +1,5 @@
 {% load i18n %}
 <script>
-    console.log('this source');
 (function() {
     var CARD_CODE = '{{ card.code }}';
     var DATA_URL = '{{ card.extra_card_info.treegrid_data_url }}';
@@ -28,6 +27,9 @@
     var _allKeys = [];
     var _currentPage = 1;
     var _pageSize = {{ card.extra_card_info.treegrid_page_size|default:50 }};
+    var _filteredNodes = null;  // null = no filter active; array = current filter result set
+    var _filterTerm = '';       // global search term for highlight
+    var _filterColTerms = {};   // {colIdx: term} for column-specific highlight
     // Cross-page selection tracking (only used when PAGINATION && CHECKBOX)
     var _pagedSelectedKeys = {};
     // Maps root-level node key → count of selected descendants (for partsel restoration)
@@ -425,6 +427,31 @@
         return true;
     }
 
+    function _highlightText(text, term) {
+        // HTML-escape the value first, then wrap matches in <mark>
+        var safe = $('<span>').text(String(text)).html();
+        if (!term) return safe;
+        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return safe.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+    }
+
+    function _highlightInHtml(html, term) {
+        // Highlight term inside arbitrary HTML by walking text nodes only,
+        // so tag names / attributes are never corrupted.
+        if (!term || html == null) return String(html == null ? '' : html);
+        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var re = new RegExp('(' + escaped + ')', 'gi');
+        var $wrap = $('<div>').html(String(html));
+        $wrap.find('*').addBack().contents().each(function() {
+            if (this.nodeType === 3 && re.test(this.nodeValue)) {
+                re.lastIndex = 0;
+                $(this).replaceWith(this.nodeValue.replace(re, '<mark>$1</mark>'));
+            }
+            re.lastIndex = 0;
+        });
+        return $wrap.html();
+    }
+
     function renderCells(node) {
         var $tr = $(node.tr);
         var $tds = $tr.find('>td');
@@ -518,7 +545,8 @@
             } else if (colType === 'boolean') {
                 $td.html(renderBoolIcon(val));
             } else if (colType === 'html') {
-                $td.html(val);
+                var htmlHlTerm = PAGINATION ? (_filterTerm || _filterColTerms[i] || '') : '';
+                $td.html(htmlHlTerm ? _highlightInHtml(val, htmlHlTerm) : val);
             } else if (colType === 'actions') {
                 if (!$td.find('.treegrid-action-btn').length) {
                     var actions = col.actions || [];
@@ -542,8 +570,13 @@
                     });
                 }
             } else {
-                // Default: plain text
-                $td.text(val);
+                // Default: plain text (highlight match when pagination filter is active)
+                var hlTerm = PAGINATION ? (_filterTerm || _filterColTerms[i] || '') : '';
+                if (hlTerm) {
+                    $td.html(_highlightText(val, hlTerm));
+                } else {
+                    $td.text(val);
+                }
             }
         }
     }
@@ -605,8 +638,9 @@
     }
 
     function _updatePaginationUI() {
-        var totalPages = Math.ceil(_allKeys.length / _pageSize);
-        if (_allKeys.length <= _pageSize) {
+        var count = _activeNodes().length;
+        var totalPages = Math.ceil(count / _pageSize);
+        if (count <= _pageSize) {
             $('#' + CARD_CODE + '_pagination').addClass('d-none').removeClass('d-flex');
             return;
         }
@@ -616,11 +650,17 @@
         $('#' + CARD_CODE + '_next_page').prop('disabled', _currentPage >= totalPages);
     }
 
+    // Returns whichever node set is currently active (filtered subset or full list).
+    function _activeNodes() {
+        return _filteredNodes !== null ? _filteredNodes : _allNodes;
+    }
+
     function _loadPage(page) {
         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
         if (!tree) return;
+        var nodes = _activeNodes();
         var start = (page - 1) * _pageSize;
-        var pageNodes = _allNodes.slice(start, start + _pageSize);
+        var pageNodes = nodes.slice(start, start + _pageSize);
         var root = tree.getRootNode();
         root.removeChildren();
         root.addChildren(pageNodes);
@@ -637,6 +677,48 @@
         }
         _currentPage = page;
         _updatePaginationUI();
+    }
+
+    // Filter _allNodes in memory and paginate the results.
+    // Searches all data fields, not just node.title.
+    function _nodeMatchesGlobal(node, lower) {
+        if (String(node.title || '').toLowerCase().indexOf(lower) !== -1) return true;
+        if (node.data) {
+            for (var k in node.data) {
+                if (node.data.hasOwnProperty(k) && node.data[k] != null && k !== 'type') {
+                    if (String(node.data[k]).toLowerCase().indexOf(lower) !== -1) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function _nodeMatchesColFilters(node, filters) {
+        for (var f = 0; f < filters.length; f++) {
+            var fi = filters[f];
+            var cellVal = '';
+            if (fi.colIdx === NODE_COLUMN) {
+                cellVal = node.title || '';
+            } else {
+                var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
+                cellVal = (field && node.data && node.data[field] != null) ? String(node.data[field]) : '';
+            }
+            if (cellVal.toLowerCase().indexOf(fi.val) === -1) return false;
+        }
+        return true;
+    }
+
+    function _applyPaginatedFilter(nodes) {
+        _filteredNodes = nodes;
+        _loadPage(1);
+    }
+
+    function _clearPaginatedFilter() {
+        if (!PAGINATION) return;
+        _filteredNodes = null;
+        _filterTerm = '';
+        _filterColTerms = {};
+        _loadPage(1);
     }
 
     function getLazyLoad() {
@@ -683,6 +765,14 @@
             },
             renderColumns: function(event, data) {
                 renderCells(data.node);
+                // Highlight the node title when a pagination filter is active
+                if (PAGINATION) {
+                    var titleTerm = _filterTerm || _filterColTerms[NODE_COLUMN] || '';
+                    if (titleTerm) {
+                        var $title = $(data.node.tr).find('.fancytree-title');
+                        if ($title.length) $title.html(_highlightText($title.text(), titleTerm));
+                    }
+                }
             },
             init: function(event, data) {
                 updateInfo();
@@ -779,7 +869,6 @@
         // Per-column filters
         if (SHOW_COL_FILTERS) {
             $('#' + CARD_CODE + '_table').on('keyup change', '.treegrid-col-filter', function() {
-                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
                 var filters = [];
                 $('#' + CARD_CODE + '_table .treegrid-col-filter').each(function() {
                     var val = $(this).val().trim().toLowerCase();
@@ -789,24 +878,22 @@
                     }
                 });
                 if (filters.length === 0) {
-                    tree.clearFilter();
+                    if (PAGINATION) {
+                        _clearPaginatedFilter();
+                    } else {
+                        $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                    }
                 } else {
-                    tree.filterNodes(function(node) {
-                        for (var f = 0; f < filters.length; f++) {
-                            var fi = filters[f];
-                            var cellVal = '';
-                            if (fi.colIdx === NODE_COLUMN) {
-                                cellVal = node.title || '';
-                            } else {
-                                var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
-                                cellVal = (field && node.data[field] != null) ? String(node.data[field]) : '';
-                            }
-                            if (cellVal.toLowerCase().indexOf(fi.val) === -1) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    });
+                    if (PAGINATION) {
+                        var matched = _allNodes.filter(function(n) { return _nodeMatchesColFilters(n, filters); });
+                        _filterTerm = '';
+                        _filterColTerms = {};
+                        filters.forEach(function(f) { _filterColTerms[f.colIdx] = f.val; });
+                        _applyPaginatedFilter(matched);
+                    } else {
+                        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                        tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
+                    }
                 }
                 updateInfo();
             });
@@ -814,13 +901,26 @@
 
         // Global filter controls
         function applyFilter() {
-            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
             var val = $('#' + CARD_CODE + '_filter_input').val().trim();
             if (val) {
-                var count = tree.filterNodes(val);
-                $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
+                if (PAGINATION) {
+                    var lower = val.toLowerCase();
+                    var matched = _allNodes.filter(function(n) { return _nodeMatchesGlobal(n, lower); });
+                    _filterTerm = lower;
+                    _filterColTerms = {};
+                    _applyPaginatedFilter(matched);
+                    $('#' + CARD_CODE + '_matches').text('(' + matched.length + ' matches)');
+                } else {
+                    var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                    var count = tree.filterNodes(val);
+                    $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
+                }
             } else {
-                tree.clearFilter();
+                if (PAGINATION) {
+                    _clearPaginatedFilter();
+                } else {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                }
                 $('#' + CARD_CODE + '_matches').text('');
             }
             updateInfo();
@@ -832,8 +932,11 @@
         });
         $('#' + CARD_CODE + '_filter_clear').on('click', function() {
             $('#' + CARD_CODE + '_filter_input').val('');
-            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-            tree.clearFilter();
+            if (PAGINATION) {
+                _clearPaginatedFilter();
+            } else {
+                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+            }
             $('#' + CARD_CODE + '_matches').text('');
             updateInfo();
         });
@@ -933,6 +1036,18 @@
         $('#' + CARD_CODE + '_next_page').on('click', function() {
             if (_currentPage < Math.ceil(_allKeys.length / _pageSize)) _loadPage(_currentPage + 1);
         });
+        function _doPageJump() {
+            var totalPages = Math.ceil(_activeNodes().length / _pageSize);
+            var page = parseInt($('#' + CARD_CODE + '_page_jump').val());
+            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                _loadPage(page);
+            }
+            $('#' + CARD_CODE + '_page_jump').val('');
+        }
+        $('#' + CARD_CODE + '_page_jump').on('keydown', function(e) {
+            if (e.key === 'Enter') _doPageJump();
+        });
+        $('#' + CARD_CODE + '_page_jump_btn').on('click', _doPageJump);
 
         // Context menu - supports MenuItem HTML (server-rendered) and dict items (JS-built)
         var $ctxMenu = $('#' + CARD_CODE + '_context_menu-menu');
