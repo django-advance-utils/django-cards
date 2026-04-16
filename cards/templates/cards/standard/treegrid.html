@@ -116,7 +116,11 @@
                         {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
                         {% for col in card.extra_card_info.treegrid_columns %}
                         <th>
-                            {% if col.filter_options %}
+                            {% if col.filter_options == True %}
+                            <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
+                                <option value=""></option>
+                            </select>
+                            {% elif col.filter_options %}
                             <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
                                 {% for opt in col.filter_options %}

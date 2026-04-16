@@ -776,6 +776,7 @@
             },
             init: function(event, data) {
                 updateInfo();
+                _populateAutoFilters();
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
                 }
@@ -817,6 +818,7 @@
             },
             loadChildren: function(event, data) {
                 updateInfo();
+                _populateAutoFilters();
                 if (CHECKBOX) {
                     if (data.node.isSelected()) {
                         data.node.visit(function(child) {
@@ -863,6 +865,44 @@
                 if (node) {
                     startCellEdit($td, node);
                 }
+            });
+        }
+
+        function _populateAutoFilters() {
+            var $autoSelects = $('#' + CARD_CODE + '_table .treegrid-col-filter[data-auto-options]');
+            if (!$autoSelects.length) return;
+
+            var colIndices = [];
+            $autoSelects.each(function() { colIndices.push(parseInt($(this).data('col-idx'))); });
+
+            var colValues = {};
+            colIndices.forEach(function(i) { colValues[i] = {}; });
+
+            function collectFrom(title, data) {
+                colIndices.forEach(function(idx) {
+                    var val = idx === NODE_COLUMN
+                        ? String(title || '')
+                        : (COLUMNS[idx] && data && data[COLUMNS[idx].field] != null
+                            ? String(data[COLUMNS[idx].field]) : '');
+                    if (val) colValues[idx][val] = true;
+                });
+            }
+
+            if (PAGINATION && _allNodes.length) {
+                _allNodes.forEach(function(n) { collectFrom(n.title, n.data); });
+            } else {
+                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                if (tree) tree.visit(function(node) { collectFrom(node.title, node.data); });
+            }
+
+            $autoSelects.each(function() {
+                var $sel = $(this);
+                var idx = parseInt($sel.data('col-idx'));
+                var currentVal = $sel.val();
+                var values = Object.keys(colValues[idx]).sort();
+                $sel.find('option:not(:first)').remove();
+                values.forEach(function(v) { $sel.append($('<option>').val(v).text(v)); });
+                if (currentVal) $sel.val(currentVal);
             });
         }
 
