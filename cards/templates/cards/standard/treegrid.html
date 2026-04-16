@@ -122,12 +122,11 @@
                             </select>
                             {% elif col.filter_options %}
                             {% if col.filter_options.0.html %}
-                            <div class="dropdown treegrid-html-filter" data-col-idx="{{ forloop.counter0 }}">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-left"
-                                        data-toggle="dropdown">
+                            <div class="treegrid-html-filter" data-col-idx="{{ forloop.counter0 }}">
+                                <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-left treegrid-html-filter-btn">
                                     <span class="treegrid-html-filter-display">—</span>
                                 </button>
-                                <div class="dropdown-menu">
+                                <div class="treegrid-html-filter-menu dropdown-menu" style="display:none">
                                     <a class="dropdown-item treegrid-html-filter-item" data-value="" href="#">—</a>
                                     {% for opt in col.filter_options %}
                                     <a class="dropdown-item treegrid-html-filter-item" data-value="{{ opt.value }}" href="#">{{ opt.html|safe }}</a>
