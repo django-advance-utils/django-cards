@@ -21,7 +21,7 @@ from cards_examples.views.treegrid import (
     TreegridWidgetsExample, TreegridFullExample, TreegridBatchExample, TreegridColspanExample,
     TreegridStyledExample, TreegridCalculatorExample, TreegridDualExample,
     TreegridSelfDispatchExample, TreegridStaticExample, TreegridSelectExample,
-    TreegridAdvancedExample,
+    TreegridAdvancedExample, TreegridPaginationExample,
     TreegridData,
 )
 from cards_examples.views.panel_layout import (
@@ -93,6 +93,7 @@ urlpatterns = [
     path('treegrid/styled/', TreegridStyledExample.as_view(), name='treegrid_styled'),
     path('treegrid/full/', TreegridFullExample.as_view(), name='treegrid_full'),
     path('treegrid/colspan/', TreegridColspanExample.as_view(), name='treegrid_colspan'),
+    path('treegrid/pagination/', TreegridPaginationExample.as_view(), name='treegrid_pagination'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),

@@ -40,6 +40,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:treegrid_styled', 'Styled Cells'),
                 ('cards_examples:treegrid_full', 'Full Featured'),
                 ('cards_examples:treegrid_colspan', 'Colspan Headers'),
+                ('cards_examples:treegrid_pagination', 'Pagination'),
             )),
             MenuItem(menu_display='Accordion', dropdown=(
                 ('cards_examples:accordion', 'Basic'),

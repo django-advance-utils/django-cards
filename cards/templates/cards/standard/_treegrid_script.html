@@ -18,8 +18,22 @@
     var CHECKBOX_COLUMN = {{ card.extra_card_info.treegrid_checkbox_column }};
     var CONTEXT_MENU = {{ card.extra_card_info.treegrid_context_menu_json|safe }};
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
+    var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
     var $modal = $('#' + CARD_CODE + '_card').closest('.modal');
     var LOCATION_URL = $modal.length ? $modal.attr('data-url') : window.location.href;
+
+    // Pagination state
+    var _allNodes = [];
+    var _allKeys = [];
+    var _currentPage = 1;
+    var _pageSize = {{ card.extra_card_info.treegrid_page_size|default:50 }};
+    var _filteredNodes = null;  // null = no filter active; array = current filter result set
+    var _filterTerm = '';       // global search term for highlight
+    var _filterColTerms = {};   // {colIdx: term} for column-specific highlight
+    // Cross-page selection tracking (only used when PAGINATION && CHECKBOX)
+    var _pagedSelectedKeys = {};
+    // Maps root-level node key → count of selected descendants (for partsel restoration)
+    var _childSelectionCounts = {};
 
     // Global treegrid registry for reload and external access
     if (!window._treegridRegistry) window._treegridRegistry = {};
@@ -35,6 +49,9 @@
 
     // Register this treegrid for external access
     function getSelectedKeys() {
+        if (PAGINATION && CHECKBOX) {
+            return Object.keys(_pagedSelectedKeys);
+        }
         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
         if (!tree) return [];
         return tree.getSelectedNodes().map(function(n) { return n.key; });
@@ -410,6 +427,31 @@
         return true;
     }
 
+    function _highlightText(text, term) {
+        // HTML-escape the value first, then wrap matches in <mark>
+        var safe = $('<span>').text(String(text)).html();
+        if (!term) return safe;
+        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return safe.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+    }
+
+    function _highlightInHtml(html, term) {
+        // Highlight term inside arbitrary HTML by walking text nodes only,
+        // so tag names / attributes are never corrupted.
+        if (!term || html == null) return String(html == null ? '' : html);
+        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var re = new RegExp('(' + escaped + ')', 'gi');
+        var $wrap = $('<div>').html(String(html));
+        $wrap.find('*').addBack().contents().each(function() {
+            if (this.nodeType === 3 && re.test(this.nodeValue)) {
+                re.lastIndex = 0;
+                $(this).replaceWith(this.nodeValue.replace(re, '<mark>$1</mark>'));
+            }
+            re.lastIndex = 0;
+        });
+        return $wrap.html();
+    }
+
     function renderCells(node) {
         var $tr = $(node.tr);
         var $tds = $tr.find('>td');
@@ -503,7 +545,8 @@
             } else if (colType === 'boolean') {
                 $td.html(renderBoolIcon(val));
             } else if (colType === 'html') {
-                $td.html(val);
+                var htmlHlTerm = PAGINATION ? (_filterTerm || _filterColTerms[i] || '') : '';
+                $td.html(htmlHlTerm ? _highlightInHtml(val, htmlHlTerm) : val);
             } else if (colType === 'actions') {
                 if (!$td.find('.treegrid-action-btn').length) {
                     var actions = col.actions || [];
@@ -527,8 +570,13 @@
                     });
                 }
             } else {
-                // Default: plain text
-                $td.text(val);
+                // Default: plain text (highlight match when pagination filter is active)
+                var hlTerm = PAGINATION ? (_filterTerm || _filterColTerms[i] || '') : '';
+                if (hlTerm) {
+                    $td.html(_highlightText(val, hlTerm));
+                } else {
+                    $td.text(val);
+                }
             }
         }
     }
@@ -547,8 +595,33 @@
             return STATIC_DATA;
         } else if (DATA_MODE === 'url') {
             return {url: DATA_URL, cache: false};
+        } else if (PAGINATION) {
+            // Pagination mode: fetch all root nodes once, then slice client-side.
+            // No further server requests are needed when changing pages.
+            return function(event, data) {
+                var deferred = $.Deferred();
+                $.ajax({
+                    url: LOCATION_URL,
+                    method: 'POST',
+                    data: JSON.stringify({treegrid_data: true, card_id: CARD_CODE, parent: null}),
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.setRequestHeader('X-CSRFToken', ajax_helpers.getCookie('csrftoken'));
+                    }
+                }).done(function(resp) {
+                    _allNodes = Array.isArray(resp) ? resp : (resp.nodes || []);
+                    _allKeys = _allNodes.map(function(n) { return n.key; });
+                    _currentPage = 1;
+                    _updatePaginationUI();
+                    deferred.resolve(_allNodes.slice(0, _pageSize));
+                }).fail(function() {
+                    deferred.reject(arguments);
+                });
+                return deferred.promise();
+            };
         } else {
-            // 'ajax' mode: POST to same page via ajax_helpers
+            // Standard ajax mode: POST to same page via ajax_helpers
             return function(event, data) {
                 return $.ajax({
                     url: LOCATION_URL,
@@ -562,6 +635,90 @@
                 });
             };
         }
+    }
+
+    function _updatePaginationUI() {
+        var count = _activeNodes().length;
+        var totalPages = Math.ceil(count / _pageSize);
+        if (count <= _pageSize) {
+            $('#' + CARD_CODE + '_pagination').addClass('d-none').removeClass('d-flex');
+            return;
+        }
+        $('#' + CARD_CODE + '_pagination').removeClass('d-none').addClass('d-flex');
+        $('#' + CARD_CODE + '_page_info').text('Page ' + _currentPage + ' of ' + totalPages);
+        $('#' + CARD_CODE + '_prev_page').prop('disabled', _currentPage <= 1);
+        $('#' + CARD_CODE + '_next_page').prop('disabled', _currentPage >= totalPages);
+    }
+
+    // Returns whichever node set is currently active (filtered subset or full list).
+    function _activeNodes() {
+        return _filteredNodes !== null ? _filteredNodes : _allNodes;
+    }
+
+    function _loadPage(page) {
+        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+        if (!tree) return;
+        var nodes = _activeNodes();
+        var start = (page - 1) * _pageSize;
+        var pageNodes = nodes.slice(start, start + _pageSize);
+        var root = tree.getRootNode();
+        root.removeChildren();
+        root.addChildren(pageNodes);
+        if (CHECKBOX) {
+            tree.visit(function(node) {
+                if (node.key in _pagedSelectedKeys) {
+                    node.setSelected(true);
+                } else if (node.key in _childSelectionCounts) {
+                    // Restore partial selection indicator without loading children
+                    node.partsel = true;
+                    node.renderStatus();
+                }
+            });
+        }
+        _currentPage = page;
+        _updatePaginationUI();
+    }
+
+    // Filter _allNodes in memory and paginate the results.
+    // Searches all data fields, not just node.title.
+    function _nodeMatchesGlobal(node, lower) {
+        if (String(node.title || '').toLowerCase().indexOf(lower) !== -1) return true;
+        if (node.data) {
+            for (var k in node.data) {
+                if (node.data.hasOwnProperty(k) && node.data[k] != null && k !== 'type') {
+                    if (String(node.data[k]).toLowerCase().indexOf(lower) !== -1) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function _nodeMatchesColFilters(node, filters) {
+        for (var f = 0; f < filters.length; f++) {
+            var fi = filters[f];
+            var cellVal = '';
+            if (fi.colIdx === NODE_COLUMN) {
+                cellVal = node.title || '';
+            } else {
+                var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
+                cellVal = (field && node.data && node.data[field] != null) ? String(node.data[field]) : '';
+            }
+            if (cellVal.toLowerCase().indexOf(fi.val) === -1) return false;
+        }
+        return true;
+    }
+
+    function _applyPaginatedFilter(nodes) {
+        _filteredNodes = nodes;
+        _loadPage(1);
+    }
+
+    function _clearPaginatedFilter() {
+        if (!PAGINATION) return;
+        _filteredNodes = null;
+        _filterTerm = '';
+        _filterColTerms = {};
+        _loadPage(1);
     }
 
     function getLazyLoad() {
@@ -608,6 +765,14 @@
             },
             renderColumns: function(event, data) {
                 renderCells(data.node);
+                // Highlight the node title when a pagination filter is active
+                if (PAGINATION) {
+                    var titleTerm = _filterTerm || _filterColTerms[NODE_COLUMN] || '';
+                    if (titleTerm) {
+                        var $title = $(data.node.tr).find('.fancytree-title');
+                        if ($title.length) $title.html(_highlightText($title.text(), titleTerm));
+                    }
+                }
             },
             init: function(event, data) {
                 updateInfo();
@@ -616,6 +781,32 @@
                 }
             },
             select: function(event, data) {
+                // Track selections across pages when pagination is active
+                if (PAGINATION && CHECKBOX) {
+                    if (data.node.isSelected()) {
+                        _pagedSelectedKeys[data.node.key] = true;
+                    } else {
+                        delete _pagedSelectedKeys[data.node.key];
+                    }
+                    // Track how many children are selected under each root node
+                    // so we can restore the partsel indicator when paging back
+                    if (!data.node.isTopLevel()) {
+                        var rootNode = data.node;
+                        while (rootNode.parent && !rootNode.parent.isRootNode()) {
+                            rootNode = rootNode.parent;
+                        }
+                        if (data.node.isSelected()) {
+                            _childSelectionCounts[rootNode.key] = (_childSelectionCounts[rootNode.key] || 0) + 1;
+                        } else {
+                            if (_childSelectionCounts[rootNode.key] > 0) {
+                                _childSelectionCounts[rootNode.key]--;
+                            }
+                            if (!_childSelectionCounts[rootNode.key]) {
+                                delete _childSelectionCounts[rootNode.key];
+                            }
+                        }
+                    }
+                }
                 updateSelectCount();
                 // When a lazy node with unloaded children is deselected, fancytree
                 // leaves it as partially selected — force it to fully unselected.
@@ -631,8 +822,15 @@
                         data.node.visit(function(child) {
                             child.setSelected(true);
                         });
+                    } else if (PAGINATION) {
+                        // Restore individual child selections from cross-page tracking
+                        data.node.visit(function(child) {
+                            if (child.key in _pagedSelectedKeys) {
+                                child.setSelected(true);
+                            }
+                        });
                     } else if (!data.node.partsel) {
-                        // Parent was explicitly deselected — propagate to newly loaded children
+                        // Non-pagination: explicitly deselect children of a non-selected parent
                         data.node.visit(function(child) {
                             child.setSelected(false);
                         });
@@ -671,7 +869,6 @@
         // Per-column filters
         if (SHOW_COL_FILTERS) {
             $('#' + CARD_CODE + '_table').on('keyup change', '.treegrid-col-filter', function() {
-                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
                 var filters = [];
                 $('#' + CARD_CODE + '_table .treegrid-col-filter').each(function() {
                     var val = $(this).val().trim().toLowerCase();
@@ -681,24 +878,22 @@
                     }
                 });
                 if (filters.length === 0) {
-                    tree.clearFilter();
+                    if (PAGINATION) {
+                        _clearPaginatedFilter();
+                    } else {
+                        $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                    }
                 } else {
-                    tree.filterNodes(function(node) {
-                        for (var f = 0; f < filters.length; f++) {
-                            var fi = filters[f];
-                            var cellVal = '';
-                            if (fi.colIdx === NODE_COLUMN) {
-                                cellVal = node.title || '';
-                            } else {
-                                var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
-                                cellVal = (field && node.data[field] != null) ? String(node.data[field]) : '';
-                            }
-                            if (cellVal.toLowerCase().indexOf(fi.val) === -1) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    });
+                    if (PAGINATION) {
+                        var matched = _allNodes.filter(function(n) { return _nodeMatchesColFilters(n, filters); });
+                        _filterTerm = '';
+                        _filterColTerms = {};
+                        filters.forEach(function(f) { _filterColTerms[f.colIdx] = f.val; });
+                        _applyPaginatedFilter(matched);
+                    } else {
+                        var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                        tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
+                    }
                 }
                 updateInfo();
             });
@@ -706,13 +901,26 @@
 
         // Global filter controls
         function applyFilter() {
-            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
             var val = $('#' + CARD_CODE + '_filter_input').val().trim();
             if (val) {
-                var count = tree.filterNodes(val);
-                $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
+                if (PAGINATION) {
+                    var lower = val.toLowerCase();
+                    var matched = _allNodes.filter(function(n) { return _nodeMatchesGlobal(n, lower); });
+                    _filterTerm = lower;
+                    _filterColTerms = {};
+                    _applyPaginatedFilter(matched);
+                    $('#' + CARD_CODE + '_matches').text('(' + matched.length + ' matches)');
+                } else {
+                    var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                    var count = tree.filterNodes(val);
+                    $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
+                }
             } else {
-                tree.clearFilter();
+                if (PAGINATION) {
+                    _clearPaginatedFilter();
+                } else {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                }
                 $('#' + CARD_CODE + '_matches').text('');
             }
             updateInfo();
@@ -724,8 +932,11 @@
         });
         $('#' + CARD_CODE + '_filter_clear').on('click', function() {
             $('#' + CARD_CODE + '_filter_input').val('');
-            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-            tree.clearFilter();
+            if (PAGINATION) {
+                _clearPaginatedFilter();
+            } else {
+                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+            }
             $('#' + CARD_CODE + '_matches').text('');
             updateInfo();
         });
@@ -740,14 +951,43 @@
 
         // Select All / Deselect All
         if (CHECKBOX) {
-            $('#' + CARD_CODE + '_select_all').on('click', function() {
-                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
-                updateSelectCount();
-            });
-            $('#' + CARD_CODE + '_deselect_all').on('click', function() {
-                $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
-                updateSelectCount();
-            });
+            if (PAGINATION) {
+                // Select all root nodes across every page
+                $('#' + CARD_CODE + '_select_all_pages').on('click', function() {
+                    _allKeys.forEach(function(key) { _pagedSelectedKeys[key] = true; });
+                    var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                    tree.visit(function(node) {
+                        if (node.key in _pagedSelectedKeys) { node.setSelected(true); }
+                    });
+                    updateSelectCount();
+                });
+                // Deselect every root node across every page
+                $('#' + CARD_CODE + '_deselect_all_pages').on('click', function() {
+                    _pagedSelectedKeys = {};
+                    _childSelectionCounts = {};
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
+                    updateSelectCount();
+                });
+                // Select only the root nodes visible on the current page
+                $('#' + CARD_CODE + '_select_page').on('click', function() {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
+                    updateSelectCount();
+                });
+                // Deselect only the root nodes visible on the current page
+                $('#' + CARD_CODE + '_deselect_page').on('click', function() {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
+                    updateSelectCount();
+                });
+            } else {
+                $('#' + CARD_CODE + '_select_all').on('click', function() {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
+                    updateSelectCount();
+                });
+                $('#' + CARD_CODE + '_deselect_all').on('click', function() {
+                    $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
+                    updateSelectCount();
+                });
+            }
             $('#' + CARD_CODE + '_get_selected').on('click', function() {
                 var keys = getSelectedKeys();
                 ajax_helpers.post_json({
@@ -788,6 +1028,26 @@
                 tree.reload();
             });
         }
+
+        // Pagination controls (only present when server returns paginated response)
+        $('#' + CARD_CODE + '_prev_page').on('click', function() {
+            if (_currentPage > 1) _loadPage(_currentPage - 1);
+        });
+        $('#' + CARD_CODE + '_next_page').on('click', function() {
+            if (_currentPage < Math.ceil(_allKeys.length / _pageSize)) _loadPage(_currentPage + 1);
+        });
+        function _doPageJump() {
+            var totalPages = Math.ceil(_activeNodes().length / _pageSize);
+            var page = parseInt($('#' + CARD_CODE + '_page_jump').val());
+            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                _loadPage(page);
+            }
+            $('#' + CARD_CODE + '_page_jump').val('');
+        }
+        $('#' + CARD_CODE + '_page_jump').on('keydown', function(e) {
+            if (e.key === 'Enter') _doPageJump();
+        });
+        $('#' + CARD_CODE + '_page_jump_btn').on('click', _doPageJump);
 
         // Context menu - supports MenuItem HTML (server-rendered) and dict items (JS-built)
         var $ctxMenu = $('#' + CARD_CODE + '_context_menu-menu');
