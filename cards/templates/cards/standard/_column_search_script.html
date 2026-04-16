@@ -1,0 +1,39 @@
+{% if card.column_search %}
+<script>
+(function () {
+    var labelInput = document.getElementById('{{ card.code }}_col0_search');
+    var valueInput = document.getElementById('{{ card.code }}_col1_search');
+    if (!labelInput && !valueInput) return;
+    var tbody = document.getElementById('{{ card.code }}_tbody');
+    if (!tbody) return;
+    var timer;
+    function filterRows() {
+        var labelQ = labelInput ? labelInput.value.toLowerCase() : '';
+        var valueQ = valueInput ? valueInput.value.toLowerCase() : '';
+        var rows = tbody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].classList.contains('cards-html-row')) continue;
+            var cell0 = rows[i].cells[0];
+            var cell1 = rows[i].cells[1];
+            var labelText = cell0 ? cell0.textContent.toLowerCase() : '';
+            var valueText = cell1 ? cell1.textContent.toLowerCase() : '';
+            var show = (!labelQ || labelText.indexOf(labelQ) !== -1) &&
+                       (!valueQ || valueText.indexOf(valueQ) !== -1);
+            rows[i].style.display = show ? '' : 'none';
+        }
+    }
+    if (labelInput) {
+        labelInput.addEventListener('keyup', function () {
+            clearTimeout(timer);
+            timer = setTimeout(filterRows, 200);
+        });
+    }
+    if (valueInput) {
+        valueInput.addEventListener('keyup', function () {
+            clearTimeout(timer);
+            timer = setTimeout(filterRows, 200);
+        });
+    }
+})();
+</script>
+{% endif %}

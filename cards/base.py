@@ -174,6 +174,7 @@ class CardBase:
                  show_header=True, header_icon=None, header_css_class='',
                  ajax_reload=False, reload_interval=None,
                  searchable=False, exportable=False,
+                 column_search=False,
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -256,6 +257,7 @@ class CardBase:
         self.reload_interval = reload_interval
         self.searchable = searchable
         self.exportable = exportable
+        self.column_search = column_search
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD

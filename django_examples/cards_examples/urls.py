@@ -14,7 +14,7 @@ from cards_examples.views.accordion import AccordionExample, AccordionAjaxExampl
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
-from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex
+from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample
 from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
@@ -22,7 +22,7 @@ from cards_examples.views.treegrid import (
     TreegridStyledExample, TreegridCalculatorExample, TreegridDualExample,
     TreegridSelfDispatchExample, TreegridStaticExample, TreegridSelectExample,
     TreegridAdvancedExample, TreegridPaginationExample,
-    TreegridData,
+    TreegridData, ColumnSearchTreegridExample,
 )
 from cards_examples.views.panel_layout import (
     PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
@@ -57,6 +57,7 @@ urlpatterns = [
 
     path('datatable/', DatatableExample.as_view(), name='datatable'),
     path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
+    path('column-search/', ColumnSearchExample.as_view(), name='column_search'),
 
     path('linked-datatables/', LinkedDatatablesExample.as_view(), name='linked_datatables'),
     path('linked-datatables-payments/', LinkedDatatablesPaymentExample.as_view(), name='linked_datatables_payments'),
@@ -94,6 +95,7 @@ urlpatterns = [
     path('treegrid/full/', TreegridFullExample.as_view(), name='treegrid_full'),
     path('treegrid/colspan/', TreegridColspanExample.as_view(), name='treegrid_colspan'),
     path('treegrid/pagination/', TreegridPaginationExample.as_view(), name='treegrid_pagination'),
+    path('treegrid/column-search/', ColumnSearchTreegridExample.as_view(), name='treegrid_column_search'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),

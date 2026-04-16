@@ -111,7 +111,7 @@
                         {% endfor %}
                     </tr>
                     {% endif %}
-                    {% if card.extra_card_info.treegrid_show_column_filters %}
+                    {% if card.extra_card_info.treegrid_show_column_filters or card.column_search %}
                     <tr class="treegrid-column-filters">
                         {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
                         {% for col in card.extra_card_info.treegrid_columns %}

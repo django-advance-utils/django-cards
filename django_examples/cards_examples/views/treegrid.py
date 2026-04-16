@@ -1996,6 +1996,7 @@ class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
             treegrid_checkbox=True,
             treegrid_pagination=True,
             treegrid_page_size=5,
+            column_search=True,
             footer='All root nodes load in one request; the browser pages through them. '
                    'Children still lazy-load normally.',
         )
@@ -2060,6 +2061,66 @@ class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
             header=f'{count} item{"s" if count != 1 else ""} selected',
             text=details))
         return self.command_response()
+
+
+class ColumnSearchTreegridExample(MainMenu, CardMixin, TemplateView):
+    """Treegrid demonstrating per-column header search (non-paginated)."""
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='col_search_tree',
+            title='Company Tree (Column Search)',
+            treegrid_columns=[
+                {'title': 'Name', 'field': 'title', 'width': '50%'},
+                {'title': 'Category', 'field': 'category', 'width': '30%'},
+                {'title': 'People', 'field': 'people_count', 'width': '20%'},
+            ],
+            treegrid_icon_map={
+                'company': 'fas fa-building',
+                'person': 'fas fa-user',
+            },
+            treegrid_expand_all=True,
+            column_search=True,
+        )
+        self.add_card_group('col_search_tree', div_css_class='col-12')
+
+    def get_treegrid_col_search_tree_data(self, parent=None):
+        if parent is not None:
+            try:
+                company_id = int(parent.replace('company_', ''))
+            except (ValueError, AttributeError):
+                return []
+            people = Person.objects.filter(company_id=company_id).order_by('surname', 'first_name')
+            return [
+                {
+                    'title': f'{p.first_name} {p.surname}',
+                    'key': f'person_{p.id}',
+                    'folder': False,
+                    'data': {'type': 'person', 'category': '', 'people_count': ''},
+                }
+                for p in people
+            ]
+        companies = (
+            Company.objects.annotate(people_count=Count('person'))
+            .filter(people_count__gt=0)
+            .select_related('company_category')
+            .order_by('name')
+        )
+        return [
+            {
+                'title': company.name,
+                'key': f'company_{company.id}',
+                'folder': True,
+                'lazy': True,
+                'data': {
+                    'type': 'company',
+                    'category': company.company_category.name if company.company_category else '',
+                    'people_count': company.people_count,
+                },
+            }
+            for company in companies
+        ]
 
 
 # Keep the original example for backwards compatibility

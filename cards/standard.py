@@ -195,6 +195,7 @@ class CardMixin:
                  reload_interval=None,
                  searchable=False,
                  exportable=False,
+                 column_search=False,
                  **kwargs):
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -261,6 +262,7 @@ class CardMixin:
                              reload_interval=reload_interval,
                              searchable=searchable,
                              exportable=exportable,
+                             column_search=column_search,
                              **kwargs)
 
         if card_name is not None:

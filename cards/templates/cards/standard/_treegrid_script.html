@@ -10,7 +10,7 @@
     var ICON_MAP = {{ card.extra_card_info.treegrid_icon_map_json|safe }};
     var COLUMNS = {{ card.extra_card_info.treegrid_columns_json|safe }};
     var EXPAND_ALL = {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }};
-    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }};
+    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }} || {{ card.column_search|yesno:"true,false" }};
     var TOOLBAR = {{ card.extra_card_info.treegrid_toolbar_json|safe }};
     var NODE_COLUMN = {{ card.extra_card_info.treegrid_node_column }};
     var SAVE_MODE = '{{ card.extra_card_info.treegrid_save_mode }}';
@@ -868,6 +868,10 @@
 
         // Per-column filters
         if (SHOW_COL_FILTERS) {
+            // Stop Fancytree intercepting arrow/backspace keys typed into filter inputs
+            $('#' + CARD_CODE + '_table').on('keydown', '.treegrid-col-filter', function(e) {
+                e.stopPropagation();
+            });
             $('#' + CARD_CODE + '_table').on('keyup change', '.treegrid-col-filter', function() {
                 var filters = [];
                 $('#' + CARD_CODE + '_table .treegrid-col-filter').each(function() {

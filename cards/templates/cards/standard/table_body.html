@@ -2,8 +2,17 @@
 <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
     <div class="list-group">
         <table class="{{ table_css_class }}">
-            {% for row in card.rows %}
+            {% if card.column_search %}
+            <thead>
                 <tr>
+                    <th><input type="text" class="form-control form-control-sm" placeholder="Search label..." id="{{ card.code }}_col0_search"></th>
+                    <th><input type="text" class="form-control form-control-sm" placeholder="Search value..." id="{{ card.code }}_col1_search"></th>
+                </tr>
+            </thead>
+            <tbody id="{{ card.code }}_tbody">
+            {% endif %}
+            {% for row in card.rows %}
+                <tr{% if row.type == 'html' %} class="cards-html-row"{% endif %}>
                     {% if row.type == 'html' %}{% if not row.exclude_td %}<td class="{{ table_td_css_class }}"{% if row.colspan %} colspan="{{ row.colspan }}"{% endif %} {% if row.rowspan %} rowspan="{{ row.rowspan }}"{% endif %}>{{ row.html|safe }}</td>{% else %}{{ row.html|safe }}{% endif %}{% else %}
                     {% for entry in row.entries %}
                         {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}
@@ -28,6 +37,9 @@
                         {% endif %}
                     {% endfor %}{% endif %}</tr>
             {% endfor %}
+            {% if card.column_search %}
+            </tbody>
+            {% endif %}
         </table>
     </div>
 </div>
