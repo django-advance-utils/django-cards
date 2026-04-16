@@ -99,6 +99,7 @@ Or render individual cards:
 | `CARD_TYPE_ACCORDION` (10) | Accordion | Collapsible panels containing any card type |
 | `CARD_TYPE_PANEL_LAYOUT` (11) | Panel Layout | CSS Grid resizable/collapsible panel regions |
 | `CARD_TYPE_IFRAME` (12) | Iframe | Embedded external URL or inline HTML content |
+| `CARD_TYPE_TREEGRID` (13) | Treegrid | Fancytree hierarchical grid with lazy loading, filters, and editing |
 
 Import constants from `cards.base`:
 
@@ -286,6 +287,7 @@ These are passed to `add_card()` or `CardBase.__init__()`:
 | `searchable` | bool | `False` | Adds a search input that filters card rows client-side |
 | `exportable` | bool | `False` | Adds CSV/JSON export dropdown button |
 | `show_created_modified_dates` | bool | `False` | Show created/modified timestamps from the details object |
+| `column_search` | bool | `False` | Adds per-column search inputs to the header row (treegrid cards) |
 | `details_object` | object | `None` | The data object for field-based entries |
 | `is_empty` | bool | `False` | Render as empty state |
 | `empty_message` | str | `'N/A'` | Message shown when card is empty |
@@ -1325,6 +1327,486 @@ right = middle.add_region('aside', size='220px', collapsible=True)
 - **Nested splits** for complex multi-pane layouts
 - **Full-height mode** fills viewport minus surrounding content
 - **Persistent state** via localStorage (sizes + collapse state)
+
+---
+
+## Treegrid
+
+A Fancytree-based hierarchical grid with lazy-loaded children, optional inline editing, per-column filters, row selection, and custom toolbar buttons.
+
+### Basic Setup
+
+```python
+from cards.standard import CardMixin
+from django.views.generic import TemplateView
+from django.urls import reverse
+
+class OrgTreeView(CardMixin, TemplateView):
+    template_name = 'myapp/cards.html'
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='org_tree',
+            title='Organisation Tree',
+            treegrid_columns=[
+                {'title': 'Name',     'field': 'title',    'width': '50%'},
+                {'title': 'Category', 'field': 'category', 'width': '30%'},
+                {'title': 'People',   'field': 'people_count', 'width': '20%'},
+            ],
+            treegrid_icon_map={
+                'category': 'fas fa-layer-group',
+                'company':  'fas fa-building',
+                'person':   'fas fa-user',
+            },
+        )
+        self.add_card_group('org_tree', div_css_class='col-12')
+
+    def get_treegrid_org_tree_data(self, parent=None):
+        if parent is None:
+            return [{'title': 'Root', 'key': 'root_1', 'folder': True, 'lazy': True,
+                     'data': {'type': 'category', 'category': '', 'people_count': 5}}]
+        # Return children for the given parent key
+        return []
+```
+
+### `add_treegrid_card()` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_name` | str | `None` | Unique card identifier |
+| `title` | str | `None` | Card header title. If `None`, no header is shown |
+| `treegrid_columns` | list | `[]` | Column definitions (see below) |
+| `treegrid_data_url` | str | `''` | URL for a separate data endpoint (GET with `?parent=` param) |
+| `treegrid_static_data` | list | `None` | Inline static tree data (no AJAX) |
+| `treegrid_read_only` | bool | `True` | Disable inline editing |
+| `treegrid_height` | str | `'600px'` | CSS max-height of the scrollable table area |
+| `treegrid_indentation` | int | `20` | Pixels of indentation per tree level |
+| `treegrid_icon_map` | dict | `{}` | Maps node `data.type` → FontAwesome class |
+| `treegrid_show_filter` | bool | `True` | Show the Expand All / Collapse All / global filter toolbar |
+| `treegrid_expand_all` | bool | `False` | Expand all root nodes on initial load |
+| `treegrid_show_column_filters` | bool | `False` | Show per-column filter inputs in header row |
+| `treegrid_toolbar` | list | `[]` | Custom toolbar buttons (see below) |
+| `treegrid_toolbar_after` | list | `[]` | Additional buttons rendered after the checkbox controls |
+| `treegrid_submit_label` | str | `'Submit Selected'` | Label for the submit button when `treegrid_checkbox=True` |
+| `treegrid_header_rows` | list | `[]` | Multi-row header definitions (for colspan/rowspan headers) |
+| `treegrid_node_column` | int | `0` | Column index that displays the tree node title and expand icon |
+| `treegrid_save_mode` | str | `'auto'` | `'auto'` = save on each change; `'batch'` = collect then save all |
+| `treegrid_checkbox` | bool | `False` | Enable row selection checkboxes |
+| `treegrid_checkbox_column` | int | `0` | Column index for the checkbox (default: leftmost extra column) |
+| `treegrid_context_menu` | list | `None` | Context menu items on right-click (MenuItems or dicts) |
+| `treegrid_resizable` | bool | `False` | Allow dragging column borders to resize columns |
+| `treegrid_pagination` | bool | `False` | Enable client-side pagination of root-level nodes |
+| `treegrid_page_size` | int | `50` | Rows per page when `treegrid_pagination=True` |
+| `column_search` | bool | `False` | Alias for `treegrid_show_column_filters` (card-level parameter) |
+| `**kwargs` | | | Additional parameters passed to `add_card()` (e.g. `collapsed`, `menu`, `footer`) |
+
+### Column Definitions
+
+Each entry in `treegrid_columns` is a dict:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `title` | str | — | Column header text |
+| `field` | str | — | Key in node `data` dict. Use `'title'` for the node title column |
+| `width` | str | `None` | CSS column width (e.g. `'30%'`, `'120px'`) |
+| `type` | str | `None` | `'boolean'`, `'html'`, `'actions'`, `'checkbox'`, `'select'` |
+| `editable` | bool | `False` | Enable inline editing for this column |
+| `inline` | bool | `True` | `False` = open a popup widget instead of editing in-place |
+| `options` | list | `None` | For `type='select'`: list of `{'value': ..., 'label': ...}` dicts |
+| `visible_for` | list | `None` | Only show a widget for node types in this list (e.g. `['item', 'group']`) |
+| `filter` | bool | `True` | Set `False` to disable the column's filter input when column filters are on |
+| `filter_options` | any | `None` | Controls the filter widget (see Column Filters below) |
+
+### Data Modes
+
+There are three ways to provide node data:
+
+**1. Self-dispatch (default)** — define a `get_treegrid_<card_name>_data(parent=None)` method on the view:
+
+```python
+def get_treegrid_my_tree_data(self, parent=None):
+    if parent is None:
+        # Return root nodes
+        return [{'title': 'Root', 'key': 'root_1', 'folder': True, 'lazy': True,
+                 'data': {'type': 'category'}}]
+    # Return children for parent key
+    if parent.startswith('root_'):
+        return [{'title': 'Child', 'key': 'child_1', 'folder': False,
+                 'data': {'type': 'item'}}]
+    return []
+```
+
+**2. Separate URL** — pass `treegrid_data_url` to a view that accepts `?parent=<key>`:
+
+```python
+from django.views import View
+from django.http import JsonResponse
+
+class MyTreeData(View):
+    def get(self, request):
+        parent_key = request.GET.get('parent')
+        return JsonResponse(get_nodes(parent_key), safe=False)
+```
+
+```python
+self.add_treegrid_card(
+    card_name='my_tree',
+    treegrid_data_url=reverse('myapp:tree_data'),
+    ...
+)
+```
+
+**3. Static data** — pass `treegrid_static_data` as a Python list with nested `children`:
+
+```python
+data = [
+    {
+        'title': 'Fruits', 'key': 'fruits', 'folder': True,
+        'data': {'type': 'group', 'price': ''},
+        'children': [
+            {'title': 'Apple', 'key': 'apple', 'folder': False,
+             'data': {'type': 'item', 'price': '1.20'}},
+            {'title': 'Banana', 'key': 'banana', 'folder': False,
+             'data': {'type': 'item', 'price': '0.80'}},
+        ],
+    },
+]
+self.add_treegrid_card(card_name='my_tree', treegrid_static_data=data, ...)
+```
+
+### Node Data Format
+
+Each node returned by your data source is a dict:
+
+| Key | Required | Description |
+|---|---|---|
+| `title` | Yes | The text displayed in the tree node column |
+| `key` | Yes | Unique string identifier — passed back as `parent` to load children |
+| `folder` | Yes | `True` if this node can have children |
+| `lazy` | No | `True` to defer loading children until the node is expanded |
+| `data` | Yes | Dict of column field values. Include `'type'` for icon mapping |
+| `childCount` | No | Badge shown next to the node title (e.g. `5`) |
+| `children` | No | Inline pre-loaded children (for static data or eager loading) |
+
+### Styled Cells and Rows
+
+Include styling keys in `node.data` to colour individual cells or entire rows:
+
+```python
+{
+    'title': 'Company A',
+    'key': 'company_1',
+    'data': {
+        'type': 'company',
+        'status': 'Critical',
+        'amount': '99500',
+        # Per-cell: field__bg, field__color
+        'amount__bg': '#d4edda',
+        'amount__color': '#28a745',
+        # Per-row: _row_bg, _row_color
+        '_row_bg': '#fff3cd',
+    }
+}
+```
+
+You can also apply styles server-side after a save using the helper methods:
+
+```python
+def button_my_tree_save(self, **kwargs):
+    key = kwargs.get('key')
+    # Style a single cell
+    self.treegrid_style_cell('my_tree', key, 'amount', bg='#d4edda', color='#28a745')
+    # Style an entire row
+    self.treegrid_style_row('my_tree', key, bg='#fff3cd')
+    # Update a cell value
+    self.treegrid_update_cell('my_tree', key, 'total', '99,500')
+    return self.command_response()
+```
+
+### Inline Editing
+
+Set `treegrid_read_only=False` and mark individual columns `editable=True`. When a cell is double-clicked an input opens. On blur/enter the value is posted to `button_<card_name>_save`:
+
+```python
+def setup_cards(self):
+    self.add_treegrid_card(
+        card_name='edit_tree',
+        treegrid_read_only=False,
+        treegrid_columns=[
+            {'title': 'Name',  'field': 'title',      'width': '50%', 'editable': True},
+            {'title': 'Score', 'field': 'score',       'width': '25%', 'editable': True},
+            {'title': 'Grade', 'field': 'grade',       'width': '25%', 'editable': True,
+             'type': 'select',
+             'options': [
+                 {'value': 'A', 'label': 'A — Excellent'},
+                 {'value': 'B', 'label': 'B — Good'},
+                 {'value': 'C', 'label': 'C — Pass'},
+             ]},
+        ],
+        ...
+    )
+
+def button_edit_tree_save(self, **kwargs):
+    key   = kwargs.get('key')       # node key, e.g. 'company_42'
+    field = kwargs.get('field')     # column field name, e.g. 'score'
+    value = kwargs.get('value')     # new value as string
+    # row_<field> keys also available for the full current row state
+    # ... persist to database ...
+    return self.command_response()
+```
+
+**Widget types:**
+
+| `type` | Behaviour |
+|---|---|
+| *(omitted)* | Plain text input |
+| `'select'` | Dropdown — provide `options` list of `{'value': ..., 'label': ...}` |
+| `'checkbox'` | Toggle boolean. Use `'inline': False` for a modal-style popup |
+| `'boolean'` | Read-only checkmark/cross display (not editable) |
+| `'html'` | Raw HTML rendered in the cell (not editable) |
+| `'actions'` | Action button column — define `actions` list of `{'name', 'icon', 'title'}` |
+
+Use `'inline': False` to force a confirmation popup rather than in-place editing:
+
+```python
+{'title': 'Active', 'field': 'is_active', 'type': 'checkbox', 'editable': True, 'inline': False}
+```
+
+Use `'visible_for'` to only show a widget on certain node types (useful for mixed-type trees):
+
+```python
+{'title': 'Primary', 'field': 'primary', 'type': 'checkbox', 'editable': True, 'visible_for': ['item']}
+```
+
+### Batch Save
+
+Set `treegrid_save_mode='batch'` to collect all changes locally and post them all at once when the user clicks the Save button:
+
+```python
+self.add_treegrid_card(
+    card_name='batch_tree',
+    treegrid_read_only=False,
+    treegrid_save_mode='batch',
+    ...
+)
+
+def button_batch_tree_batch_save(self, **kwargs):
+    import json
+    changes = json.loads(kwargs.get('changes', '[]'))
+    # Each change: {'key': '...', 'field': '...', 'value': '...'}
+    for change in changes:
+        ...
+    return self.command_response()
+```
+
+### Toolbar Buttons
+
+Add custom buttons to the toolbar above the tree:
+
+```python
+self.add_treegrid_card(
+    card_name='my_tree',
+    treegrid_toolbar=[
+        {'name': 'new_group',   'label': 'New Group',   'icon': 'fas fa-folder-plus'},
+        {'name': 'new_company', 'label': 'New Company', 'icon': 'fas fa-plus'},
+    ],
+    ...
+)
+
+def button_my_tree_new_group(self, **kwargs):
+    return self.command_response(toast_commands(header='New Group', text='...'))
+
+def button_my_tree_new_company(self, **kwargs):
+    return self.command_response(toast_commands(header='New Company', text='...'))
+```
+
+### Row Selection (Checkboxes)
+
+Set `treegrid_checkbox=True` to add a checkbox column. Select All / Deselect All buttons appear in the toolbar. Clicking Submit posts the selected keys:
+
+```python
+self.add_treegrid_card(
+    card_name='select_tree',
+    treegrid_checkbox=True,
+    treegrid_submit_label='Apply Selection',
+    ...
+)
+
+def button_select_tree_selected(self, **kwargs):
+    import json
+    keys = json.loads(kwargs.get('selected_keys', '[]'))
+    # keys is a list of selected node key strings
+    return self.command_response()
+```
+
+### Pagination
+
+Set `treegrid_pagination=True` to page through root-level nodes in the browser. All root nodes load in a single request; children still lazy-load normally:
+
+```python
+self.add_treegrid_card(
+    card_name='paginated_tree',
+    treegrid_pagination=True,
+    treegrid_page_size=10,
+    treegrid_checkbox=True,   # checkbox + pagination work together
+    ...
+)
+```
+
+### Column Filters
+
+Enable per-column filter inputs in the header row with either `treegrid_show_column_filters=True` or `column_search=True`:
+
+```python
+self.add_treegrid_card(
+    card_name='filter_tree',
+    treegrid_show_column_filters=True,
+    treegrid_columns=[
+        {'title': 'Name',     'field': 'title'},
+        {'title': 'Category', 'field': 'category'},
+        {'title': 'Status',   'field': 'status', 'type': 'boolean'},
+        {'title': 'Actions',  'field': '',        'type': 'actions'},  # no filter
+    ],
+    ...
+)
+```
+
+The default filter widget per column is:
+- **`type='boolean'`** → Yes/No `<select>`
+- **`type='actions'`** → no filter
+- **everything else** → text `<input>`
+
+Override the filter widget using `filter_options` on a column definition:
+
+**Explicit list of options:**
+```python
+{'title': 'Category', 'field': 'category',
+ 'filter_options': ['Technology', 'Finance', 'Healthcare']}
+```
+
+**Options with separate display label and search value:**
+```python
+{'title': 'Category', 'field': 'category',
+ 'filter_options': [
+     {'label': 'Technology',  'value': 'tech'},
+     {'label': 'Finance',     'value': 'fin'},
+     {'label': 'Healthcare',  'value': 'health'},
+ ]}
+```
+
+The `value` is matched against the node data; the `label` is what appears in the dropdown.
+
+**Auto-generated from loaded data:**
+```python
+{'title': 'Category', 'field': 'category', 'filter_options': True}
+```
+
+Setting `filter_options=True` makes the select automatically populate with all unique values found across loaded nodes. The options refresh after each lazy-load expansion. This works with both paginated and non-paginated modes.
+
+Disable filtering on a specific column with `'filter': False`:
+```python
+{'title': 'Notes', 'field': 'notes', 'filter': False}
+```
+
+### Multi-Row Headers
+
+Use `treegrid_header_rows` to build colspan/rowspan headers. Define a list of rows, each a list of cell dicts:
+
+```python
+self.add_treegrid_card(
+    card_name='colspan_tree',
+    treegrid_node_column=4,   # which column holds the tree expand icon
+    treegrid_header_rows=[
+        [
+            {'title': 'Status',  'rowspan': 2},
+            {'title': 'Selections', 'colspan': 3, 'css_class': 'text-center'},
+            {'title': 'Name',    'rowspan': 2},
+            {'title': 'Options', 'colspan': 2, 'css_class': 'text-center'},
+        ],
+        [
+            {'title': 'Primary'},
+            {'title': 'Optional'},
+            {'title': 'Ignore'},
+            {'title': 'Category'},
+            {'title': 'Type'},
+        ],
+    ],
+    treegrid_columns=[
+        {'title': 'Status',   'field': 'status'},
+        {'title': 'Primary',  'field': 'primary',  'editable': True, 'type': 'checkbox'},
+        {'title': 'Optional', 'field': 'optional', 'editable': True, 'type': 'checkbox'},
+        {'title': 'Ignore',   'field': 'ignore',   'editable': True, 'type': 'checkbox'},
+        {'title': 'Name',     'field': 'title'},
+        {'title': 'Category', 'field': 'category'},
+        {'title': 'Type',     'field': 'window_type'},
+    ],
+    ...
+)
+```
+
+When using colspan headers, the `treegrid_node_column` must be set to the correct 0-based index of the column that should show the tree icon.
+
+### Context Menu
+
+Add a right-click context menu with `treegrid_context_menu`. Mix `MenuItem`/`DividerItem` objects (rendered server-side) with plain dicts (handled by JS):
+
+```python
+from django_menus.menu import MenuItem, DividerItem
+
+self.add_treegrid_card(
+    card_name='adv_tree',
+    treegrid_context_menu=[
+        MenuItem(url='myapp:detail', menu_display='View Details',
+                 font_awesome='fas fa-external-link-alt', link_type=MenuItem.HREF),
+        DividerItem(),
+        {'name': 'add_child',  'label': 'Add Child',  'icon': 'fas fa-plus'},
+        {'name': 'delete',     'label': 'Delete',      'icon': 'fas fa-trash text-danger'},
+    ],
+    ...
+)
+
+def button_adv_tree_context(self, **kwargs):
+    action = kwargs.get('action')   # e.g. 'add_child' or 'delete'
+    key    = kwargs.get('key')      # the right-clicked node key
+    if action == 'delete':
+        self.treegrid_remove_node('adv_tree', key)
+    elif action == 'add_child':
+        self.treegrid_add_node('adv_tree', parent_key=key, node_data={
+            'title': 'New Node', 'key': 'new_1', 'folder': False,
+            'data': {'type': 'item'},
+        })
+    return self.command_response()
+```
+
+### Server-Side Node Manipulation
+
+After a save or button press, manipulate tree nodes from the view:
+
+```python
+# Update a cell value
+self.treegrid_update_cell(card_name, key, field, value)
+
+# Style a cell (bg and/or color)
+self.treegrid_style_cell(card_name, key, field, bg='#d4edda', color='#28a745')
+
+# Style a whole row
+self.treegrid_style_row(card_name, key, bg='#fff3cd', color='')
+
+# Add a node (mode='child', 'before', or 'after')
+self.treegrid_add_node(card_name, parent_key=key, node_data={...}, mode='child')
+
+# Add a root node
+self.treegrid_add_node(card_name, parent_key=None, node_data={...})
+
+# Remove a node
+self.treegrid_remove_node(card_name, key)
+
+# Move a node
+self.treegrid_move_node(card_name, key, target_key, mode='child')
+
+# Force a full data reload
+return self.treegrid_reload_response(card_name)
+```
 
 ---
 

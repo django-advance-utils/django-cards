@@ -942,40 +942,6 @@
                 updateInfo();
             });
 
-            // HTML-option custom dropdown filters
-            $('#' + CARD_CODE + '_table').on('click', '.treegrid-html-filter-btn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var $btn = $(this);
-                var $menu = $btn.siblings('.treegrid-html-filter-menu');
-                // Close any other open menus
-                $('.treegrid-html-filter-menu').not($menu).hide();
-                if ($menu.is(':visible')) {
-                    $menu.hide();
-                } else {
-                    var rect = $btn[0].getBoundingClientRect();
-                    $menu.css({
-                        position: 'fixed',
-                        top: rect.bottom + 'px',
-                        left: rect.left + 'px',
-                        minWidth: rect.width + 'px',
-                        zIndex: 9999
-                    }).show();
-                }
-            });
-            $('#' + CARD_CODE + '_table').on('click', '.treegrid-html-filter-item', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var $item = $(this);
-                var $dropdown = $item.closest('.treegrid-html-filter');
-                var val = $item.data('value');
-                $dropdown.find('.treegrid-html-filter-display').html(val ? $item.html() : '—');
-                $dropdown.find('.treegrid-col-filter').val(val).trigger('change');
-                $item.closest('.treegrid-html-filter-menu').hide();
-            });
-            $(document).on('click.treegrid-html-filter-' + CARD_CODE, function() {
-                $('.treegrid-html-filter-menu').hide();
-            });
         }
 
         // Global filter controls

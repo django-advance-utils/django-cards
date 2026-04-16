@@ -2068,12 +2068,16 @@ class ColumnSearchTreegridExample(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
+        category_options = [
+            {'label': c.name, 'value': c.name}
+            for c in CompanyCategory.objects.order_by('name')
+        ]
         self.add_treegrid_card(
             card_name='col_search_tree',
             title='Company Tree (Column Search)',
             treegrid_columns=[
                 {'title': 'Name', 'field': 'title', 'width': '50%'},
-                {'title': 'Category', 'field': 'category', 'width': '30%', 'filter_options': True},
+                {'title': 'Category', 'field': 'category', 'width': '30%', 'filter_options': category_options},
                 {'title': 'People', 'field': 'people_count', 'width': '20%'},
             ],
             treegrid_icon_map={
