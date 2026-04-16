@@ -941,6 +941,18 @@
                 }
                 updateInfo();
             });
+
+            // HTML-option custom dropdown filters
+            $('#' + CARD_CODE + '_table').on('click', '.treegrid-html-filter-item', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var $item = $(this);
+                var $dropdown = $item.closest('.treegrid-html-filter');
+                var val = $item.data('value');
+                $dropdown.find('.treegrid-html-filter-display').html(val ? $item.html() : '—');
+                $dropdown.find('.treegrid-col-filter').val(val).trigger('change');
+                $dropdown.find('.dropdown-menu').removeClass('show');
+            });
         }
 
         // Global filter controls

@@ -121,6 +121,21 @@
                                 <option value=""></option>
                             </select>
                             {% elif col.filter_options %}
+                            {% if col.filter_options.0.html %}
+                            <div class="dropdown treegrid-html-filter" data-col-idx="{{ forloop.counter0 }}">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-left"
+                                        data-toggle="dropdown">
+                                    <span class="treegrid-html-filter-display">—</span>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item treegrid-html-filter-item" data-value="" href="#">—</a>
+                                    {% for opt in col.filter_options %}
+                                    <a class="dropdown-item treegrid-html-filter-item" data-value="{{ opt.value }}" href="#">{{ opt.html|safe }}</a>
+                                    {% endfor %}
+                                </div>
+                                <input type="hidden" class="treegrid-col-filter" data-col-idx="{{ forloop.counter0 }}" value="">
+                            </div>
+                            {% else %}
                             <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
                                 {% for opt in col.filter_options %}
@@ -128,6 +143,7 @@
                                 {% else %}<option value="{{ opt }}">{{ opt }}</option>{% endif %}
                                 {% endfor %}
                             </select>
+                            {% endif %}
                             {% elif col.type == 'boolean' %}
                             <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
