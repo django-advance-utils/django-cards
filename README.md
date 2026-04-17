@@ -1478,15 +1478,16 @@ self.add_treegrid_card(card_name='my_tree', treegrid_static_data=data, ...)
 
 Each node returned by your data source is a dict:
 
-| Key | Required | Description |
-|---|---|---|
-| `title` | Yes | The text displayed in the tree node column |
-| `key` | Yes | Unique string identifier — passed back as `parent` to load children |
-| `folder` | Yes | `True` if this node can have children |
-| `lazy` | No | `True` to defer loading children until the node is expanded |
-| `data` | Yes | Dict of column field values. Include `'type'` for icon mapping |
-| `childCount` | No | Badge shown next to the node title (e.g. `5`) |
-| `children` | No | Inline pre-loaded children (for static data or eager loading) |
+| Key           | Required | Description                                                         |
+|---------------|---|---------------------------------------------------------------------|
+| `title`       | Yes | The text displayed in the tree node column                          |
+| `key`         | Yes | Unique string identifier — passed back as `parent` to load children |
+| `folder`      | Yes | `True` if this node can have children                               |
+| `lazy`        | No | `True` to defer loading children until the node is expanded         |
+| `data`        | Yes | Dict of column field values. Include `'type'` for icon mapping      |
+| `childCount`  | No | Badge shown next to the node title (e.g. `5`)                       |
+| `children`    | No | Inline pre-loaded children (for static data or eager loading)       |
+| `disableEdit` | No | Disable edit for this row when editing is enabled.                  |
 
 ### Styled Cells and Rows
 

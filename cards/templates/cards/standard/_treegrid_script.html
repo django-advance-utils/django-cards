@@ -276,9 +276,9 @@
                         ajax_helpers.process_commands(response);
                     }
                     reloadTreegrid();
-                }});
+                }, url: LOCATION_URL});
             } else {
-                ajax_helpers.post_json({data: postData});
+                ajax_helpers.post_json({data: postData, url: LOCATION_URL});
             }
         }
     }
@@ -290,6 +290,7 @@
         if (colIdx < 0) return;
         var editInfo = EDITABLE_FIELDS[colIdx];
         if (!editInfo) return;
+        if (node.data.disableEdit) return;
 
         // For non-inline selects/checkboxes, activate on double-click
         if (!editInfo.inline && (editInfo.type === 'select' || editInfo.type === 'checkbox')) {
@@ -566,7 +567,7 @@
                             button: CARD_CODE + '_action',
                             key: node.key,
                             action: actionName
-                        }});
+                        }, url: LOCATION_URL});
                     });
                 }
             } else {
@@ -1051,7 +1052,7 @@
             if (CHECKBOX) {
                 postData.selected_keys = JSON.stringify(getSelectedKeys());
             }
-            ajax_helpers.post_json({data: postData});
+            ajax_helpers.post_json({data: postData, url: LOCATION_URL});
         });
 
         // Batch save controls
@@ -1062,7 +1063,7 @@
                 ajax_helpers.post_json({data: {
                     button: CARD_CODE + '_batch_save',
                     changes: JSON.stringify(changes)
-                }});
+                }, url: LOCATION_URL});
                 pendingChanges = {};
                 updateBatchUI();
             });
@@ -1183,7 +1184,7 @@
                         button: CARD_CODE + '_context',
                         key: ctxNodeKey,
                         action: action
-                    }});
+                    }, url: LOCATION_URL});
                 }
             });
         }
