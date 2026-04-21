@@ -30,6 +30,8 @@
     var _filteredNodes = null;  // null = no filter active; array = current filter result set
     var _filterTerm = '';       // global search term for highlight
     var _filterColTerms = {};   // {colIdx: term} for column-specific highlight
+    // Filter match count for non-pagination mode (null = no filter active)
+    var _filterMatchCount = null;
     // Cross-page selection tracking (only used when PAGINATION && CHECKBOX)
     var _pagedSelectedKeys = {};
     // Maps root-level node key → count of selected descendants (for partsel restoration)
@@ -583,11 +585,30 @@
     }
 
     function updateInfo() {
+        var $info = $('#' + CARD_CODE + '_info');
+        if (PAGINATION) {
+            var total = _allNodes.length;
+            var active = _activeNodes();
+            var activeCount = active.length;
+            if (activeCount === 0) { $info.text('No entries'); return; }
+            var start = (_currentPage - 1) * _pageSize + 1;
+            var end = Math.min(_currentPage * _pageSize, activeCount);
+            if (_filteredNodes !== null) {
+                $info.text('Showing ' + start + ' to ' + end + ' of ' + activeCount + ' (filtered from ' + total + ')');
+            } else {
+                $info.text('Showing ' + start + ' to ' + end + ' of ' + total + ' entries');
+            }
+            return;
+        }
         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
         if (!tree) return;
         var total = tree.count();
         var visible = tree.count(true);
-        $('#' + CARD_CODE + '_info').text('Showing ' + visible + ' of ' + total + ' entries');
+        if (_filterMatchCount !== null) {
+            $info.text('Showing ' + visible + ' of ' + _filterMatchCount + ' (filtered from ' + total + ')');
+        } else {
+            $info.text('Showing ' + visible + ' of ' + total + ' entries');
+        }
     }
 
     // Build fancytree source/lazyLoad based on data mode
@@ -927,6 +948,7 @@
                         _clearPaginatedFilter();
                     } else {
                         $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                        _filterMatchCount = null;
                     }
                 } else {
                     if (PAGINATION) {
@@ -937,7 +959,7 @@
                         _applyPaginatedFilter(matched);
                     } else {
                         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-                        tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
+                        _filterMatchCount = tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
                     }
                 }
                 updateInfo();
@@ -959,6 +981,7 @@
                 } else {
                     var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
                     var count = tree.filterNodes(val);
+                    _filterMatchCount = count;
                     $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
                 }
             } else {
@@ -966,6 +989,7 @@
                     _clearPaginatedFilter();
                 } else {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                    _filterMatchCount = null;
                 }
                 $('#' + CARD_CODE + '_matches').text('');
             }
@@ -982,6 +1006,7 @@
                 _clearPaginatedFilter();
             } else {
                 $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                _filterMatchCount = null;
             }
             $('#' + CARD_CODE + '_matches').text('');
             updateInfo();
