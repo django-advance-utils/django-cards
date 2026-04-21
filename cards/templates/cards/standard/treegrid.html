@@ -80,7 +80,23 @@
         </div>
         {% endif %}
 
+        {% if card.extra_card_info.treegrid_js_filters %}
+        <div class="d-flex">
+        <div class="treegrid-js-filter-panel" id="{{ card.code }}_js_filter_panel">
+            {% for f in card.extra_card_info.treegrid_js_filters %}
+            <div class="treegrid-js-filter-block" data-field="{{ f.field }}">
+                <div class="treegrid-js-filter-header">
+                    <span>{{ f.title }}</span>
+                    <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
+                </div>
+                <div class="treegrid-js-filter-content"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="flex-grow-1" style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }}; min-width:0;">
+        {% else %}
         <div style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }};">
+        {% endif %}
             <table id="{{ card.code }}_table" class="display compact smalltext table-sm table w-100" style="min-width:600px">
                 <colgroup>
                     {% if card.extra_card_info.treegrid_checkbox %}<col style="width:30px">{% endif %}
@@ -147,6 +163,7 @@
                 <tbody></tbody>
             </table>
         </div>
+        {% if card.extra_card_info.treegrid_js_filters %}</div>{% endif %}
 
         <div class="d-flex justify-content-between align-items-center px-2 py-2">
             <div id="{{ card.code }}_info" class="text-muted small"></div>

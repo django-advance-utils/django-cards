@@ -1997,6 +1997,9 @@ class TreegridPaginationExample(MainMenu, CardMixin, TemplateView):
             treegrid_pagination=True,
             treegrid_page_size=5,
             column_search=True,
+            treegrid_js_filters=[
+                {'field': 'category', 'title': 'Category'},
+            ],
             footer='All root nodes load in one request; the browser pages through them. '
                    'Children still lazy-load normally.',
         )

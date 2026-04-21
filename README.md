@@ -1709,6 +1709,26 @@ Disable filtering on a specific column with `'filter': False`:
 {'title': 'Notes', 'field': 'notes', 'filter': False}
 ```
 
+### Side-Panel JS Filters
+
+Pass `treegrid_js_filters` to render a pivot-style filter panel to the left of the tree. Each filter shows the unique values for a field as checkboxes with occurrence counts; unchecking a value hides matching rows:
+
+```python
+self.add_treegrid_card(
+    card_name='my_tree',
+    treegrid_js_filters=[
+        {'field': 'category', 'title': 'Category'},
+        {'field': 'status',   'title': 'Status'},
+    ],
+    ...
+)
+```
+
+- All values are checked (shown) by default.
+- Click **All** in a filter block header to re-check every value in that block.
+- Works in both paginated and non-paginated modes.
+- In paginated mode the panel filters combine with the toolbar search box — both must match for a row to appear.
+
 ### Multi-Row Headers
 
 Use `treegrid_header_rows` to build colspan/rowspan headers. Define a list of rows, each a list of cell dicts:
