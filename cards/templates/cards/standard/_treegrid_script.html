@@ -1089,6 +1089,16 @@
                 $('#' + CARD_CODE + '_js_filter_panel .treegrid-js-filter-block[data-field="' + field + '"] input[type="checkbox"]').prop('checked', true);
                 _applyJsFilters();
             });
+            $('#' + CARD_CODE + '_js_filter_panel').on('click', '.treegrid-jsf-deselect-field', function(e) {
+                e.preventDefault();
+                var field = $(this).data('field');
+                if (!_jsFilterActive[field]) _jsFilterActive[field] = {};
+                $('#' + CARD_CODE + '_js_filter_panel .treegrid-js-filter-block[data-field="' + field + '"] input[type="checkbox"]').each(function() {
+                    _jsFilterActive[field][$(this).val()] = true;
+                    $(this).prop('checked', false);
+                });
+                _applyJsFilters();
+            });
         }
 
         // Global filter controls

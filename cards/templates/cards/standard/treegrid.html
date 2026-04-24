@@ -87,7 +87,10 @@
             <div class="treegrid-js-filter-block" data-field="{{ f.field }}">
                 <div class="treegrid-js-filter-header">
                     <span>{{ f.title }}</span>
-                    <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
+                    <span>
+                        <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
+                        <a href="#" class="treegrid-jsf-deselect-field text-muted ml-1" data-field="{{ f.field }}">None</a>
+                    </span>
                 </div>
                 <div class="treegrid-js-filter-content"></div>
             </div>
