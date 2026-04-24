@@ -80,7 +80,26 @@
         </div>
         {% endif %}
 
+        {% if card.extra_card_info.treegrid_js_filters %}
+        <div class="d-flex">
+        <div class="treegrid-js-filter-panel" id="{{ card.code }}_js_filter_panel">
+            {% for f in card.extra_card_info.treegrid_js_filters %}
+            <div class="treegrid-js-filter-block" data-field="{{ f.field }}">
+                <div class="treegrid-js-filter-header">
+                    <span>{{ f.title }}</span>
+                    <span>
+                        <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
+                        <a href="#" class="treegrid-jsf-deselect-field text-muted ml-1" data-field="{{ f.field }}">None</a>
+                    </span>
+                </div>
+                <div class="treegrid-js-filter-content"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="flex-grow-1" style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }}; min-width:0;">
+        {% else %}
         <div style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }};">
+        {% endif %}
             <table id="{{ card.code }}_table" class="display compact smalltext table-sm table w-100" style="min-width:600px">
                 <colgroup>
                     {% if card.extra_card_info.treegrid_checkbox %}<col style="width:30px">{% endif %}
@@ -111,16 +130,22 @@
                         {% endfor %}
                     </tr>
                     {% endif %}
-                    {% if card.extra_card_info.treegrid_show_column_filters %}
+                    {% if card.extra_card_info.treegrid_show_column_filters or card.column_search %}
                     <tr class="treegrid-column-filters">
                         {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
                         {% for col in card.extra_card_info.treegrid_columns %}
                         <th>
-                            {% if col.filter == 'select' and col.filter_options %}
+                            {% if col.filter != False and col.type != 'actions' %}
+                            {% if col.filter_options == True %}
+                            <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
+                                <option value=""></option>
+                            </select>
+                            {% elif col.filter_options %}
                             <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
                                 {% for opt in col.filter_options %}
-                                <option value="{{ opt }}">{{ opt }}</option>
+                                {% if opt.label %}<option value="{{ opt.value }}">{{ opt.label }}</option>
+                                {% else %}<option value="{{ opt }}">{{ opt }}</option>{% endif %}
                                 {% endfor %}
                             </select>
                             {% elif col.type == 'boolean' %}
@@ -129,8 +154,9 @@
                                 <option value="true">Yes</option>
                                 <option value="false">No</option>
                             </select>
-                            {% elif col.filter != False and col.type != 'actions' %}
+                            {% else %}
                             <input type="text" class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}" placeholder="">
+                            {% endif %}
                             {% endif %}
                         </th>
                         {% endfor %}
@@ -140,6 +166,7 @@
                 <tbody></tbody>
             </table>
         </div>
+        {% if card.extra_card_info.treegrid_js_filters %}</div>{% endif %}
 
         <div class="d-flex justify-content-between align-items-center px-2 py-2">
             <div id="{{ card.code }}_info" class="text-muted small"></div>

@@ -10,7 +10,7 @@
     var ICON_MAP = {{ card.extra_card_info.treegrid_icon_map_json|safe }};
     var COLUMNS = {{ card.extra_card_info.treegrid_columns_json|safe }};
     var EXPAND_ALL = {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }};
-    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }};
+    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }} || {{ card.column_search|yesno:"true,false" }};
     var TOOLBAR = {{ card.extra_card_info.treegrid_toolbar_json|safe }};
     var NODE_COLUMN = {{ card.extra_card_info.treegrid_node_column }};
     var SAVE_MODE = '{{ card.extra_card_info.treegrid_save_mode }}';
@@ -19,6 +19,7 @@
     var CONTEXT_MENU = {{ card.extra_card_info.treegrid_context_menu_json|safe }};
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
     var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
+    var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
     var $modal = $('#' + CARD_CODE + '_card').closest('.modal');
     var LOCATION_URL = $modal.length ? $modal.attr('data-url') : window.location.href;
 
@@ -30,6 +31,10 @@
     var _filteredNodes = null;  // null = no filter active; array = current filter result set
     var _filterTerm = '';       // global search term for highlight
     var _filterColTerms = {};   // {colIdx: term} for column-specific highlight
+    // Filter match count for non-pagination mode (null = no filter active)
+    var _filterMatchCount = null;
+    // Side-panel JS filter state: {field: {value: true, ...}} where present = deselected (hidden)
+    var _jsFilterActive = {};
     // Cross-page selection tracking (only used when PAGINATION && CHECKBOX)
     var _pagedSelectedKeys = {};
     // Maps root-level node key → count of selected descendants (for partsel restoration)
@@ -276,9 +281,9 @@
                         ajax_helpers.process_commands(response);
                     }
                     reloadTreegrid();
-                }});
+                }, url: LOCATION_URL});
             } else {
-                ajax_helpers.post_json({data: postData});
+                ajax_helpers.post_json({data: postData, url: LOCATION_URL});
             }
         }
     }
@@ -290,6 +295,7 @@
         if (colIdx < 0) return;
         var editInfo = EDITABLE_FIELDS[colIdx];
         if (!editInfo) return;
+        if (node.data.disableEdit) return;
 
         // For non-inline selects/checkboxes, activate on double-click
         if (!editInfo.inline && (editInfo.type === 'select' || editInfo.type === 'checkbox')) {
@@ -566,7 +572,7 @@
                             button: CARD_CODE + '_action',
                             key: node.key,
                             action: actionName
-                        }});
+                        }, url: LOCATION_URL});
                     });
                 }
             } else {
@@ -582,11 +588,30 @@
     }
 
     function updateInfo() {
+        var $info = $('#' + CARD_CODE + '_info');
+        if (PAGINATION) {
+            var total = _allNodes.length;
+            var active = _activeNodes();
+            var activeCount = active.length;
+            if (activeCount === 0) { $info.text('No entries'); return; }
+            var start = (_currentPage - 1) * _pageSize + 1;
+            var end = Math.min(_currentPage * _pageSize, activeCount);
+            if (_filteredNodes !== null) {
+                $info.text('Showing ' + start + ' to ' + end + ' of ' + activeCount + ' (filtered from ' + total + ')');
+            } else {
+                $info.text('Showing ' + start + ' to ' + end + ' of ' + total + ' entries');
+            }
+            return;
+        }
         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
         if (!tree) return;
         var total = tree.count();
         var visible = tree.count(true);
-        $('#' + CARD_CODE + '_info').text('Showing ' + visible + ' of ' + total + ' entries');
+        if (_filterMatchCount !== null) {
+            $info.text('Showing ' + visible + ' of ' + _filterMatchCount + ' (filtered from ' + total + ')');
+        } else {
+            $info.text('Showing ' + visible + ' of ' + total + ' entries');
+        }
     }
 
     // Build fancytree source/lazyLoad based on data mode
@@ -721,6 +746,103 @@
         _loadPage(1);
     }
 
+    function _getNodeFieldValue(node, field) {
+        for (var i = 0; i < COLUMNS.length; i++) {
+            if (COLUMNS[i].field === field) {
+                if (i === NODE_COLUMN) return String(node.title || '');
+                var v = (node.data && node.data[field] != null) ? node.data[field] : '';
+                return String(v);
+            }
+        }
+        var v = (node.data && node.data[field] != null) ? node.data[field] : '';
+        return String(v);
+    }
+
+    function _nodeMatchesJsFilters(node) {
+        for (var i = 0; i < JS_FILTERS.length; i++) {
+            var hidden = _jsFilterActive[JS_FILTERS[i].field];
+            if (!hidden || Object.keys(hidden).length === 0) continue;
+            var val = _getNodeFieldValue(node, JS_FILTERS[i].field);
+            if (hidden.hasOwnProperty(val)) return false;
+        }
+        return true;
+    }
+
+    function _hasActiveJsFilters() {
+        for (var i = 0; i < JS_FILTERS.length; i++) {
+            var hidden = _jsFilterActive[JS_FILTERS[i].field];
+            if (hidden && Object.keys(hidden).length > 0) return true;
+        }
+        return false;
+    }
+
+    function buildJsFilters() {
+        if (!JS_FILTERS.length) return;
+        var $panel = $('#' + CARD_CODE + '_js_filter_panel');
+        if (!$panel.length) return;
+        for (var fi = 0; fi < JS_FILTERS.length; fi++) {
+            var f = JS_FILTERS[fi];
+            var counts = {};
+            if (PAGINATION) {
+                for (var ni = 0; ni < _allNodes.length; ni++) {
+                    var val = _getNodeFieldValue(_allNodes[ni], f.field);
+                    counts[val] = (counts[val] || 0) + 1;
+                }
+            } else {
+                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                if (tree) {
+                    (function(field) {
+                        tree.visit(function(node) {
+                            var v = _getNodeFieldValue(node, field);
+                            counts[v] = (counts[v] || 0) + 1;
+                        });
+                    })(f.field);
+                }
+            }
+            var $content = $panel.find('.treegrid-js-filter-block[data-field="' + f.field + '"] .treegrid-js-filter-content');
+            $content.empty();
+            var hidden = _jsFilterActive[f.field] || {};
+            var sortedVals = Object.keys(counts).sort();
+            for (var vi = 0; vi < sortedVals.length; vi++) {
+                var v = sortedVals[vi];
+                var $label = $('<label class="treegrid-jsf-check">');
+                var $cb = $('<input type="checkbox">').val(v).prop('checked', !hidden.hasOwnProperty(v)).attr('data-field', f.field);
+                $label.append($cb);
+                $label.append($('<span class="treegrid-jsf-label">').text(v || '(blank)'));
+                $label.append($('<span class="badge badge-secondary ml-1">').text(counts[v]));
+                $content.append($label);
+            }
+        }
+    }
+
+    function _applyJsFilters() {
+        var hasActive = _hasActiveJsFilters();
+        if (PAGINATION) {
+            var lower = _filterTerm;
+            var hasSearch = lower && lower.length > 0;
+            if (!hasActive && !hasSearch) {
+                _filteredNodes = null;
+                _loadPage(1);
+            } else {
+                var matched = _allNodes.filter(function(n) {
+                    return _nodeMatchesJsFilters(n) && (!hasSearch || _nodeMatchesGlobal(n, lower));
+                });
+                _applyPaginatedFilter(matched);
+            }
+        } else {
+            var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+            if (!tree) return;
+            if (hasActive) {
+                var count = tree.filterNodes(function(node) { return _nodeMatchesJsFilters(node); });
+                _filterMatchCount = count;
+            } else {
+                tree.clearFilter();
+                _filterMatchCount = null;
+            }
+        }
+        updateInfo();
+    }
+
     function getLazyLoad() {
         if (DATA_MODE === 'static') {
             return undefined;
@@ -776,6 +898,8 @@
             },
             init: function(event, data) {
                 updateInfo();
+                buildJsFilters();
+                _populateAutoFilters();
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
                 }
@@ -817,6 +941,8 @@
             },
             loadChildren: function(event, data) {
                 updateInfo();
+                buildJsFilters();
+                _populateAutoFilters();
                 if (CHECKBOX) {
                     if (data.node.isSelected()) {
                         data.node.visit(function(child) {
@@ -866,8 +992,50 @@
             });
         }
 
+        function _populateAutoFilters() {
+            var $autoSelects = $('#' + CARD_CODE + '_table .treegrid-col-filter[data-auto-options]');
+            if (!$autoSelects.length) return;
+
+            var colIndices = [];
+            $autoSelects.each(function() { colIndices.push(parseInt($(this).data('col-idx'))); });
+
+            var colValues = {};
+            colIndices.forEach(function(i) { colValues[i] = {}; });
+
+            function collectFrom(title, data) {
+                colIndices.forEach(function(idx) {
+                    var val = idx === NODE_COLUMN
+                        ? String(title || '')
+                        : (COLUMNS[idx] && data && data[COLUMNS[idx].field] != null
+                            ? String(data[COLUMNS[idx].field]) : '');
+                    if (val) colValues[idx][val] = true;
+                });
+            }
+
+            if (PAGINATION && _allNodes.length) {
+                _allNodes.forEach(function(n) { collectFrom(n.title, n.data); });
+            } else {
+                var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
+                if (tree) tree.visit(function(node) { collectFrom(node.title, node.data); });
+            }
+
+            $autoSelects.each(function() {
+                var $sel = $(this);
+                var idx = parseInt($sel.data('col-idx'));
+                var currentVal = $sel.val();
+                var values = Object.keys(colValues[idx]).sort();
+                $sel.find('option:not(:first)').remove();
+                values.forEach(function(v) { $sel.append($('<option>').val(v).text(v)); });
+                if (currentVal) $sel.val(currentVal);
+            });
+        }
+
         // Per-column filters
         if (SHOW_COL_FILTERS) {
+            // Stop Fancytree intercepting arrow/backspace keys typed into filter inputs
+            $('#' + CARD_CODE + '_table').on('keydown', '.treegrid-col-filter', function(e) {
+                e.stopPropagation();
+            });
             $('#' + CARD_CODE + '_table').on('keyup change', '.treegrid-col-filter', function() {
                 var filters = [];
                 $('#' + CARD_CODE + '_table .treegrid-col-filter').each(function() {
@@ -882,6 +1050,7 @@
                         _clearPaginatedFilter();
                     } else {
                         $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                        _filterMatchCount = null;
                     }
                 } else {
                     if (PAGINATION) {
@@ -892,10 +1061,43 @@
                         _applyPaginatedFilter(matched);
                     } else {
                         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-                        tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
+                        _filterMatchCount = tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
                     }
                 }
                 updateInfo();
+            });
+
+        }
+
+        // JS side-panel filter checkboxes
+        if (JS_FILTERS.length) {
+            $('#' + CARD_CODE + '_js_filter_panel').on('change', 'input[type="checkbox"]', function() {
+                var field = $(this).data('field');
+                var val = $(this).val();
+                if (!_jsFilterActive[field]) _jsFilterActive[field] = {};
+                if ($(this).prop('checked')) {
+                    delete _jsFilterActive[field][val];
+                } else {
+                    _jsFilterActive[field][val] = true;
+                }
+                _applyJsFilters();
+            });
+            $('#' + CARD_CODE + '_js_filter_panel').on('click', '.treegrid-jsf-clear-field', function(e) {
+                e.preventDefault();
+                var field = $(this).data('field');
+                _jsFilterActive[field] = {};
+                $('#' + CARD_CODE + '_js_filter_panel .treegrid-js-filter-block[data-field="' + field + '"] input[type="checkbox"]').prop('checked', true);
+                _applyJsFilters();
+            });
+            $('#' + CARD_CODE + '_js_filter_panel').on('click', '.treegrid-jsf-deselect-field', function(e) {
+                e.preventDefault();
+                var field = $(this).data('field');
+                if (!_jsFilterActive[field]) _jsFilterActive[field] = {};
+                $('#' + CARD_CODE + '_js_filter_panel .treegrid-js-filter-block[data-field="' + field + '"] input[type="checkbox"]').each(function() {
+                    _jsFilterActive[field][$(this).val()] = true;
+                    $(this).prop('checked', false);
+                });
+                _applyJsFilters();
             });
         }
 
@@ -905,21 +1107,31 @@
             if (val) {
                 if (PAGINATION) {
                     var lower = val.toLowerCase();
-                    var matched = _allNodes.filter(function(n) { return _nodeMatchesGlobal(n, lower); });
                     _filterTerm = lower;
                     _filterColTerms = {};
+                    var matched = _allNodes.filter(function(n) {
+                        return _nodeMatchesGlobal(n, lower) && _nodeMatchesJsFilters(n);
+                    });
                     _applyPaginatedFilter(matched);
                     $('#' + CARD_CODE + '_matches').text('(' + matched.length + ' matches)');
                 } else {
                     var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
                     var count = tree.filterNodes(val);
+                    _filterMatchCount = count;
                     $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
                 }
             } else {
                 if (PAGINATION) {
-                    _clearPaginatedFilter();
+                    _filterTerm = '';
+                    _filterColTerms = {};
+                    if (_hasActiveJsFilters()) {
+                        _applyJsFilters();
+                    } else {
+                        _clearPaginatedFilter();
+                    }
                 } else {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                    _filterMatchCount = null;
                 }
                 $('#' + CARD_CODE + '_matches').text('');
             }
@@ -933,9 +1145,16 @@
         $('#' + CARD_CODE + '_filter_clear').on('click', function() {
             $('#' + CARD_CODE + '_filter_input').val('');
             if (PAGINATION) {
-                _clearPaginatedFilter();
+                _filterTerm = '';
+                _filterColTerms = {};
+                if (_hasActiveJsFilters()) {
+                    _applyJsFilters();
+                } else {
+                    _clearPaginatedFilter();
+                }
             } else {
                 $.ui.fancytree.getTree('#' + CARD_CODE + '_table').clearFilter();
+                _filterMatchCount = null;
             }
             $('#' + CARD_CODE + '_matches').text('');
             updateInfo();
@@ -1006,7 +1225,7 @@
             if (CHECKBOX) {
                 postData.selected_keys = JSON.stringify(getSelectedKeys());
             }
-            ajax_helpers.post_json({data: postData});
+            ajax_helpers.post_json({data: postData, url: LOCATION_URL});
         });
 
         // Batch save controls
@@ -1017,7 +1236,7 @@
                 ajax_helpers.post_json({data: {
                     button: CARD_CODE + '_batch_save',
                     changes: JSON.stringify(changes)
-                }});
+                }, url: LOCATION_URL});
                 pendingChanges = {};
                 updateBatchUI();
             });
@@ -1138,7 +1357,7 @@
                         button: CARD_CODE + '_context',
                         key: ctxNodeKey,
                         action: action
-                    }});
+                    }, url: LOCATION_URL});
                 }
             });
         }

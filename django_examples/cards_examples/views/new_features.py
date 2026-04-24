@@ -575,6 +575,35 @@ class ImageGalleryIndex(MainMenu, CardMixin, TemplateView):
         )
 
 
+class ColumnSearchExample(MainMenu, CardMixin, TemplateView):
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_people_card()
+        self.add_card_group('people_col_search', div_css_class='col-12')
+
+    def add_people_card(self):
+        card = self.add_card('people_col_search',
+                             title='Per-Column Search (Standard Card)',
+                             template_name='table',
+                             extra_card_context={'table_css_class': 'table table-bordered'},
+                             column_search=True)
+        people = [
+            ('Alice Johnson', 'Engineering'),
+            ('Bob Smith', 'Marketing'),
+            ('Carol Williams', 'Engineering'),
+            ('David Brown', 'Sales'),
+            ('Eve Davis', 'Marketing'),
+            ('Frank Miller', 'Engineering'),
+            ('Grace Wilson', 'Sales'),
+            ('Henry Moore', 'Support'),
+            ('Isla Thompson', 'Engineering'),
+            ('Jack White', 'Marketing'),
+        ]
+        for name, dept in people:
+            card.add_entry(value=dept, label=name)
+
+
 class TooltipTestIndex(MainMenu, CardMixin, TemplateView):
     template_name = 'cards_examples/cards.html'
 

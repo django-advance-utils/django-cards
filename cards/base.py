@@ -174,6 +174,7 @@ class CardBase:
                  show_header=True, header_icon=None, header_css_class='',
                  ajax_reload=False, reload_interval=None,
                  searchable=False, exportable=False,
+                 column_search=False,
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -256,6 +257,7 @@ class CardBase:
         self.reload_interval = reload_interval
         self.searchable = searchable
         self.exportable = exportable
+        self.column_search = column_search
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -352,11 +354,13 @@ class CardBase:
             extra_info['treegrid_resizable'] = kwargs.get('treegrid_resizable', False)
             extra_info['treegrid_pagination'] = kwargs.get('treegrid_pagination', False)
             extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
+            extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
             # Pre-serialise for template JS
             extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
             extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])
             extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
             extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
+            extra_info['treegrid_js_filters_json'] = json.dumps(extra_info['treegrid_js_filters'])
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,

@@ -41,6 +41,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:treegrid_full', 'Full Featured'),
                 ('cards_examples:treegrid_colspan', 'Colspan Headers'),
                 ('cards_examples:treegrid_pagination', 'Pagination'),
+                ('cards_examples:treegrid_column_search', 'Column Search'),
             )),
             MenuItem(menu_display='Accordion', dropdown=(
                 ('cards_examples:accordion', 'Basic'),
@@ -68,6 +69,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:new_features_table', 'New Features (Table)'),
                 ('cards_examples:new_features_2', 'New Features 2'),
                 ('cards_examples:image_gallery', 'Image Gallery'),
+                ('cards_examples:column_search', 'Column Search'),
             )),
             MenuItem(url='admin:index',
                      menu_display='Admin',

@@ -237,4 +237,68 @@
         color: #17a2b8;
         cursor: pointer;
     }
+
+    /* Side JS filter panel */
+    .treegrid-js-filter-panel {
+        width: 210px;
+        min-width: 210px;
+        border-right: 1px solid #dee2e6;
+        padding-right: 10px;
+        margin-right: 10px;
+        font-size: 12px;
+    }
+    .treegrid-js-filter-block {
+        margin-bottom: 10px;
+    }
+    .treegrid-js-filter-header {
+        font-weight: 600;
+        font-size: 12px;
+        padding: 4px 8px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px 3px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .treegrid-jsf-clear-field {
+        font-size: 11px;
+        font-weight: normal;
+    }
+    .treegrid-js-filter-content {
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 3px 3px;
+        padding: 4px 6px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .treegrid-jsf-check {
+        display: flex;
+        align-items: center;
+        font-weight: normal;
+        margin-bottom: 2px;
+        cursor: pointer;
+        padding: 1px 3px;
+        border-radius: 2px;
+        user-select: none;
+    }
+    .treegrid-jsf-check:hover {
+        background-color: #e9ecef;
+    }
+    .treegrid-jsf-check input[type="checkbox"] {
+        margin-right: 5px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .treegrid-jsf-check .treegrid-jsf-label {
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .treegrid-jsf-check .badge {
+        font-size: 10px;
+        flex-shrink: 0;
+    }
 </style>
