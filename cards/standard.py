@@ -57,7 +57,8 @@ class CardMixin:
     - Designed to integrate cleanly with `django-datatables`, `ajax-helpers`, and `django-menus`
 
     """
-    card_cls = CardBase
+    card_cls: type[CardBase] = CardBase
+    panel_layout_cls: type[PanelLayout] = PanelLayout
 
     def __init__(self, *args, **kwargs):
         self.tables = {}
@@ -196,7 +197,7 @@ class CardMixin:
                  searchable=False,
                  exportable=False,
                  column_search=False,
-                 **kwargs):
+                 **kwargs) -> CardBase:
         """
         Creates and adds a detail card to the view, using the configured card class.
 
@@ -269,7 +270,7 @@ class CardMixin:
             self.cards[card_name] = card
         return card
 
-    def add_layout_card(self, card_name=None):
+    def add_layout_card(self, card_name=None) -> CardBase:
         """
         Creates and adds a layout card, which serves as a container for grouping and positioning child cards.
 
@@ -306,7 +307,7 @@ class CardMixin:
     def add_panel_layout(self, card_name='panel_layout', layout_id=None,
                          direction=PanelSplit.HORIZONTAL,
                          resizable=True, full_height=True, min_height='400px',
-                         css_class='', css_style='', persist=True):
+                         css_class='', css_style='', persist=True) -> PanelLayout:
         """
         Creates a CSS Grid-based panel layout with resizable and collapsible regions.
 
@@ -341,7 +342,7 @@ class CardMixin:
         Returns:
             PanelLayout: The layout object to configure and render.
         """
-        layout = PanelLayout(
+        layout = self.panel_layout_cls(
             view=self,
             card_name=card_name,
             layout_id=layout_id,
@@ -358,7 +359,7 @@ class CardMixin:
     def add_list_card(self, list_entries, card_name=None, list_title='Entries',
                       selected_id='', list_menu=None, list_template_name='list_selection',
                       empty_list_message='No entries setup yet!',
-                      extra_card_context=None):
+                      extra_card_context=None) -> CardBase:
         """
         Creates and adds a list-style card to the view, useful for displaying selectable or informative lists.
 
