@@ -72,18 +72,26 @@ Expects 'split' context variable with: direction, resizable, children[]
 
                 {% if child.tabs %}
                 <div class="panel-region__tabbar">
-                    <ul class="nav nav-tabs panel-region__tabs" role="tablist">
-                        {% for tab in child.tabs %}
-                        <li class="nav-item">
-                            <a class="nav-link{% if tab.active %} active{% endif %}"
-                               id="panel_tab_{{ child.name }}_{{ tab.name }}_link"
-                               data-toggle="tab"
-                               href="#panel_tab_{{ child.name }}_{{ tab.name }}"
-                               role="tab"
-                               {% if tab.menu %}data-tab-menu="panel_tabmenu_{{ child.name }}_{{ tab.name }}"{% endif %}>{% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.title }}</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <button class="panel-tabs-scroll-btn panel-tabs-scroll-btn--left" aria-label="Scroll tabs left" tabindex="-1">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="panel-region__tabs-wrapper">
+                        <ul class="nav nav-tabs panel-region__tabs" role="tablist">
+                            {% for tab in child.tabs %}
+                            <li class="nav-item">
+                                <a class="nav-link{% if tab.active %} active{% endif %}"
+                                   id="panel_tab_{{ child.name }}_{{ tab.name }}_link"
+                                   data-toggle="tab"
+                                   href="#panel_tab_{{ child.name }}_{{ tab.name }}"
+                                   role="tab"
+                                   {% if tab.menu %}data-tab-menu="panel_tabmenu_{{ child.name }}_{{ tab.name }}"{% endif %}>{% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.title }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <button class="panel-tabs-scroll-btn panel-tabs-scroll-btn--right" aria-label="Scroll tabs right" tabindex="-1">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                     {% for tab in child.tabs %}
                         {% if tab.menu %}
                         <div class="panel-region__tabmenu{% if tab.active %} panel-region__tabmenu--active{% endif %}"
