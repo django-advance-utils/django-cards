@@ -34,7 +34,7 @@ class ScrollableTabMenu:
 
     def render(self):
         inner = self._menu.render()
-        uid = 'stm_' + random_string(8)
+        uid = 'stm_' + random_string()
         css_url = static('cards/scrollable_tab_menu/scrollable_tab_menu.css')
         js = (
             "(function(){"
@@ -416,6 +416,8 @@ class CardBase:
             extra_info['treegrid_pagination'] = kwargs.get('treegrid_pagination', False)
             extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
             extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
+            extra_info['treegrid_sortable'] = kwargs.get('treegrid_sortable', False)
+            extra_info['treegrid_form_field'] = kwargs.get('treegrid_form_field', '')
             # Pre-serialise for template JS
             extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
             extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])

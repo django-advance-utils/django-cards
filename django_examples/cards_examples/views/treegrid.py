@@ -2130,6 +2130,90 @@ class ColumnSearchTreegridExample(MainMenu, CardMixin, TemplateView):
         ]
 
 
+class TreegridSortableExample(MainMenu, CardMixin, TemplateView):
+    """Treegrid with draggable rows constrained to their own sibling group."""
+    template_name = 'cards_examples/cards.html'
+
+    _STATIC_DATA = [
+        {
+            'title': 'Kitchen Tasks',
+            'key': 'kitchen',
+            'folder': True,
+            'data': {'type': 'group', 'priority': '', 'notes': ''},
+            'children': [
+                {'title': 'Wash dishes',       'key': 'k1', 'data': {'type': 'task', 'priority': 'High',   'notes': 'After every meal'}},
+                {'title': 'Wipe counters',     'key': 'k2', 'data': {'type': 'task', 'priority': 'Medium', 'notes': 'Daily'}},
+                {'title': 'Empty bin',         'key': 'k3', 'data': {'type': 'task', 'priority': 'Medium', 'notes': 'When full'}},
+                {'title': 'Mop floor',         'key': 'k4', 'data': {'type': 'task', 'priority': 'Low',    'notes': 'Weekly'}},
+                {'title': 'Clean microwave',   'key': 'k5', 'data': {'type': 'task', 'priority': 'Low',    'notes': 'Monthly'}},
+            ],
+        },
+        {
+            'title': 'Garden Tasks',
+            'key': 'garden',
+            'folder': True,
+            'data': {'type': 'group', 'priority': '', 'notes': ''},
+            'children': [
+                {'title': 'Mow lawn',          'key': 'g1', 'data': {'type': 'task', 'priority': 'High',   'notes': 'Weekly in summer'}},
+                {'title': 'Water plants',      'key': 'g2', 'data': {'type': 'task', 'priority': 'High',   'notes': 'Every two days'}},
+                {'title': 'Pull weeds',        'key': 'g3', 'data': {'type': 'task', 'priority': 'Medium', 'notes': 'Fortnightly'}},
+                {'title': 'Trim hedges',       'key': 'g4', 'data': {'type': 'task', 'priority': 'Low',    'notes': 'Monthly'}},
+            ],
+        },
+        {
+            'title': 'Office Tasks',
+            'key': 'office',
+            'folder': True,
+            'data': {'type': 'group', 'priority': '', 'notes': ''},
+            'children': [
+                {'title': 'Check emails',      'key': 'o1', 'data': {'type': 'task', 'priority': 'High',   'notes': 'Morning'}},
+                {'title': 'File documents',    'key': 'o2', 'data': {'type': 'task', 'priority': 'Medium', 'notes': 'Weekly'}},
+                {'title': 'Back up files',     'key': 'o3', 'data': {'type': 'task', 'priority': 'High',   'notes': 'Daily'}},
+                {'title': 'Shred old papers',  'key': 'o4', 'data': {'type': 'task', 'priority': 'Low',    'notes': 'Monthly'}},
+            ],
+        },
+    ]
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='sortable_tree',
+            title='Task List (Sortable)',
+            treegrid_static_data=self._STATIC_DATA,
+            treegrid_columns=[
+                {'title': 'Task', 'field': 'title', 'width': '50%'},
+                {'title': 'Priority', 'field': 'priority', 'width': '20%'},
+                {'title': 'Notes', 'field': 'notes', 'width': '30%'},
+            ],
+            treegrid_icon_map={
+                'group': 'fas fa-folder text-warning',
+                'task': 'fas fa-tasks',
+            },
+            treegrid_expand_all=True,
+            treegrid_show_filter=False,
+            treegrid_sortable=True,
+            footer=(
+                'Drag rows to reorder within a group. '
+                'Rows cannot be moved to a different group. '
+                'The new order is posted to the server on each drop.'
+            ),
+        )
+        self.add_card_group('sortable_tree', div_css_class='col-12')
+
+    def button_sortable_tree_reorder(self, **kwargs):
+        import json
+        print(kwargs)
+        key = kwargs.get('key', '')
+        parent_key = kwargs.get('parent_key', '') or 'root'
+        new_index = kwargs.get('new_index', 0)
+        sibling_keys = json.loads(kwargs.get('sibling_keys', '[]'))
+        order_str = ', '.join(sibling_keys)
+        self.add_command(toast_commands(
+            header=f'Reordered: {key}',
+            text=f'Parent: {parent_key} | Position: {new_index} | Order: {order_str}',
+        ))
+        return self.command_response()
+
+
 # Keep the original example for backwards compatibility
 class TreegridExample(TreegridEditableExample):
     pass

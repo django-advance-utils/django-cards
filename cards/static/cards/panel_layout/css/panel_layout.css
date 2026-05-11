@@ -338,7 +338,7 @@
 }
 
 .panel-region__tabs {
-    flex-wrap: nowrap;
+    flex-wrap: nowrap !important;
     border-bottom: none;
     padding: 0 0.5rem;
     margin-bottom: 0;
@@ -380,6 +380,7 @@
     padding: 0.25rem 0.75rem;
     font-size: 0.85rem;
     border-radius: 3px 3px 0 0;
+    white-space: nowrap;
 }
 
 .panel-region__tabs .nav-link.active {

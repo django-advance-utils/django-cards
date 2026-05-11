@@ -11,10 +11,14 @@
 }
 
 .stm__wrapper .nav-tabs {
-    flex-wrap: nowrap;
+    flex-wrap: nowrap !important;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+}
+
+.stm__wrapper .nav-tabs .nav-link {
+    white-space: nowrap;
 }
 
 .stm__wrapper .nav-tabs::-webkit-scrollbar {

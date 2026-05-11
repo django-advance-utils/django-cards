@@ -676,7 +676,10 @@ class CardMixin:
                           treegrid_checkbox=False, treegrid_checkbox_column=0,
                           treegrid_context_menu=None, treegrid_resizable=False,
                           treegrid_pagination=False, treegrid_page_size=50,
-                          **kwargs):
+                          treegrid_filter_auto_expand=True,
+                          treegrid_sortable=False,
+                          treegrid_form_field='',
+                          **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
 
@@ -761,6 +764,9 @@ class CardMixin:
             treegrid_resizable=treegrid_resizable,
             treegrid_pagination=treegrid_pagination,
             treegrid_page_size=treegrid_page_size,
+            treegrid_filter_auto_expand=treegrid_filter_auto_expand,
+            treegrid_sortable=treegrid_sortable,
+            treegrid_form_field=treegrid_form_field,
             show_header=title is not None,
             **kwargs,
         )
