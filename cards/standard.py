@@ -679,6 +679,7 @@ class CardMixin:
                           treegrid_filter_auto_expand=True,
                           treegrid_sortable=False,
                           treegrid_form_field='',
+                          treegrid_borderless: bool = False,
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -767,6 +768,7 @@ class CardMixin:
             treegrid_filter_auto_expand=treegrid_filter_auto_expand,
             treegrid_sortable=treegrid_sortable,
             treegrid_form_field=treegrid_form_field,
+            treegrid_borderless=treegrid_borderless,
             show_header=title is not None,
             **kwargs,
         )
