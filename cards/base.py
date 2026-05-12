@@ -424,7 +424,7 @@ class CardBase:
             extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
             extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
             extra_info['treegrid_js_filters_json'] = json.dumps(extra_info['treegrid_js_filters'])
-            extra_info['treegrid_borderless'] = json.dumps(kwargs.get('treegrid_borderless', False))
+            extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,
