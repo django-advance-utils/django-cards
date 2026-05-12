@@ -651,6 +651,11 @@
     // Build fancytree source/lazyLoad based on data mode
     function getTreeSource() {
         if (DATA_MODE === 'static') {
+            if (PAGINATION) {
+                _allNodes = STATIC_DATA;
+                _allKeys  = STATIC_DATA.map(function(n) { return n.key; });
+                return STATIC_DATA.slice(0, _pageSize);
+            }
             return STATIC_DATA;
         } else if (DATA_MODE === 'url') {
             return {url: DATA_URL, cache: false};
@@ -936,6 +941,7 @@
                 }
             },
             init: function(event, data) {
+                if (DATA_MODE === 'static' && PAGINATION) _updatePaginationUI();
                 updateInfo();
                 buildJsFilters();
                 _populateAutoFilters();

@@ -14,10 +14,7 @@
         </div>
     </div>
     {% endif %}
-    <script>
-        console.log('tg b {{ card.extra_card_info.treegrid_borderless }}')
-    </script>
-    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card.extra_card_info.treegrid_borderless %} style="padding: 0 !important;" {% endif %}>
+    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card.extra_card_info.treegrid_borderless == 'true' %} style="padding: 0 !important;" {% endif %}>
         {{ card.tab_menu.render }}
         {% if card.extra_card_info.treegrid_toolbar or card.extra_card_info.treegrid_show_filter or card.extra_card_info.treegrid_checkbox %}
         <div class="d-flex justify-content-between align-items-center px-2 py-2 treegrid-toolbar">
@@ -175,7 +172,7 @@
             </table>
         </div>
         {% if card.extra_card_info.treegrid_js_filters %}</div>{% endif %}
-        {% if not card.extra_card_info.treegrid_borderless %}
+        {% if card.extra_card_info.treegrid_borderless == 'false' %}
         <div class="d-flex justify-content-between align-items-center px-2 py-2">
             <div id="{{ card.code }}_info" class="text-muted small"></div>
             {% if card.extra_card_info.treegrid_pagination %}
