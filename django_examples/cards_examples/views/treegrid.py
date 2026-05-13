@@ -2201,7 +2201,6 @@ class TreegridSortableExample(MainMenu, CardMixin, TemplateView):
 
     def button_sortable_tree_reorder(self, **kwargs):
         import json
-        print(kwargs)
         key = kwargs.get('key', '')
         parent_key = kwargs.get('parent_key', '') or 'root'
         new_index = kwargs.get('new_index', 0)

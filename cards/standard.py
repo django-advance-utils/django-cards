@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from ajax_helpers.utils import is_ajax
