@@ -23,6 +23,7 @@ var PanelLayout = (function() {
         _initSplitters(layout);
         _initCollapseButtons(layout);
         _initTabMenus(layout);
+        _initTabScroll(layout);
     }
 
     function _setFullHeight(layout) {
@@ -447,6 +448,62 @@ var PanelLayout = (function() {
                 }
             });
         }
+    }
+
+    // ---- tab scroll buttons ----
+
+    function _initTabScroll(layout) {
+        var tabbars = layout.querySelectorAll('.panel-region__tabbar');
+        for (var i = 0; i < tabbars.length; i++) {
+            _initTabbarScroll(tabbars[i]);
+        }
+    }
+
+    function _initTabbarScroll(tabbar) {
+        var wrapper = tabbar.querySelector('.panel-region__tabs-wrapper');
+        var tabs = tabbar.querySelector('.panel-region__tabs');
+        var btnLeft = tabbar.querySelector('.panel-tabs-scroll-btn--left');
+        var btnRight = tabbar.querySelector('.panel-tabs-scroll-btn--right');
+        if (!wrapper || !tabs || !btnLeft || !btnRight) return;
+
+        function updateButtons() {
+            var overflowing = tabs.scrollWidth > tabs.clientWidth + 1;
+            var atStart = tabs.scrollLeft <= 0;
+            var atEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 1;
+            btnLeft.classList.toggle('panel-tabs-scroll-btn--visible', overflowing && !atStart);
+            btnRight.classList.toggle('panel-tabs-scroll-btn--visible', overflowing && !atEnd);
+        }
+
+        btnLeft.addEventListener('click', function() {
+            tabs.scrollBy({ left: -120, behavior: 'smooth' });
+        });
+        btnRight.addEventListener('click', function() {
+            tabs.scrollBy({ left: 120, behavior: 'smooth' });
+        });
+        tabs.addEventListener('scroll', updateButtons);
+
+        if (window.ResizeObserver) {
+            new ResizeObserver(updateButtons).observe(wrapper);
+        }
+
+        // Scroll active tab into view on click
+        var tabLinks = tabs.querySelectorAll('a[data-toggle="tab"]');
+        for (var i = 0; i < tabLinks.length; i++) {
+            tabLinks[i].addEventListener('click', function() {
+                var link = this;
+                setTimeout(function() {
+                    link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    updateButtons();
+                }, 0);
+            });
+        }
+
+        // Initial state
+        var activeLink = tabs.querySelector('.nav-link.active');
+        if (activeLink) {
+            activeLink.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+        }
+        updateButtons();
     }
 
     return {

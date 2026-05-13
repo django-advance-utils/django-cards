@@ -330,17 +330,57 @@
     min-height: 32px;
 }
 
-.panel-region__tabs {
+.panel-region__tabs-wrapper {
     flex: 1;
+    overflow: hidden;
+    min-width: 0;
+    align-self: flex-end;
+}
+
+.panel-region__tabs {
+    flex-wrap: nowrap !important;
     border-bottom: none;
     padding: 0 0.5rem;
     margin-bottom: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.panel-region__tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.panel-tabs-scroll-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    background: #f8f9fa;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0;
+    cursor: pointer;
+    color: #6c757d;
+    align-self: stretch;
+    transition: background 0.15s, color 0.15s;
+}
+
+.panel-tabs-scroll-btn:hover {
+    background: #e9ecef;
+    color: #212529;
+}
+
+.panel-tabs-scroll-btn--visible {
+    display: flex;
 }
 
 .panel-region__tabs .nav-link {
     padding: 0.25rem 0.75rem;
     font-size: 0.85rem;
     border-radius: 3px 3px 0 0;
+    white-space: nowrap;
 }
 
 .panel-region__tabs .nav-link.active {

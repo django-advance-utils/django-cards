@@ -6,6 +6,7 @@ from collections import defaultdict
 from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
@@ -14,6 +15,64 @@ from django_datatables.datatables import DatatableTable
 from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
+
+
+class ScrollableTabMenu:
+    """
+    Wraps an HtmlMenu tab menu to add left/right scroll buttons when tabs overflow.
+
+    Drop-in replacement for the HtmlMenu assigned to card.tab_menu. All attribute
+    access falls through to the underlying menu so existing code is unaffected.
+    The scroll buttons are hidden when not needed and update automatically on resize.
+
+    Usage — pass ``scrollable_tab_menu=True`` to ``add_card()`` or any convenience
+    method that accepts ``**kwargs`` (e.g. ``add_treegrid_card``).
+    """
+
+    def __init__(self, html_menu):
+        self._menu = html_menu
+
+    def render(self):
+        inner = self._menu.render()
+        uid = 'stm_' + random_string()
+        css_url = static('cards/scrollable_tab_menu/scrollable_tab_menu.css')
+        js = (
+            "(function(){"
+            f"var c=document.getElementById('{uid}');"
+            "function i(c){"
+            "var w=c.querySelector('.stm__wrapper'),"
+            "u=w&&w.querySelector('ul'),"
+            "l=c.querySelector('.stm__btn--left'),"
+            "r=c.querySelector('.stm__btn--right');"
+            "if(!w||!u||!l||!r)return;"
+            "function p(){"
+            "var o=u.scrollWidth>u.clientWidth+1;"
+            "l.classList.toggle('stm__btn--visible',o&&u.scrollLeft>0);"
+            "r.classList.toggle('stm__btn--visible',o&&u.scrollLeft+u.clientWidth<u.scrollWidth-1);}"
+            "l.addEventListener('click',function(){u.scrollBy({left:-120,behavior:'smooth'});});"
+            "r.addEventListener('click',function(){u.scrollBy({left:120,behavior:'smooth'});});"
+            "u.addEventListener('scroll',p);"
+            "if(window.ResizeObserver)new ResizeObserver(p).observe(w);"
+            "p();}"
+            "if(c)i(c);"
+            "else document.addEventListener('DOMContentLoaded',function(){"
+            f"var c=document.getElementById('{uid}');if(c)i(c);}});"
+            "})();"
+        )
+        return mark_safe(
+            f'<link rel="stylesheet" href="{css_url}">'
+            f'<div class="stm" id="{uid}">'
+            f'<button class="stm__btn stm__btn--left" tabindex="-1" aria-label="Scroll tabs left">'
+            f'<i class="fas fa-chevron-left"></i></button>'
+            f'<div class="stm__wrapper">{inner}</div>'
+            f'<button class="stm__btn stm__btn--right" tabindex="-1" aria-label="Scroll tabs right">'
+            f'<i class="fas fa-chevron-right"></i></button>'
+            f'</div>'
+            f'<script>{js}</script>'
+        )
+
+    def __getattr__(self, name):
+        return getattr(self._menu, name)
 
 CARD_TYPE_STANDARD = 1
 CARD_TYPE_DATATABLE = 2
@@ -244,6 +303,8 @@ class CardBase:
         self.menu = menu
         if isinstance(tab_menu, (list, tuple)):
             tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*tab_menu)
+        if tab_menu is not None and kwargs.pop('scrollable_tab_menu', False):
+            tab_menu = ScrollableTabMenu(tab_menu)
         self.tab_menu = tab_menu
         self.call_details_data = call_details_data
         self.enable_collapse = collapsed is not None
@@ -355,12 +416,15 @@ class CardBase:
             extra_info['treegrid_pagination'] = kwargs.get('treegrid_pagination', False)
             extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
             extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
+            extra_info['treegrid_sortable'] = kwargs.get('treegrid_sortable', False)
+            extra_info['treegrid_form_field'] = kwargs.get('treegrid_form_field', '')
             # Pre-serialise for template JS
             extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
             extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])
             extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
             extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
             extra_info['treegrid_js_filters_json'] = json.dumps(extra_info['treegrid_js_filters'])
+            extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,

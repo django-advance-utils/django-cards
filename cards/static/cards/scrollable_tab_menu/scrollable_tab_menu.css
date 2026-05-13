@@ -1,0 +1,51 @@
+.stm {
+    display: flex;
+    align-items: stretch;
+}
+
+.stm__wrapper {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+    align-self: flex-end;
+}
+
+.stm__wrapper .nav-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.stm__wrapper .nav-tabs .nav-link {
+    white-space: nowrap;
+}
+
+.stm__wrapper .nav-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.stm__btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0;
+    cursor: pointer;
+    color: #6c757d;
+    align-self: stretch;
+    transition: background 0.15s, color 0.15s;
+}
+
+.stm__btn:hover {
+    background: #e9ecef;
+    color: #212529;
+}
+
+.stm__btn--visible {
+    display: flex;
+}

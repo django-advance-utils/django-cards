@@ -57,7 +57,8 @@ class CardMixin:
     - Designed to integrate cleanly with `django-datatables`, `ajax-helpers`, and `django-menus`
 
     """
-    card_cls = CardBase
+    card_cls: type[CardBase] = CardBase
+    panel_layout_cls: type[PanelLayout] = PanelLayout
 
     def __init__(self, *args, **kwargs):
         self.tables = {}
@@ -176,6 +177,7 @@ class CardMixin:
                  title=None,
                  menu=None,
                  tab_menu=None,
+                 scrollable_tab_menu=False,
                  template_name=None,
                  call_details_data=False,
                  group_type=CARD_TYPE_STANDARD,
@@ -196,7 +198,7 @@ class CardMixin:
                  searchable=False,
                  exportable=False,
                  column_search=False,
-                 **kwargs):
+                 **kwargs) -> CardBase:
         """
         Creates and adds a detail card to the view, using the configured card class.
 
@@ -243,6 +245,7 @@ class CardMixin:
                              title=title,
                              menu=menu,
                              tab_menu=tab_menu,
+                             scrollable_tab_menu=scrollable_tab_menu,
                              template_name=template_name,
                              call_details_data=call_details_data,
                              group_type=group_type,
@@ -269,7 +272,7 @@ class CardMixin:
             self.cards[card_name] = card
         return card
 
-    def add_layout_card(self, card_name=None):
+    def add_layout_card(self, card_name=None) -> CardBase:
         """
         Creates and adds a layout card, which serves as a container for grouping and positioning child cards.
 
@@ -306,7 +309,7 @@ class CardMixin:
     def add_panel_layout(self, card_name='panel_layout', layout_id=None,
                          direction=PanelSplit.HORIZONTAL,
                          resizable=True, full_height=True, min_height='400px',
-                         css_class='', css_style='', persist=True):
+                         css_class='', css_style='', persist=True) -> PanelLayout:
         """
         Creates a CSS Grid-based panel layout with resizable and collapsible regions.
 
@@ -341,7 +344,7 @@ class CardMixin:
         Returns:
             PanelLayout: The layout object to configure and render.
         """
-        layout = PanelLayout(
+        layout = self.panel_layout_cls(
             view=self,
             card_name=card_name,
             layout_id=layout_id,
@@ -358,7 +361,7 @@ class CardMixin:
     def add_list_card(self, list_entries, card_name=None, list_title='Entries',
                       selected_id='', list_menu=None, list_template_name='list_selection',
                       empty_list_message='No entries setup yet!',
-                      extra_card_context=None):
+                      extra_card_context=None) -> CardBase:
         """
         Creates and adds a list-style card to the view, useful for displaying selectable or informative lists.
 
@@ -673,7 +676,11 @@ class CardMixin:
                           treegrid_checkbox=False, treegrid_checkbox_column=0,
                           treegrid_context_menu=None, treegrid_resizable=False,
                           treegrid_pagination=False, treegrid_page_size=50,
-                          **kwargs):
+                          treegrid_filter_auto_expand=True,
+                          treegrid_sortable=False,
+                          treegrid_form_field='',
+                          treegrid_borderless: bool = False,
+                          **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
 
@@ -758,6 +765,10 @@ class CardMixin:
             treegrid_resizable=treegrid_resizable,
             treegrid_pagination=treegrid_pagination,
             treegrid_page_size=treegrid_page_size,
+            treegrid_filter_auto_expand=treegrid_filter_auto_expand,
+            treegrid_sortable=treegrid_sortable,
+            treegrid_form_field=treegrid_form_field,
+            treegrid_borderless=treegrid_borderless,
             show_header=title is not None,
             **kwargs,
         )

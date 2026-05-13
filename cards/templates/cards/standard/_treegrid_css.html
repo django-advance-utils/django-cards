@@ -238,6 +238,68 @@
         cursor: pointer;
     }
 
+    /* Sortable: dedicated handle column */
+    .treegrid-sortable tbody td:first-child {
+        text-align: center;
+        padding: 0 !important;
+        vertical-align: middle;
+    }
+    .treegrid-drag-handle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 4px 0;
+        color: #ced4da;
+        cursor: grab;
+        font-size: 13px;
+    }
+    .treegrid-drag-handle:hover {
+        color: #6c757d;
+    }
+    .treegrid-drag-handle:active {
+        cursor: grabbing;
+    }
+    /* Row being dragged fades in place */
+    tr.treegrid-sort-source > td {
+        opacity: 0.3;
+    }
+    /* Placeholder row — shows exactly where the row will land */
+    tr.treegrid-sort-placeholder > td {
+        height: 4px;
+        padding: 0 !important;
+        background-color: #007bff;
+        border: none !important;
+    }
+    /* Floating clone card */
+    table.treegrid-sort-clone {
+        border: 1px solid #80bdff;
+    }
+    table.treegrid-sort-clone td {
+        font-size: 12px;
+        padding: 3px 10px;
+    }
+    /* Prevent text selection while dragging */
+    body.treegrid-sorting,
+    body.treegrid-sorting * {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+
+    /* Editable cell hint icon */
+    .treegrid-edit-icon {
+        color: #ced4da;
+        font-size: 10px;
+        margin-left: 5px;
+        vertical-align: middle;
+        pointer-events: none;
+    }
+    .fancytree-ext-table tbody td:hover .treegrid-edit-icon,
+    .fancytree-title:hover .treegrid-edit-icon {
+        color: #6c757d;
+    }
+
     /* Side JS filter panel */
     .treegrid-js-filter-panel {
         width: 210px;

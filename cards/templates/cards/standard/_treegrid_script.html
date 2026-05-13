@@ -10,6 +10,7 @@
     var ICON_MAP = {{ card.extra_card_info.treegrid_icon_map_json|safe }};
     var COLUMNS = {{ card.extra_card_info.treegrid_columns_json|safe }};
     var EXPAND_ALL = {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }};
+    var FILTER_AUTO_EXPAND = {{ card.extra_card_info.treegrid_filter_auto_expand|yesno:"true,false" }};
     var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }} || {{ card.column_search|yesno:"true,false" }};
     var TOOLBAR = {{ card.extra_card_info.treegrid_toolbar_json|safe }};
     var NODE_COLUMN = {{ card.extra_card_info.treegrid_node_column }};
@@ -20,6 +21,22 @@
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
     var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
     var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
+    var SORTABLE = {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }};
+    var FORM_FIELD = '{{ card.extra_card_info.treegrid_form_field }}';
+
+    // Form-field mode: accumulate edits/reorders client-side, write JSON to a named input.
+    // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
+    var _ffEdits    = {};
+    var _ffReorders = {};
+    function _writeFormField() {
+        if (!FORM_FIELD) return;
+        var state = {
+            edits:    Object.values(_ffEdits),
+            reorders: Object.values(_ffReorders)
+        };
+        $('[name="' + FORM_FIELD + '"]').val(JSON.stringify(state));
+    }
+
     var $modal = $('#' + CARD_CODE + '_card').closest('.modal');
     var LOCATION_URL = $modal.length ? $modal.attr('data-url') : window.location.href;
 
@@ -70,8 +87,8 @@
         }
     }
 
-    // Offset for td indexing when checkbox column is prepended
-    var TD_OFFSET = CHECKBOX ? 1 : 0;
+    // Offset for td indexing: handle column (when sortable) + checkbox column
+    var TD_OFFSET = (SORTABLE ? 1 : 0) + (CHECKBOX ? 1 : 0);
 
     window._treegridRegistry[CARD_CODE] = {
         reload: reloadTreegrid,
@@ -220,7 +237,8 @@
                     field: COLUMNS[i].field || (i === NODE_COLUMN ? 'title' : ''),
                     type: COLUMNS[i].type || 'text',
                     options: COLUMNS[i].options || [],
-                    inline: COLUMNS[i].inline !== false  // default true
+                    inline: COLUMNS[i].inline !== false,  // default true
+                    edit_icon: COLUMNS[i].edit_icon || false
                 };
             }
         }
@@ -265,6 +283,11 @@
     }
 
     function recordChange(node, fieldName, value) {
+        if (FORM_FIELD) {
+            _ffEdits[node.key + ':' + fieldName] = {key: node.key, field: fieldName, value: value};
+            _writeFormField();
+            return;
+        }
         if (SAVE_MODE === 'batch') {
             pendingChanges[node.key + ':' + fieldName] = {
                 key: node.key,
@@ -475,6 +498,12 @@
             if (d[nodeField + '__bg']) $nodeTd.css('background-color', d[nodeField + '__bg']);
             if (d[nodeField + '__color']) $nodeTd.css('color', d[nodeField + '__color']);
             if (d[nodeField + '__class']) $nodeTd.addClass(d[nodeField + '__class']);
+            if (!READ_ONLY && !node.data.disableEdit && COLUMNS[NODE_COLUMN].edit_icon && EDITABLE_FIELDS[NODE_COLUMN]) {
+                var $titleSpan = $nodeTd.find('.fancytree-title');
+                if ($titleSpan.length && !$titleSpan.find('.treegrid-edit-icon').length) {
+                    $titleSpan.append('<i class="fas fa-pencil-alt treegrid-edit-icon"></i>');
+                }
+            }
         }
 
         for (var i = 0; i < COLUMNS.length; i++) {
@@ -500,8 +529,10 @@
                 continue;
             }
 
+            var disabled = !!(node.data.disableEdit);
+
             // --- Editable widgets ---
-            if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && editInfo.inline) {
+            if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && editInfo.inline && !disabled) {
                 if (!$td.find('input[type="checkbox"]').length) {
                     var checked = (val === true || val === 'true' || val === 'Yes' || val === 1);
                     var $cb = $('<input type="checkbox" class="treegrid-checkbox">');
@@ -514,10 +545,11 @@
                         });
                     })(field, node, $cb);
                 }
-            } else if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && !editInfo.inline) {
-                // Non-inline checkbox: show as tick/empty, double-click to toggle
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && (!editInfo.inline || disabled)) {
+                // Non-inline checkbox, or inline checkbox on a disabled row: show as tick/empty
                 $td.html(renderBoolIcon(val));
-            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && editInfo.inline) {
+                if (editInfo.edit_icon && !disabled) $td.append('<i class="fas fa-pencil-alt treegrid-edit-icon"></i>');
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && editInfo.inline && !disabled) {
                 if (!$td.find('select').length) {
                     var $sel = $('<select class="treegrid-select form-control form-control-sm">');
                     var opts = editInfo.options || [];
@@ -536,8 +568,8 @@
                         });
                     })(field, node, $sel);
                 }
-            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && !editInfo.inline) {
-                // Non-inline select: show display label, double-click to activate
+            } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && (!editInfo.inline || disabled)) {
+                // Non-inline select, or inline select on a disabled row: show display label
                 var displayLabel = val;
                 var opts = editInfo.options || [];
                 for (var o = 0; o < opts.length; o++) {
@@ -546,6 +578,7 @@
                     if (String(val) === String(optVal)) { displayLabel = optLabel; break; }
                 }
                 $td.text(displayLabel);
+                if (editInfo.edit_icon && !disabled) $td.append('<i class="fas fa-pencil-alt treegrid-edit-icon"></i>');
 
             // --- Display-only types ---
             } else if (colType === 'boolean') {
@@ -583,6 +616,7 @@
                 } else {
                     $td.text(val);
                 }
+                if (editInfo && editInfo.edit_icon && !disabled) $td.append('<i class="fas fa-pencil-alt treegrid-edit-icon"></i>');
             }
         }
     }
@@ -617,6 +651,11 @@
     // Build fancytree source/lazyLoad based on data mode
     function getTreeSource() {
         if (DATA_MODE === 'static') {
+            if (PAGINATION) {
+                _allNodes = STATIC_DATA;
+                _allKeys  = STATIC_DATA.map(function(n) { return n.key; });
+                return STATIC_DATA.slice(0, _pageSize);
+            }
             return STATIC_DATA;
         } else if (DATA_MODE === 'url') {
             return {url: DATA_URL, cache: false};
@@ -833,7 +872,7 @@
             var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
             if (!tree) return;
             if (hasActive) {
-                var count = tree.filterNodes(function(node) { return _nodeMatchesJsFilters(node); });
+                var count = tree.filterNodes(function(node) { return _nodeMatchesJsFilters(node); }, {autoExpand: FILTER_AUTO_EXPAND});
                 _filterMatchCount = count;
             } else {
                 tree.clearFilter();
@@ -875,8 +914,8 @@
             source: getTreeSource(),
             table: {
                 indentation: INDENTATION,
-                nodeColumnIdx: CHECKBOX ? NODE_COLUMN + 1 : NODE_COLUMN,
-                checkboxColumnIdx: CHECKBOX ? CHECKBOX_COLUMN : null
+                nodeColumnIdx: TD_OFFSET + NODE_COLUMN,
+                checkboxColumnIdx: CHECKBOX ? (SORTABLE ? 1 : 0) + CHECKBOX_COLUMN : null
             },
             filter: {
                 autoApply: true,
@@ -887,6 +926,11 @@
             },
             renderColumns: function(event, data) {
                 renderCells(data.node);
+                if (SORTABLE) {
+                    $(data.node.tr).find('>td').eq(0).html(
+                        '<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt-v"></i></span>'
+                    );
+                }
                 // Highlight the node title when a pagination filter is active
                 if (PAGINATION) {
                     var titleTerm = _filterTerm || _filterColTerms[NODE_COLUMN] || '';
@@ -897,6 +941,7 @@
                 }
             },
             init: function(event, data) {
+                if (DATA_MODE === 'static' && PAGINATION) _updatePaginationUI();
                 updateInfo();
                 buildJsFilters();
                 _populateAutoFilters();
@@ -977,7 +1022,160 @@
         };
         var lazyFn = getLazyLoad();
         if (lazyFn) treeConfig.lazyLoad = lazyFn;
+
         $('#' + CARD_CODE + '_table').fancytree(treeConfig);
+
+        // Mouse-based row sorting (no HTML5 drag API — avoids text-selection and ghost issues)
+        if (SORTABLE) {
+            var _sortDragNode   = null;
+            var _sortClone      = null;
+            var _sortPlaceholder = null;
+            var _sortDropTarget = null;  // {node, mode}
+            var _sortStartY     = 0;
+            var _sortActive     = false;
+
+            $('#' + CARD_CODE + '_table').on('mousedown', '.treegrid-drag-handle', function(e) {
+                if (e.which !== 1) return;
+                var $tr = $(this).closest('tr');
+                _sortDragNode = $.ui.fancytree.getNode($tr[0]);
+                if (!_sortDragNode) return;
+                _sortStartY  = e.clientY;
+                _sortActive  = false;
+                _sortDropTarget = null;
+                e.preventDefault();  // Prevent text selection
+                $(document).on('mousemove.tgsort', _sortMove).on('mouseup.tgsort', _sortEnd);
+            });
+
+            function _sortMove(e) {
+                if (!_sortDragNode) return;
+
+                if (!_sortActive) {
+                    if (Math.abs(e.clientY - _sortStartY) < 4) return;
+                    _sortActive = true;
+                    _sortBegin(e);
+                }
+
+                // Float the clone under the cursor
+                _sortClone.css('top', e.clientY + 10);
+
+                // Find the row under the cursor (clone has pointer-events:none so it is skipped)
+                var el = document.elementFromPoint(e.clientX, e.clientY);
+                var $target = el ? $(el).closest('tr') : $();
+                if (!$target.length || $target.hasClass('treegrid-sort-placeholder') || $target[0] === _sortDragNode.tr) {
+                    return;
+                }
+                var targetNode = $.ui.fancytree.getNode($target[0]);
+                if (!targetNode || targetNode.parent !== _sortDragNode.parent) return;
+
+                var rect   = $target[0].getBoundingClientRect();
+                var isAbove = e.clientY < rect.top + rect.height / 2;
+                var mode   = isAbove ? 'before' : 'after';
+                _sortDropTarget = {node: targetNode, mode: mode};
+
+                if (isAbove) {
+                    _sortPlaceholder.insertBefore($target);
+                } else {
+                    _sortPlaceholder.insertAfter($target);
+                }
+            }
+
+            function _sortBegin(e) {
+                var $tr    = $(_sortDragNode.tr);
+                var $table = $('#' + CARD_CODE + '_table');
+                var tableRect = $table[0].getBoundingClientRect();
+
+                // Capture column widths before cloning
+                var widths = [];
+                $tr.find('>td').each(function() { widths.push($(this).outerWidth()); });
+
+                // Floating clone
+                var $cloneTr = $tr.clone();
+                $cloneTr.find('>td').each(function(i) { $(this).css('width', widths[i]); });
+                _sortClone = $('<table>').addClass('treegrid-sort-clone table table-sm')
+                    .css({
+                        position:        'fixed',
+                        top:             e.clientY + 10,
+                        left:            tableRect.left,
+                        width:           $table.outerWidth(),
+                        'z-index':       9999,
+                        opacity:         0.85,
+                        'pointer-events':'none',
+                        'box-shadow':    '0 4px 14px rgba(0,0,0,0.18)',
+                        'border-radius': '3px',
+                        background:      '#fff',
+                        'table-layout':  'fixed'
+                    })
+                    .append($('<tbody>').append($cloneTr));
+                $('body').append(_sortClone);
+
+                // Placeholder row (same height, blue-outlined)
+                _sortPlaceholder = $('<tr class="treegrid-sort-placeholder">').append(
+                    $('<td>').attr('colspan', $tr.find('>td').length)
+                );
+                $tr.after(_sortPlaceholder);
+
+                // Fade original row
+                $tr.addClass('treegrid-sort-source');
+
+                // Disable text selection for the duration
+                $('body').addClass('treegrid-sorting');
+            }
+
+            function _sortEnd() {
+                $(document).off('.tgsort');
+                $('body').removeClass('treegrid-sorting');
+
+                if (!_sortActive || !_sortDragNode) {
+                    _sortDragNode = null;
+                    return;
+                }
+
+                if (_sortClone)      { _sortClone.remove();      _sortClone = null; }
+                if (_sortPlaceholder){ _sortPlaceholder.remove(); _sortPlaceholder = null; }
+
+                $(_sortDragNode.tr).removeClass('treegrid-sort-source');
+
+                if (_sortDropTarget) {
+                    var t = _sortDropTarget;
+                    if (t.node !== _sortDragNode) {
+                        _sortDragNode.moveTo(t.node, t.mode);
+                    }
+                }
+
+                var parent      = _sortDragNode.parent;
+                var siblings    = parent.children || [];
+                var siblingKeys = siblings.map(function(s) { return s.key; });
+                var newIndex    = 0;
+                for (var i = 0; i < siblings.length; i++) {
+                    if (siblings[i] === _sortDragNode) { newIndex = i; break; }
+                }
+
+                var parentKey = parent.isRootNode() ? '' : parent.key;
+                if (FORM_FIELD) {
+                    _ffReorders[parentKey || '__root__'] = {
+                        key:          _sortDragNode.key,
+                        parent_key:   parentKey,
+                        new_index:    newIndex,
+                        sibling_keys: siblingKeys
+                    };
+                    _writeFormField();
+                } else {
+                    ajax_helpers.post_json({
+                        data: {
+                            button:       CARD_CODE + '_reorder',
+                            key:          _sortDragNode.key,
+                            parent_key:   parentKey,
+                            new_index:    newIndex,
+                            sibling_keys: JSON.stringify(siblingKeys)
+                        },
+                        url: LOCATION_URL
+                    });
+                }
+
+                _sortDragNode = _sortDropTarget = null;
+                _sortActive   = false;
+            }
+        }
 
         // Inline editing via double-click (text fields only)
         if (!READ_ONLY) {
@@ -1061,7 +1259,7 @@
                         _applyPaginatedFilter(matched);
                     } else {
                         var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-                        _filterMatchCount = tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); });
+                        _filterMatchCount = tree.filterNodes(function(node) { return _nodeMatchesColFilters(node, filters); }, {autoExpand: FILTER_AUTO_EXPAND});
                     }
                 }
                 updateInfo();
@@ -1116,7 +1314,7 @@
                     $('#' + CARD_CODE + '_matches').text('(' + matched.length + ' matches)');
                 } else {
                     var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-                    var count = tree.filterNodes(val);
+                    var count = tree.filterNodes(val, {autoExpand: FILTER_AUTO_EXPAND});
                     _filterMatchCount = count;
                     $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
                 }

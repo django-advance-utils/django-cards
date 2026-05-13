@@ -505,9 +505,9 @@ class PanelLayout:
             for child in node.children:
                 self._process_menus(child)
 
-    def _render_html(self):
+
+    def get_render_html_context(self):
         import json
-        self._process_menus(self.root)
         context = {
             'layout_id': self.layout_id,
             'root': self.root._build_context(),
@@ -516,10 +516,16 @@ class PanelLayout:
             'css_class': self.css_class,
             'css_style': self.css_style,
             'panel_card_context': {'card_css_class': 'card panel-card'},
-            'panel_no_header_context': {'card_css_class': 'card panel-card panel-card--no-header', 'show_header': False},
+            'panel_no_header_context': {'card_css_class': 'card panel-card panel-card--no-header',
+                                        'show_header': False},
             'linked_tables_json': mark_safe(json.dumps(self.linked_tables)) if self.linked_tables else None,
             'persist': self.persist,
         }
+        return context
+
+    def _render_html(self):
+        self._process_menus(self.root)
+        context = self.get_render_html_context()
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))
 
     def render(self):

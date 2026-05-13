@@ -1,3 +1,5 @@
+from django_datatables.helpers import DUMMY_ID
+
 from cards_examples.models import Company, CompanyCategory, Person, Payment
 from cards_examples.views.base import MainMenu
 from django.views.generic import TemplateView
@@ -771,7 +773,10 @@ class PanelLayoutDetailDatatablesExample(MainMenu, CardMixin, TemplateView):
                                              title='Company Detail')
 
         people_region = col3.add_region('people', size='1fr', min_size=100,
-                                        title='People')
+                                        title='People', menu=[
+                AjaxButtonMenuItem(button_name='hello_there', menu_display='', font_awesome='fas fa-search',
+                                   css_classes='btn btn-sm btn-outline-secondary', ajax_kwargs={'pk': DUMMY_ID})
+            ])
         people_detail_region = col3.add_region('people_detail', size='200px', min_size=50,
                                                collapsible=True, title='Person Detail')
 
@@ -885,3 +890,6 @@ class PanelLayoutDetailDatatablesExample(MainMenu, CardMixin, TemplateView):
         return self.command_response('html',
                                      selector=f'#{detail_card_code}_body',
                                      html=html)
+
+    def button_hello_there(self, pk: int, **_kwargs):
+        return self.command_response('message', text=f'Hello there! ({pk})')
