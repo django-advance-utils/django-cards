@@ -927,9 +927,12 @@
             renderColumns: function(event, data) {
                 renderCells(data.node);
                 if (SORTABLE) {
-                    $(data.node.tr).find('>td').eq(0).html(
-                        '<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt-v"></i></span>'
-                    );
+                    var $handleTd = $(data.node.tr).find('>td').eq(0);
+                    if (data.node.data.no_sort) {
+                        $handleTd.html('');
+                    } else {
+                        $handleTd.html('<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt-v"></i></span>');
+                    }
                 }
                 // Highlight the node title when a pagination filter is active
                 if (PAGINATION) {
@@ -1066,6 +1069,7 @@
                 }
                 var targetNode = $.ui.fancytree.getNode($target[0]);
                 if (!targetNode || targetNode.parent !== _sortDragNode.parent) return;
+                if (targetNode.data.no_sort) return;
 
                 var rect   = $target[0].getBoundingClientRect();
                 var isAbove = e.clientY < rect.top + rect.height / 2;
