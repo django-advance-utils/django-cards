@@ -49,13 +49,13 @@ class CardTreeMixin(CardListBaseMixin):
         list_menu = self.get_list_menu()
 
         for row in tree_data:
-            if row['id'] == self.selected_id:
+            if str(row['id']) == str(self.selected_id):
                 if 'state' in row:
                     row['state']['selected'] = True
                 else:
                     row['state'] = {'selected': True}
-                    self.open_parent(tree_data=tree_data, parent_id=row['parent'])
-                    break
+                self.open_parent(tree_data=tree_data, parent_id=row['parent'])
+                break
 
         context = {'list_title': self.list_title,
                    'data': json.dumps(tree_data),
@@ -90,8 +90,8 @@ class CardTreeMixin(CardListBaseMixin):
                     row['state']['opened'] = True
                 else:
                     row['state'] = {'opened': True}
-                    self.open_parent(tree_data=tree_data, parent_id=row['parent'])
-                    break
+                self.open_parent(tree_data=tree_data, parent_id=row['parent'])
+                break
 
     def get_tree_card_extra_kwargs(self):
         return {}
