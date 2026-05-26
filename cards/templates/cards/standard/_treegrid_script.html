@@ -1616,7 +1616,7 @@
             var _rowClickIgnore = '.fancytree-checkbox, .fancytree-expander, ' +
                 '.treegrid-action-btn, .treegrid-edit-icon, .treegrid-drag-handle, ' +
                 'select, input, a, button, label';
-            $('#' + CARD_CODE + '_table').on('click', 'tr.fancytree-node', function(e) {
+            $('#' + CARD_CODE + '_table').on('click', 'tr', function(e) {
                 if ($(e.target).closest(_rowClickIgnore).length) return;
                 var $tr = $(this);
                 function fireRowClick() {
