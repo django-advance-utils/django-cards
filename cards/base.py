@@ -418,12 +418,15 @@ class CardBase:
             extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
             extra_info['treegrid_sortable'] = kwargs.get('treegrid_sortable', False)
             extra_info['treegrid_form_field'] = kwargs.get('treegrid_form_field', '')
+            extra_info['treegrid_row_click'] = kwargs.get('treegrid_row_click', '')
+            extra_info['treegrid_default_selected'] = kwargs.get('treegrid_default_selected', [])
             # Pre-serialise for template JS
             extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
             extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])
             extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
             extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
             extra_info['treegrid_js_filters_json'] = json.dumps(extra_info['treegrid_js_filters'])
+            extra_info['treegrid_default_selected_json'] = json.dumps(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,

@@ -23,16 +23,22 @@
     var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
     var SORTABLE = {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }};
     var FORM_FIELD = '{{ card.extra_card_info.treegrid_form_field }}';
+    var ROW_CLICK = '{{ card.extra_card_info.treegrid_row_click }}';
+    var DEFAULT_SELECTED = {{ card.extra_card_info.treegrid_default_selected_json|safe }};
 
-    // Form-field mode: accumulate edits/reorders client-side, write JSON to a named input.
+    // Form-field mode: accumulate edits/reorders/selections client-side, write JSON to a named input.
     // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
     var _ffEdits    = {};
     var _ffReorders = {};
+    // Keys to pre-select on load (from DEFAULT_SELECTED or restored from existing field value).
+    // Also used to re-apply selections when lazy children are loaded.
+    var _ffSelectedKeys = {};
     function _writeFormField() {
         if (!FORM_FIELD) return;
         var state = {
             edits:    Object.values(_ffEdits),
-            reorders: Object.values(_ffReorders)
+            reorders: Object.values(_ffReorders),
+            selected: getSelectedKeys()
         };
         $('[name="' + FORM_FIELD + '"]').val(JSON.stringify(state));
     }
@@ -951,6 +957,31 @@
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
                 }
+                if (FORM_FIELD && CHECKBOX) {
+                    // Restore from existing field value (e.g. re-rendering after validation error),
+                    // otherwise fall back to DEFAULT_SELECTED.
+                    var initialKeys = [];
+                    var existingVal = $('[name="' + FORM_FIELD + '"]').val();
+                    if (existingVal) {
+                        try {
+                            var parsed = JSON.parse(existingVal);
+                            if (parsed.selected && Array.isArray(parsed.selected)) {
+                                initialKeys = parsed.selected;
+                            }
+                        } catch (e) {}
+                    }
+                    if (initialKeys.length === 0) {
+                        initialKeys = DEFAULT_SELECTED;
+                    }
+                    if (initialKeys.length > 0) {
+                        initialKeys.forEach(function(k) { _ffSelectedKeys[k] = true; });
+                        data.tree.visit(function(node) {
+                            if (_ffSelectedKeys[node.key]) node.setSelected(true);
+                        });
+                        updateSelectCount();
+                        _writeFormField();
+                    }
+                }
             },
             select: function(event, data) {
                 // Track selections across pages when pagination is active
@@ -980,6 +1011,7 @@
                     }
                 }
                 updateSelectCount();
+                if (FORM_FIELD) _writeFormField();
                 // When a lazy node with unloaded children is deselected, fancytree
                 // leaves it as partially selected — force it to fully unselected.
                 if (CHECKBOX && !data.node.isSelected() && data.node.lazy && !data.node.isLoaded()) {
@@ -1008,6 +1040,13 @@
                         data.node.visit(function(child) {
                             child.setSelected(false);
                         });
+                    }
+                    // Apply any pending initial selections (DEFAULT_SELECTED / field restore)
+                    if (FORM_FIELD && Object.keys(_ffSelectedKeys).length > 0) {
+                        data.node.visit(function(child) {
+                            if (_ffSelectedKeys[child.key]) child.setSelected(true);
+                        });
+                        _writeFormField();
                     }
                     updateSelectCount();
                 }
@@ -1381,6 +1420,7 @@
                         if (node.key in _pagedSelectedKeys) { node.setSelected(true); }
                     });
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
                 // Deselect every root node across every page
                 $('#' + CARD_CODE + '_deselect_all_pages').on('click', function() {
@@ -1388,33 +1428,38 @@
                     _childSelectionCounts = {};
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
                 // Select only the root nodes visible on the current page
                 $('#' + CARD_CODE + '_select_page').on('click', function() {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
                 // Deselect only the root nodes visible on the current page
                 $('#' + CARD_CODE + '_deselect_page').on('click', function() {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
             } else {
                 $('#' + CARD_CODE + '_select_all').on('click', function() {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(true);
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
                 $('#' + CARD_CODE + '_deselect_all').on('click', function() {
                     $.ui.fancytree.getTree('#' + CARD_CODE + '_table').selectAll(false);
                     updateSelectCount();
+                    if (FORM_FIELD) _writeFormField();
                 });
             }
+            // "Submit Selected" button is hidden in form_field mode; shown only for AJAX mode.
             $('#' + CARD_CODE + '_get_selected').on('click', function() {
-                var keys = getSelectedKeys();
                 ajax_helpers.post_json({
                     data: {
                         button: CARD_CODE + '_selected',
-                        selected_keys: JSON.stringify(keys)
+                        selected_keys: JSON.stringify(getSelectedKeys())
                     }, url: LOCATION_URL
                 });
             });
@@ -1562,6 +1607,39 @@
                     }, url: LOCATION_URL});
                 }
             });
+        }
+
+        // Row click
+        if (ROW_CLICK) {
+            $('#' + CARD_CODE + '_table').addClass('treegrid-row-clickable');
+            var _rowClickTimer = null;
+            var _rowClickIgnore = '.fancytree-checkbox, .fancytree-expander, ' +
+                '.treegrid-action-btn, .treegrid-edit-icon, .treegrid-drag-handle, ' +
+                'select, input, a, button, label';
+            $('#' + CARD_CODE + '_table').on('click', 'tr.fancytree-node', function(e) {
+                if ($(e.target).closest(_rowClickIgnore).length) return;
+                var $tr = $(this);
+                function fireRowClick() {
+                    var node = $.ui.fancytree.getNode($tr[0]);
+                    if (!node) return;
+                    ajax_helpers.post_json({
+                        data: {button: CARD_CODE + '_' + ROW_CLICK, key: node.key},
+                        url: LOCATION_URL
+                    });
+                }
+                if (READ_ONLY) {
+                    fireRowClick();
+                } else {
+                    // Delay so a double-click (cell edit) can cancel before the action fires
+                    if (_rowClickTimer) { clearTimeout(_rowClickTimer); _rowClickTimer = null; }
+                    _rowClickTimer = setTimeout(function() { _rowClickTimer = null; fireRowClick(); }, 200);
+                }
+            });
+            if (!READ_ONLY) {
+                $('#' + CARD_CODE + '_table').on('dblclick', 'tr.fancytree-node', function() {
+                    if (_rowClickTimer) { clearTimeout(_rowClickTimer); _rowClickTimer = null; }
+                });
+            }
         }
 
         // Column resizing
