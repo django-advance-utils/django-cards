@@ -957,29 +957,65 @@
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
                 }
-                if (FORM_FIELD && CHECKBOX) {
-                    // Restore from existing field value (e.g. re-rendering after validation error),
-                    // otherwise fall back to DEFAULT_SELECTED.
-                    var initialKeys = [];
+                if (FORM_FIELD) {
+                    // Restore edits/reorders/selections from existing field value
+                    // (e.g. re-rendering after a form validation error).
                     var existingVal = $('[name="' + FORM_FIELD + '"]').val();
+                    var parsedField = null;
                     if (existingVal) {
                         try {
-                            var parsed = JSON.parse(existingVal);
-                            if (parsed.selected && Array.isArray(parsed.selected)) {
-                                initialKeys = parsed.selected;
+                            parsedField = JSON.parse(existingVal);
+                            // Restore edits keyed by "nodeKey:field"
+                            if (parsedField.edits && Array.isArray(parsedField.edits)) {
+                                parsedField.edits.forEach(function(edit) {
+                                    _ffEdits[edit.key + ':' + edit.field] = edit;
+                                });
+                            }
+                            // Restore reorders keyed by parent key
+                            if (parsedField.reorders && Array.isArray(parsedField.reorders)) {
+                                parsedField.reorders.forEach(function(reorder) {
+                                    _ffReorders[reorder.parent_key || '__root__'] = reorder;
+                                });
                             }
                         } catch (e) {}
                     }
-                    if (initialKeys.length === 0) {
-                        initialKeys = DEFAULT_SELECTED;
-                    }
-                    if (initialKeys.length > 0) {
-                        initialKeys.forEach(function(k) { _ffSelectedKeys[k] = true; });
-                        data.tree.visit(function(node) {
-                            if (_ffSelectedKeys[node.key]) node.setSelected(true);
+                    // Re-apply edits visually to already-loaded nodes
+                    if (Object.keys(_ffEdits).length > 0) {
+                        var editsByNode = {};
+                        Object.values(_ffEdits).forEach(function(edit) {
+                            if (!editsByNode[edit.key]) editsByNode[edit.key] = [];
+                            editsByNode[edit.key].push(edit);
                         });
-                        updateSelectCount();
-                        _writeFormField();
+                        data.tree.visit(function(node) {
+                            var nodeEdits = editsByNode[node.key];
+                            if (nodeEdits) {
+                                nodeEdits.forEach(function(edit) {
+                                    if (edit.field === 'title') {
+                                        node.setTitle(edit.value);
+                                    } else {
+                                        node.data[edit.field] = edit.value;
+                                    }
+                                });
+                                renderCells(node);
+                            }
+                        });
+                    }
+                    if (CHECKBOX) {
+                        var initialKeys = [];
+                        if (parsedField && parsedField.selected && Array.isArray(parsedField.selected)) {
+                            initialKeys = parsedField.selected;
+                        }
+                        if (initialKeys.length === 0) {
+                            initialKeys = DEFAULT_SELECTED;
+                        }
+                        if (initialKeys.length > 0) {
+                            initialKeys.forEach(function(k) { _ffSelectedKeys[k] = true; });
+                            data.tree.visit(function(node) {
+                                if (_ffSelectedKeys[node.key]) node.setSelected(true);
+                            });
+                            updateSelectCount();
+                            _writeFormField();
+                        }
                     }
                 }
             },
@@ -1049,6 +1085,27 @@
                         _writeFormField();
                     }
                     updateSelectCount();
+                }
+                // Re-apply edits to newly loaded children (lazy load / field restore)
+                if (FORM_FIELD && Object.keys(_ffEdits).length > 0) {
+                    var editsByNode = {};
+                    Object.values(_ffEdits).forEach(function(edit) {
+                        if (!editsByNode[edit.key]) editsByNode[edit.key] = [];
+                        editsByNode[edit.key].push(edit);
+                    });
+                    data.node.visit(function(child) {
+                        var nodeEdits = editsByNode[child.key];
+                        if (nodeEdits) {
+                            nodeEdits.forEach(function(edit) {
+                                if (edit.field === 'title') {
+                                    child.setTitle(edit.value);
+                                } else {
+                                    child.data[edit.field] = edit.value;
+                                }
+                            });
+                            renderCells(child);
+                        }
+                    });
                 }
             },
             expand: function() { updateInfo(); },
