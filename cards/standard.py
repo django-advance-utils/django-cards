@@ -681,6 +681,8 @@ class CardMixin:
                           treegrid_filter_auto_expand=True,
                           treegrid_sortable=False,
                           treegrid_form_field='',
+                          treegrid_row_click='',
+                          treegrid_default_selected=None,
                           treegrid_borderless: bool = False,
                           **kwargs) -> CardBase:
         """
@@ -770,6 +772,8 @@ class CardMixin:
             treegrid_filter_auto_expand=treegrid_filter_auto_expand,
             treegrid_sortable=treegrid_sortable,
             treegrid_form_field=treegrid_form_field,
+            treegrid_row_click=treegrid_row_click,
+            treegrid_default_selected=treegrid_default_selected or [],
             treegrid_borderless=treegrid_borderless,
             show_header=title is not None,
             **kwargs,
