@@ -684,6 +684,9 @@ class CardMixin:
                           treegrid_row_click='',
                           treegrid_default_selected=None,
                           treegrid_borderless: bool = False,
+                          treegrid_drag_drop: bool = False,
+                          treegrid_drag_cross_level: bool = False,
+                          treegrid_nowrap: bool = False,
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -775,6 +778,9 @@ class CardMixin:
             treegrid_row_click=treegrid_row_click,
             treegrid_default_selected=treegrid_default_selected or [],
             treegrid_borderless=treegrid_borderless,
+            treegrid_drag_drop=treegrid_drag_drop,
+            treegrid_drag_cross_level=treegrid_drag_cross_level,
+            treegrid_nowrap=treegrid_nowrap,
             show_header=title is not None,
             **kwargs,
         )

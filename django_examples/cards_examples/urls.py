@@ -24,6 +24,7 @@ from cards_examples.views.treegrid import (
     TreegridAdvancedExample, TreegridPaginationExample,
     TreegridData, ColumnSearchTreegridExample,
     TreegridSortableExample,
+    TreegridDragDropExample,
 )
 from cards_examples.views.panel_layout import (
     PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
@@ -98,6 +99,7 @@ urlpatterns = [
     path('treegrid/pagination/', TreegridPaginationExample.as_view(), name='treegrid_pagination'),
     path('treegrid/column-search/', ColumnSearchTreegridExample.as_view(), name='treegrid_column_search'),
     path('treegrid/sortable/', TreegridSortableExample.as_view(), name='treegrid_sortable'),
+    path('treegrid/drag-drop/', TreegridDragDropExample.as_view(), name='treegrid_drag_drop'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),
