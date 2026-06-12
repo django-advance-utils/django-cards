@@ -416,6 +416,7 @@ class CardBase:
             extra_info['treegrid_pagination'] = kwargs.get('treegrid_pagination', False)
             extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
             extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
+            extra_info['treegrid_current_node'] = kwargs.get('treegrid_current_node', '')
             extra_info['treegrid_sortable'] = kwargs.get('treegrid_sortable', False)
             extra_info['treegrid_form_field'] = kwargs.get('treegrid_form_field', '')
             extra_info['treegrid_row_click'] = kwargs.get('treegrid_row_click', '')

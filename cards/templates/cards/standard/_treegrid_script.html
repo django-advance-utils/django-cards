@@ -21,6 +21,7 @@
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
     var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
     var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
+    var CURRENT_NODE = '{{ card.extra_card_info.treegrid_current_node|escapejs }}';
     var SORTABLE = {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }};
     var DRAG_DROP = {{ card.extra_card_info.treegrid_drag_drop|yesno:"true,false" }};
     var DRAG_CROSS_LEVEL = {{ card.extra_card_info.treegrid_drag_cross_level|yesno:"true,false" }};
@@ -962,6 +963,14 @@
                 _populateAutoFilters();
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
+                }
+                if (CURRENT_NODE) {
+                    var currentFtNode = data.tree.getNodeByKey(CURRENT_NODE);
+                    if (currentFtNode) {
+                        currentFtNode.makeVisible({scrollIntoView: true}).done(function() {
+                            currentFtNode.setActive(true);
+                        });
+                    }
                 }
                 if (FORM_FIELD) {
                     // Restore edits/reorders/selections from existing field value

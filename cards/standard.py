@@ -687,6 +687,7 @@ class CardMixin:
                           treegrid_drag_drop: bool = False,
                           treegrid_drag_cross_level: bool = False,
                           treegrid_nowrap: bool = False,
+                          treegrid_current_node: str = '',
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -742,6 +743,8 @@ class CardMixin:
             treegrid_columns = []
         if treegrid_icon_map is None:
             treegrid_icon_map = {}
+        if treegrid_current_node and treegrid_static_data:
+            self._mark_current_node_ancestors(treegrid_static_data, treegrid_current_node)
         return self.add_card(
             card_name=card_name,
             title=title,
@@ -781,6 +784,7 @@ class CardMixin:
             treegrid_drag_drop=treegrid_drag_drop,
             treegrid_drag_cross_level=treegrid_drag_cross_level,
             treegrid_nowrap=treegrid_nowrap,
+            treegrid_current_node=treegrid_current_node,
             show_header=title is not None,
             **kwargs,
         )
@@ -813,6 +817,18 @@ class CardMixin:
         if static_data:
             return 'static'
         return 'ajax'
+
+    @staticmethod
+    def _mark_current_node_ancestors(nodes, target_key):
+        """Recursively mark ancestor nodes as expanded so target_key is visible on load."""
+        for node in nodes:
+            if node.get('key') == target_key:
+                return True
+            children = node.get('children')
+            if children and CardMixin._mark_current_node_ancestors(children, target_key):
+                node['expanded'] = True
+                return True
+        return False
 
     def treegrid_update_cell(self, card_name, key, field, value):
         """Add a command to update a single cell value in the treegrid.
