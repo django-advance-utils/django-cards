@@ -29,10 +29,12 @@
     var ROW_CLICK = '{{ card.extra_card_info.treegrid_row_click }}';
     var DEFAULT_SELECTED = {{ card.extra_card_info.treegrid_default_selected_json|safe }};
 
-    // Form-field mode: accumulate edits/reorders/selections client-side, write JSON to a named input.
+    // Form-field mode: accumulate edits/reorders/moves/selections client-side, write JSON to a named input.
     // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
     var _ffEdits    = {};
     var _ffReorders = {};
+    // Drag-drop moves kept as an ordered list — cross-level moves only replay correctly in sequence.
+    var _ffMoves    = [];
     // Keys to pre-select on load (from DEFAULT_SELECTED or restored from existing field value).
     // Also used to re-apply selections when lazy children are loaded.
     var _ffSelectedKeys = {};
@@ -41,6 +43,7 @@
         var state = {
             edits:    Object.values(_ffEdits),
             reorders: Object.values(_ffReorders),
+            moves:    _ffMoves,
             selected: getSelectedKeys()
         };
         $('[name="' + FORM_FIELD + '"]').val(JSON.stringify(state));
@@ -992,6 +995,10 @@
                                     _ffReorders[reorder.parent_key || '__root__'] = reorder;
                                 });
                             }
+                            // Restore drag-drop moves (ordered list)
+                            if (parsedField.moves && Array.isArray(parsedField.moves)) {
+                                _ffMoves = parsedField.moves;
+                            }
                         } catch (e) {}
                     }
                     // Re-apply edits visually to already-loaded nodes
@@ -1170,7 +1177,7 @@
                 var $target = el ? $(el).closest('tr') : $();
                 if (!$target.length || $target.hasClass('treegrid-sort-placeholder') || $target[0] === _ddDragNode.tr) return;
                 var targetNode = $.ui.fancytree.getNode($target[0]);
-                if (!targetNode) return;
+                if (!targetNode || targetNode.tree !== _ddDragNode.tree) return;
                 if (!DRAG_CROSS_LEVEL && targetNode.parent !== _ddDragNode.parent) return;
                 // Prevent dropping onto own descendant
                 var anc = targetNode;
@@ -1228,19 +1235,32 @@
                     for (var i = 0; i < siblings.length; i++) {
                         if (siblings[i] === _ddDragNode) { newIndex = i; break; }
                     }
-                    ajax_helpers.post_json({
-                        data: {
-                            button:          CARD_CODE + '_drag_drop',
-                            key:             _ddDragNode.key,
-                            target_key:      t.node.key,
-                            hit_mode:        t.mode,
-                            old_parent_key:  oldParentKey,
-                            parent_key:      newParentKey,
-                            new_index:       newIndex,
-                            sibling_keys:    JSON.stringify(siblingKeys)
-                        },
-                        url: LOCATION_URL
-                    });
+                    if (FORM_FIELD) {
+                        _ffMoves.push({
+                            key:            _ddDragNode.key,
+                            target_key:     t.node.key,
+                            hit_mode:       t.mode,
+                            old_parent_key: oldParentKey,
+                            parent_key:     newParentKey,
+                            new_index:      newIndex,
+                            sibling_keys:   siblingKeys
+                        });
+                        _writeFormField();
+                    } else {
+                        ajax_helpers.post_json({
+                            data: {
+                                button:          CARD_CODE + '_drag_drop',
+                                key:             _ddDragNode.key,
+                                target_key:      t.node.key,
+                                hit_mode:        t.mode,
+                                old_parent_key:  oldParentKey,
+                                parent_key:      newParentKey,
+                                new_index:       newIndex,
+                                sibling_keys:    JSON.stringify(siblingKeys)
+                            },
+                            url: LOCATION_URL
+                        });
+                    }
                 }
                 _ddDragNode = _ddDropTarget = null;
                 _ddActive = false;

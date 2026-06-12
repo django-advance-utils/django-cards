@@ -417,11 +417,17 @@ class CardBase:
             extra_info['treegrid_page_size'] = kwargs.get('treegrid_page_size', 50)
             extra_info['treegrid_js_filters'] = kwargs.get('treegrid_js_filters', [])
             extra_info['treegrid_current_node'] = kwargs.get('treegrid_current_node', '')
-            extra_info['treegrid_sortable'] = kwargs.get('treegrid_sortable', False)
+
+            sortable = kwargs.get('treegrid_sortable', False)
+            drag_drop = kwargs.get('treegrid_drag_drop', False)
+            if sortable and drag_drop:
+                raise Exception('treegrid_sortable and treegrid_drag_drop cannot be enabled at the same time')
+            extra_info['treegrid_sortable'] = sortable
+            extra_info['treegrid_drag_drop'] = drag_drop
+
             extra_info['treegrid_form_field'] = kwargs.get('treegrid_form_field', '')
             extra_info['treegrid_row_click'] = kwargs.get('treegrid_row_click', '')
             extra_info['treegrid_default_selected'] = kwargs.get('treegrid_default_selected', [])
-            extra_info['treegrid_drag_drop'] = kwargs.get('treegrid_drag_drop', False)
             extra_info['treegrid_drag_cross_level'] = kwargs.get('treegrid_drag_cross_level', False)
             extra_info['treegrid_nowrap'] = kwargs.get('treegrid_nowrap', False)
             # Pre-serialise for template JS

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 
 from ajax_helpers.utils import is_ajax
@@ -688,6 +689,7 @@ class CardMixin:
                           treegrid_drag_cross_level: bool = False,
                           treegrid_nowrap: bool = False,
                           treegrid_current_node: str = '',
+                          treegrid_min_width: str = '600px',
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -717,6 +719,11 @@ class CardMixin:
                 - 'label' (str): Button text.
                 - 'icon' (str, optional): FontAwesome class (e.g. 'fas fa-plus').
                 - 'name' (str): Identifier posted back as button_{card_name}_{name}.
+            treegrid_current_node (str, optional): Expands STATIC DATA ONLY to show the node key specified.
+            treegrid_drag_drop (bool): Allows dragging and dropping nodes. Defaults to False. CANNOT BE USED WITH STATIC DATA.,
+            treegrid_drag_cross_level (bool): Used with treegrid_drag_drop to allow multi-level drag and drop. Defaults to False,
+            treegrid_nowrap (bool): If the cells of treegrid should not wrap text. Defaults to False,
+            treegrid_min_width (str): Minimum width for the treegrid div. Defaults to 600px.
             **kwargs: Additional keyword arguments passed to `add_card`.
 
         Returns:
@@ -739,12 +746,13 @@ class CardMixin:
                 },
             )
         """
+        static_data = copy.deepcopy(treegrid_static_data) if treegrid_static_data else None
         if treegrid_columns is None:
             treegrid_columns = []
         if treegrid_icon_map is None:
             treegrid_icon_map = {}
-        if treegrid_current_node and treegrid_static_data:
-            self._mark_current_node_ancestors(treegrid_static_data, treegrid_current_node)
+        if treegrid_current_node and static_data:
+            self._mark_current_node_ancestors(static_data, treegrid_current_node)
         return self.add_card(
             card_name=card_name,
             title=title,
@@ -765,8 +773,8 @@ class CardMixin:
             treegrid_node_column=treegrid_node_column,
             treegrid_save_mode=treegrid_save_mode,
             treegrid_data_mode=self._resolve_treegrid_data_mode(
-                treegrid_data_mode, treegrid_data_url, treegrid_static_data),
-            treegrid_static_data=treegrid_static_data or [],
+                treegrid_data_mode, treegrid_data_url, static_data),
+            treegrid_static_data=static_data or [],
             treegrid_checkbox=treegrid_checkbox,
             treegrid_checkbox_column=treegrid_checkbox_column,
             treegrid_context_menu=treegrid_context_menu or [],
@@ -785,6 +793,7 @@ class CardMixin:
             treegrid_drag_cross_level=treegrid_drag_cross_level,
             treegrid_nowrap=treegrid_nowrap,
             treegrid_current_node=treegrid_current_node,
+            treegrid_min_width=treegrid_min_width,
             show_header=title is not None,
             **kwargs,
         )
