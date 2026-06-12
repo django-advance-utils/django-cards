@@ -21,15 +21,20 @@
     var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
     var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
     var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
+    var CURRENT_NODE = '{{ card.extra_card_info.treegrid_current_node|escapejs }}';
     var SORTABLE = {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }};
+    var DRAG_DROP = {{ card.extra_card_info.treegrid_drag_drop|yesno:"true,false" }};
+    var DRAG_CROSS_LEVEL = {{ card.extra_card_info.treegrid_drag_cross_level|yesno:"true,false" }};
     var FORM_FIELD = '{{ card.extra_card_info.treegrid_form_field }}';
     var ROW_CLICK = '{{ card.extra_card_info.treegrid_row_click }}';
     var DEFAULT_SELECTED = {{ card.extra_card_info.treegrid_default_selected_json|safe }};
 
-    // Form-field mode: accumulate edits/reorders/selections client-side, write JSON to a named input.
+    // Form-field mode: accumulate edits/reorders/moves/selections client-side, write JSON to a named input.
     // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
     var _ffEdits    = {};
     var _ffReorders = {};
+    // Drag-drop moves kept as an ordered list — cross-level moves only replay correctly in sequence.
+    var _ffMoves    = [];
     // Keys to pre-select on load (from DEFAULT_SELECTED or restored from existing field value).
     // Also used to re-apply selections when lazy children are loaded.
     var _ffSelectedKeys = {};
@@ -38,6 +43,7 @@
         var state = {
             edits:    Object.values(_ffEdits),
             reorders: Object.values(_ffReorders),
+            moves:    _ffMoves,
             selected: getSelectedKeys()
         };
         $('[name="' + FORM_FIELD + '"]').val(JSON.stringify(state));
@@ -93,8 +99,8 @@
         }
     }
 
-    // Offset for td indexing: handle column (when sortable) + checkbox column
-    var TD_OFFSET = (SORTABLE ? 1 : 0) + (CHECKBOX ? 1 : 0);
+    // Offset for td indexing: handle columns + checkbox column
+    var TD_OFFSET = (SORTABLE ? 1 : 0) + (DRAG_DROP ? 1 : 0) + (CHECKBOX ? 1 : 0);
 
     window._treegridRegistry[CARD_CODE] = {
         reload: reloadTreegrid,
@@ -921,7 +927,7 @@
             table: {
                 indentation: INDENTATION,
                 nodeColumnIdx: TD_OFFSET + NODE_COLUMN,
-                checkboxColumnIdx: CHECKBOX ? (SORTABLE ? 1 : 0) + CHECKBOX_COLUMN : null
+                checkboxColumnIdx: CHECKBOX ? (SORTABLE ? 1 : 0) + (DRAG_DROP ? 1 : 0) + CHECKBOX_COLUMN : null
             },
             filter: {
                 autoApply: true,
@@ -940,6 +946,10 @@
                         $handleTd.html('<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt-v"></i></span>');
                     }
                 }
+                if (DRAG_DROP) {
+                    var $ddHandleTd = $(data.node.tr).find('>td').eq(SORTABLE ? 1 : 0);
+                    $ddHandleTd.html('<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt"></i></span>');
+                }
                 // Highlight the node title when a pagination filter is active
                 if (PAGINATION) {
                     var titleTerm = _filterTerm || _filterColTerms[NODE_COLUMN] || '';
@@ -956,6 +966,14 @@
                 _populateAutoFilters();
                 if (EXPAND_ALL) {
                     data.tree.expandAll(true);
+                }
+                if (CURRENT_NODE) {
+                    var currentFtNode = data.tree.getNodeByKey(CURRENT_NODE);
+                    if (currentFtNode) {
+                        currentFtNode.makeVisible({scrollIntoView: true}).done(function() {
+                            currentFtNode.setActive(true);
+                        });
+                    }
                 }
                 if (FORM_FIELD) {
                     // Restore edits/reorders/selections from existing field value
@@ -976,6 +994,10 @@
                                 parsedField.reorders.forEach(function(reorder) {
                                     _ffReorders[reorder.parent_key || '__root__'] = reorder;
                                 });
+                            }
+                            // Restore drag-drop moves (ordered list)
+                            if (parsedField.moves && Array.isArray(parsedField.moves)) {
+                                _ffMoves = parsedField.moves;
                             }
                         } catch (e) {}
                     }
@@ -1121,6 +1143,129 @@
         };
         var lazyFn = getLazyLoad();
         if (lazyFn) treeConfig.lazyLoad = lazyFn;
+
+        if (DRAG_DROP) {
+            var _ddDragNode     = null;
+            var _ddClone        = null;
+            var _ddPlaceholder  = null;
+            var _ddDropTarget   = null;
+            var _ddStartY       = 0;
+            var _ddActive       = false;
+
+            $('#' + CARD_CODE + '_table').on('mousedown', '.treegrid-drag-handle', function(e) {
+                if (e.which !== 1) return;
+                var $tr = $(this).closest('tr');
+                _ddDragNode = $.ui.fancytree.getNode($tr[0]);
+                if (!_ddDragNode) return;
+                _ddStartY   = e.clientY;
+                _ddActive   = false;
+                _ddDropTarget = null;
+                e.preventDefault();
+                $(document).on('mousemove.tgdd', _ddMove).on('mouseup.tgdd', _ddEnd);
+            });
+
+            function _ddMove(e) {
+                if (!_ddDragNode) return;
+                if (!_ddActive) {
+                    if (Math.abs(e.clientY - _ddStartY) < 4) return;
+                    _ddActive = true;
+                    _ddBegin(e);
+                }
+                _ddClone.css('top', e.clientY + 10);
+
+                var el = document.elementFromPoint(e.clientX, e.clientY);
+                var $target = el ? $(el).closest('tr') : $();
+                if (!$target.length || $target.hasClass('treegrid-sort-placeholder') || $target[0] === _ddDragNode.tr) return;
+                var targetNode = $.ui.fancytree.getNode($target[0]);
+                if (!targetNode || targetNode.tree !== _ddDragNode.tree) return;
+                if (!DRAG_CROSS_LEVEL && targetNode.parent !== _ddDragNode.parent) return;
+                // Prevent dropping onto own descendant
+                var anc = targetNode;
+                while (anc) { if (anc === _ddDragNode) return; anc = anc.parent; }
+
+                var rect   = $target[0].getBoundingClientRect();
+                var isAbove = e.clientY < rect.top + rect.height / 2;
+                var mode   = isAbove ? 'before' : 'after';
+                _ddDropTarget = {node: targetNode, mode: mode};
+                if (isAbove) { _ddPlaceholder.insertBefore($target); }
+                else         { _ddPlaceholder.insertAfter($target); }
+            }
+
+            function _ddBegin(e) {
+                var $tr       = $(_ddDragNode.tr);
+                var $table    = $('#' + CARD_CODE + '_table');
+                var tableRect = $table[0].getBoundingClientRect();
+                var widths    = [];
+                $tr.find('>td').each(function() { widths.push($(this).outerWidth()); });
+                var $cloneTr  = $tr.clone();
+                $cloneTr.find('>td').each(function(i) { $(this).css('width', widths[i]); });
+                _ddClone = $('<table>').addClass('treegrid-sort-clone table table-sm')
+                    .css({position: 'fixed', top: e.clientY + 10, left: tableRect.left,
+                          width: $table.outerWidth(), 'z-index': 9999, opacity: 0.85,
+                          'pointer-events': 'none', 'box-shadow': '0 4px 14px rgba(0,0,0,0.18)',
+                          'border-radius': '3px', background: '#fff', 'table-layout': 'fixed'})
+                    .append($('<tbody>').append($cloneTr));
+                $('body').append(_ddClone);
+                _ddPlaceholder = $('<tr class="treegrid-sort-placeholder">').append(
+                    $('<td>').attr('colspan', $tr.find('>td').length)
+                );
+                $tr.after(_ddPlaceholder);
+                $tr.addClass('treegrid-sort-source');
+                $('body').addClass('treegrid-sorting');
+            }
+
+            function _ddEnd() {
+                $(document).off('.tgdd');
+                $('body').removeClass('treegrid-sorting');
+                if (!_ddActive || !_ddDragNode) { _ddDragNode = null; return; }
+                if (_ddClone)       { _ddClone.remove();       _ddClone = null; }
+                if (_ddPlaceholder) { _ddPlaceholder.remove(); _ddPlaceholder = null; }
+                $(_ddDragNode.tr).removeClass('treegrid-sort-source');
+
+                if (_ddDropTarget && _ddDropTarget.node !== _ddDragNode) {
+                    var t = _ddDropTarget;
+                    var oldParent    = _ddDragNode.parent;
+                    var oldParentKey = oldParent.isRootNode() ? '' : oldParent.key;
+                    _ddDragNode.moveTo(t.node, t.mode);
+                    var newParent    = _ddDragNode.parent;
+                    var newParentKey = newParent.isRootNode() ? '' : newParent.key;
+                    var siblings     = newParent.children || [];
+                    var siblingKeys  = siblings.map(function(s) { return s.key; });
+                    var newIndex     = 0;
+                    for (var i = 0; i < siblings.length; i++) {
+                        if (siblings[i] === _ddDragNode) { newIndex = i; break; }
+                    }
+                    if (FORM_FIELD) {
+                        _ffMoves.push({
+                            key:            _ddDragNode.key,
+                            target_key:     t.node.key,
+                            hit_mode:       t.mode,
+                            old_parent_key: oldParentKey,
+                            parent_key:     newParentKey,
+                            new_index:      newIndex,
+                            sibling_keys:   siblingKeys
+                        });
+                        _writeFormField();
+                    } else {
+                        ajax_helpers.post_json({
+                            data: {
+                                button:          CARD_CODE + '_drag_drop',
+                                key:             _ddDragNode.key,
+                                target_key:      t.node.key,
+                                hit_mode:        t.mode,
+                                old_parent_key:  oldParentKey,
+                                parent_key:      newParentKey,
+                                new_index:       newIndex,
+                                sibling_keys:    JSON.stringify(siblingKeys)
+                            },
+                            url: LOCATION_URL
+                        });
+                    }
+                }
+                _ddDragNode = _ddDropTarget = null;
+                _ddActive = false;
+            }
+        }
 
         $('#' + CARD_CODE + '_table').fancytree(treeConfig);
 

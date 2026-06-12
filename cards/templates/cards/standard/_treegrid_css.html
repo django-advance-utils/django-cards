@@ -287,6 +287,11 @@
         -webkit-user-select: none !important;
     }
 
+    /* No-wrap mode: prevent cell text wrapping; the overflow:auto wrapper provides horizontal scroll */
+    .treegrid-nowrap td, .treegrid-nowrap th {
+        white-space: nowrap;
+    }
+
     /* Row-click mode: pointer cursor on data rows */
     .treegrid-row-clickable tbody tr.fancytree-node {
         cursor: pointer;

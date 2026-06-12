@@ -2213,6 +2213,132 @@ class TreegridSortableExample(MainMenu, CardMixin, TemplateView):
         return self.command_response()
 
 
+class TreegridDragDropExample(MainMenu, CardMixin, TemplateView):
+    """Two treegrids side-by-side: left restricts dragging to same level, right allows cross-level."""
+    template_name = 'cards_examples/cards.html'
+
+    _STATIC_DATA = [
+        {
+            'title': 'Engineering',
+            'key': 'eng',
+            'folder': True,
+            'data': {'type': 'department', 'role': '', 'level': 'Dept'},
+            'children': [
+                {
+                    'title': 'Backend Team',
+                    'key': 'eng_be',
+                    'folder': True,
+                    'data': {'type': 'team', 'role': 'Team Lead: Alice', 'level': 'Team'},
+                    'children': [
+                        {'title': 'Alice',   'key': 'p1', 'data': {'type': 'person', 'role': 'Lead',     'level': 'Person'}},
+                        {'title': 'Bob',     'key': 'p2', 'data': {'type': 'person', 'role': 'Engineer', 'level': 'Person'}},
+                        {'title': 'Charlie', 'key': 'p3', 'data': {'type': 'person', 'role': 'Engineer', 'level': 'Person'}},
+                    ],
+                },
+                {
+                    'title': 'Frontend Team',
+                    'key': 'eng_fe',
+                    'folder': True,
+                    'data': {'type': 'team', 'role': 'Team Lead: Dana', 'level': 'Team'},
+                    'children': [
+                        {'title': 'Dana',  'key': 'p4', 'data': {'type': 'person', 'role': 'Lead',     'level': 'Person'}},
+                        {'title': 'Eve',   'key': 'p5', 'data': {'type': 'person', 'role': 'Engineer', 'level': 'Person'}},
+                        {'title': 'Frank', 'key': 'p6', 'data': {'type': 'person', 'role': 'Engineer', 'level': 'Person'}},
+                    ],
+                },
+            ],
+        },
+        {
+            'title': 'Design',
+            'key': 'design',
+            'folder': True,
+            'data': {'type': 'department', 'role': '', 'level': 'Dept'},
+            'children': [
+                {
+                    'title': 'UX Team',
+                    'key': 'des_ux',
+                    'folder': True,
+                    'data': {'type': 'team', 'role': 'Team Lead: Grace', 'level': 'Team'},
+                    'children': [
+                        {'title': 'Grace', 'key': 'p7', 'data': {'type': 'person', 'role': 'Lead',      'level': 'Person'}},
+                        {'title': 'Hank',  'key': 'p8', 'data': {'type': 'person', 'role': 'Designer',  'level': 'Person'}},
+                    ],
+                },
+                {
+                    'title': 'Brand Team',
+                    'key': 'des_br',
+                    'folder': True,
+                    'data': {'type': 'team', 'role': 'Team Lead: Iris', 'level': 'Team'},
+                    'children': [
+                        {'title': 'Iris', 'key': 'p9',  'data': {'type': 'person', 'role': 'Lead',     'level': 'Person'}},
+                        {'title': 'Jack', 'key': 'p10', 'data': {'type': 'person', 'role': 'Designer', 'level': 'Person'}},
+                    ],
+                },
+            ],
+        },
+    ]
+
+    _COLUMNS = [
+        {'title': 'Name',  'field': 'title', 'width': '50%'},
+        {'title': 'Role',  'field': 'role',  'width': '30%'},
+        {'title': 'Level', 'field': 'level', 'width': '20%'},
+    ]
+
+    _ICON_MAP = {
+        'department': 'fas fa-building',
+        'team':       'fas fa-users',
+        'person':     'fas fa-user',
+    }
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='same_level_tree',
+            title='Same-Level Drag Only',
+            treegrid_static_data=self._STATIC_DATA,
+            treegrid_columns=self._COLUMNS,
+            treegrid_icon_map=self._ICON_MAP,
+            treegrid_expand_all=True,
+            treegrid_show_filter=False,
+            treegrid_drag_drop=True,
+            treegrid_drag_cross_level=False,
+            footer='Drag rows to reorder. Nodes can only move within their own parent — '
+                   'cross-level drops are blocked.',
+        )
+        self.add_treegrid_card(
+            card_name='cross_level_tree',
+            title='Cross-Level Drag',
+            treegrid_static_data=self._STATIC_DATA,
+            treegrid_columns=self._COLUMNS,
+            treegrid_icon_map=self._ICON_MAP,
+            treegrid_expand_all=True,
+            treegrid_show_filter=False,
+            treegrid_drag_drop=True,
+            treegrid_drag_cross_level=True,
+            footer='Drag rows freely — nodes can be moved to any position, including under a '
+                   'different parent or department.',
+        )
+        self.add_card_group('same_level_tree', div_css_class='col-lg-6')
+        self.add_card_group('cross_level_tree', div_css_class='col-lg-6')
+
+    def button_same_level_tree_drag_drop(self, **kwargs):
+        key = kwargs.get('key', '')
+        target_key = kwargs.get('target_key', '')
+        hit_mode = kwargs.get('hit_mode', '')
+        return self.command_response(toast_commands(
+            header='Node Moved (Same-Level)',
+            text=f'{key} → {hit_mode} {target_key}',
+        ))
+
+    def button_cross_level_tree_drag_drop(self, **kwargs):
+        key = kwargs.get('key', '')
+        target_key = kwargs.get('target_key', '')
+        hit_mode = kwargs.get('hit_mode', '')
+        return self.command_response(toast_commands(
+            header='Node Moved (Cross-Level)',
+            text=f'{key} → {hit_mode} {target_key}',
+        ))
+
+
 # Keep the original example for backwards compatibility
 class TreegridExample(TreegridEditableExample):
     pass
