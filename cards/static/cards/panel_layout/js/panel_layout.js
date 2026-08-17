@@ -16,6 +16,13 @@ var PanelLayout = (function() {
         if (layout.getAttribute('data-full-height') === 'true') {
             _setFullHeight(layout);
             window.addEventListener('resize', function() { _setFullHeight(layout); });
+            // Again once the page has finished loading, and once more after that: the
+            // breadcrumb and footer below the layout are part of the measurement, and their
+            // heights are still settling while fonts load and a wrapped toolbar reflows.
+            window.addEventListener('load', function() {
+                _setFullHeight(layout);
+                window.setTimeout(function() { _setFullHeight(layout); }, 150);
+            });
         }
         if (_persist) {
             _restoreState(layout);
@@ -30,10 +37,26 @@ var PanelLayout = (function() {
         layout.style.height = '';
         var rect = layout.getBoundingClientRect();
         var minHeight = parseInt(layout.getAttribute('data-min-height'), 10) || 400;
-        var bottom = _getBottomSpacing(layout);
+        // Everything between the layout's bottom edge and the page's: the margins and padding
+        // of its own ancestors, and whatever comes after it -- a breadcrumb, a footer. Both
+        // measurements are taken and the larger wins, so a page with nothing below the layout
+        // is sized exactly as it was, and a page with a footer stops giving the layout the
+        // room the footer needs and pushing it past the bottom of the window.
+        var bottom = Math.max(_getBottomSpacing(layout), _getSpaceBelow(rect));
         var height = window.innerHeight - rect.top - bottom;
         if (height < minHeight) height = minHeight;
         layout.style.height = height + 'px';
+    }
+
+    // The height of the page below the layout. Read from the body's own box rather than from
+    // documentElement.scrollHeight, which reports the viewport height when the page is shorter
+    // than the window -- that would count the dead space this is here to remove as though it
+    // were content. Re-measuring cannot drift: moving the layout's bottom edge moves the
+    // body's with it, leaving the distance between them unchanged.
+    function _getSpaceBelow(rect) {
+        if (!document.body) return 0;
+        var below = document.body.getBoundingClientRect().bottom - rect.bottom;
+        return below > 0 ? below : 0;
     }
 
     function _getBottomSpacing(el) {

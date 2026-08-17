@@ -28,6 +28,7 @@
     var FORM_FIELD = '{{ card.extra_card_info.treegrid_form_field }}';
     var ROW_CLICK = '{{ card.extra_card_info.treegrid_row_click }}';
     var DEFAULT_SELECTED = {{ card.extra_card_info.treegrid_default_selected_json|safe }};
+    var AUTO_HIDE_EXPAND = {{ card.extra_card_info.treegrid_auto_hide_expand_buttons|yesno:"true,false" }};
 
     // Form-field mode: accumulate edits/reorders/moves/selections client-side, write JSON to a named input.
     // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
@@ -98,6 +99,41 @@
             var count = getSelectedKeys().length;
             $el.text(count > 0 ? count + ' selected' : '');
         }
+        updateNeedsSelection();
+    }
+
+    // A toolbar button given 'needs_selection' acts on ticked rows, so it says so itself by
+    // staying disabled until there are enough of them. It is rendered disabled, which is the
+    // state it belongs in before anything is ticked.
+    function updateNeedsSelection() {
+        var $buttons = $('#' + CARD_CODE + '_card').find('.treegrid-toolbar-btn[data-needs-selection]');
+        if (!$buttons.length) return;
+        var selected = getSelectedKeys().length;
+        $buttons.each(function() {
+            // needs_selection=True arrives as 'True' -- one row is what that asks for.
+            var needed = parseInt($(this).attr('data-needs-selection'), 10) || 1;
+            $(this).prop('disabled', selected < needed);
+        });
+    }
+
+    // Expand All and Collapse All with nothing to expand are two dead buttons at the end of
+    // the toolbar. Read from the tree rather than from a flag saying the grid is flat: a list
+    // that is flat today can nest tomorrow. A node that is lazy or a folder counts as
+    // expandable before its children have been fetched.
+    function canExpandAny(tree) {
+        var found = false;
+        tree.visit(function(node) {
+            if (node.lazy || node.folder || (node.children && node.children.length)) {
+                found = true;
+                return false;  // stop the walk
+            }
+        });
+        return found;
+    }
+
+    function syncExpandButtons(tree) {
+        if (!AUTO_HIDE_EXPAND || !tree) return;
+        $('#' + CARD_CODE + '_expand_all, #' + CARD_CODE + '_collapse_all').toggle(canExpandAny(tree));
     }
 
     // Offset for td indexing: handle columns + checkbox column
@@ -511,6 +547,22 @@
         return $wrap.html();
     }
 
+    // Hand a row's class to fancytree as well as applying it here. Fancytree rewrites
+    // tr.className wholesale every time it re-renders a row's status -- on expand, collapse,
+    // activate and focus -- and extraClasses is the one thing it puts back, so a class left
+    // only on the <tr> is gone the first time anything is pressed.
+    function applyRowClass(node, $tr, rowClass) {
+        $tr.addClass(rowClass);
+        var names = String(rowClass).split(/\s+/);
+        var known = ' ' + (node.extraClasses || '') + ' ';
+        for (var i = 0; i < names.length; i++) {
+            if (names[i] && known.indexOf(' ' + names[i] + ' ') === -1) {
+                known += names[i] + ' ';
+            }
+        }
+        node.extraClasses = known.trim();
+    }
+
     function renderCells(node) {
         var $tr = $(node.tr);
         var $tds = $tr.find('>td');
@@ -519,7 +571,13 @@
         // Row-level styling from data: _row_bg, _row_color, _row_class
         if (d._row_bg) $tr.css('background-color', d._row_bg);
         if (d._row_color) $tr.css('color', d._row_color);
-        if (d._row_class) $tr.addClass(d._row_class);
+        if (d._row_class) applyRowClass(node, $tr, d._row_class);
+
+        // Column-level classes (col.css_class): every cell in the column, whatever the row
+        // holds. The matching header carries them too, so the two line up.
+        for (var c = 0; c < COLUMNS.length; c++) {
+            if (COLUMNS[c].css_class) $tds.eq(c + TD_OFFSET).addClass(COLUMNS[c].css_class);
+        }
 
         // Node column (tree title) styling
         var nodeField = COLUMNS[NODE_COLUMN] ? COLUMNS[NODE_COLUMN].field : '';
@@ -771,6 +829,7 @@
         }
         _currentPage = page;
         _updatePaginationUI();
+        syncExpandButtons(tree);
     }
 
     // Filter _allNodes in memory and paginate the results.
@@ -1080,6 +1139,10 @@
                         }
                     }
                 }
+                syncExpandButtons(data.tree);
+                // Selections restored above (snapshot state, default selected) are applied
+                // without events, so the count and any needs_selection button are told here.
+                if (CHECKBOX) updateSelectCount();
             },
             select: function(event, data) {
                 // Track selections across pages when pagination is active
@@ -1122,6 +1185,7 @@
                 buildJsFilters();
                 _populateAutoFilters();
                 _populateHtmlFilters();
+                syncExpandButtons(data.tree);
                 if (CHECKBOX) {
                     if (data.node.isSelected()) {
                         data.node.visit(function(child) {

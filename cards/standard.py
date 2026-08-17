@@ -674,13 +674,19 @@ class CardMixin:
                           treegrid_columns=None, treegrid_read_only=True,
                           treegrid_height='600px', treegrid_indentation=20,
                           treegrid_icon_map=None, treegrid_show_filter=True,
+                          treegrid_show_search=None, treegrid_show_expand_buttons=None,
+                          treegrid_auto_hide_expand_buttons=False,
                           treegrid_expand_all=False, treegrid_show_column_filters=False,
                           treegrid_toolbar=None, treegrid_toolbar_after=None,
+                          treegrid_toolbar_end=None,
                           treegrid_submit_label='Submit Selected',
                           treegrid_header_rows=None,
                           treegrid_node_column=0, treegrid_save_mode='auto',
                           treegrid_data_mode='ajax', treegrid_static_data=None,
                           treegrid_checkbox=False, treegrid_checkbox_column=0,
+                          treegrid_show_select_buttons=True,
+                          treegrid_show_submit_button=True,
+                          treegrid_show_select_count=True,
                           treegrid_context_menu=None, treegrid_resizable=False,
                           treegrid_pagination=False, treegrid_page_size=50,
                           treegrid_filter_auto_expand=True,
@@ -711,18 +717,43 @@ class CardMixin:
                 - 'field' (str): Data field name (from node.data).
                 - 'width' (str, optional): CSS width.
                 - 'editable' (bool, optional): Whether this column is editable.
+                - 'css_class' (str, optional): Classes added to every cell in the column and
+                  to its header, so an alignment set once lines the two up (e.g. 'text-center').
+                - 'header_css_class' (str, optional): Classes for the header only. Overrides
+                  'css_class' on the header when both are given.
             treegrid_read_only (bool): If True, disables inline editing. Defaults to True.
             treegrid_height (str): CSS max-height for the scrollable area. Defaults to '600px'.
             treegrid_indentation (int): Pixels of indentation per tree level. Defaults to 20.
             treegrid_icon_map (dict, optional): Maps node data 'type' values to FontAwesome
                 classes, e.g. {'company': 'fas fa-building', 'person': 'fas fa-user'}.
-            treegrid_show_filter (bool): If True, shows the search/filter toolbar. Defaults to True.
+            treegrid_show_filter (bool): If True, shows the search box and the Expand All /
+                Collapse All buttons. Defaults to True.
+            treegrid_show_search (bool, optional): Shows the search box on its own. Defaults to
+                treegrid_show_filter.
+            treegrid_show_expand_buttons (bool, optional): Shows Expand All / Collapse All on
+                their own. Defaults to treegrid_show_filter.
+            treegrid_auto_hide_expand_buttons (bool): If True, Expand All / Collapse All are
+                hidden while nothing in the tree can expand (a flat list). Defaults to False.
             treegrid_expand_all (bool): If True, expands all nodes on initial load. Defaults to False.
             treegrid_show_column_filters (bool): If True, shows a per-column filter row below headers.
             treegrid_toolbar (list, optional): Custom toolbar buttons. Each is a dict with:
                 - 'label' (str): Button text.
                 - 'icon' (str, optional): FontAwesome class (e.g. 'fas fa-plus').
                 - 'name' (str): Identifier posted back as button_{card_name}_{name}.
+                - 'button_class' (str, optional): Classes replacing 'btn-outline-secondary'.
+                - 'needs_selection' (int|bool, optional): Renders the button disabled until
+                  that many rows are ticked (True means 1). Needs treegrid_checkbox.
+            treegrid_toolbar_after (list, optional): Buttons rendered after the selection
+                buttons, in the same format as treegrid_toolbar.
+            treegrid_toolbar_end (list, optional): Buttons rendered at the end of the toolbar,
+                after the card's own Expand All / Collapse All, in the same format as
+                treegrid_toolbar.
+            treegrid_show_select_buttons (bool): If False, leaves out the Select All /
+                Deselect All buttons a checkbox grid renders. Defaults to True.
+            treegrid_show_submit_button (bool): If False, leaves out the submit button a
+                checkbox grid renders (see treegrid_submit_label). Defaults to True.
+            treegrid_show_select_count (bool): If False, leaves out the "N selected" counter a
+                checkbox grid renders. Defaults to True.
             treegrid_current_node (str, optional): Expands STATIC DATA ONLY to show the node key specified.
             treegrid_drag_drop (bool): Allows dragging and dropping nodes. Defaults to False. CANNOT BE USED WITH STATIC DATA.,
             treegrid_drag_cross_level (bool): Used with treegrid_drag_drop to allow multi-level drag and drop. Defaults to False,
@@ -768,10 +799,14 @@ class CardMixin:
             treegrid_indentation=treegrid_indentation,
             treegrid_icon_map=treegrid_icon_map,
             treegrid_show_filter=treegrid_show_filter,
+            treegrid_show_search=treegrid_show_search,
+            treegrid_show_expand_buttons=treegrid_show_expand_buttons,
+            treegrid_auto_hide_expand_buttons=treegrid_auto_hide_expand_buttons,
             treegrid_expand_all=treegrid_expand_all,
             treegrid_show_column_filters=treegrid_show_column_filters,
             treegrid_toolbar=treegrid_toolbar or [],
             treegrid_toolbar_after=treegrid_toolbar_after or [],
+            treegrid_toolbar_end=treegrid_toolbar_end or [],
             treegrid_submit_label=treegrid_submit_label,
             treegrid_header_rows=treegrid_header_rows or [],
             treegrid_node_column=treegrid_node_column,
@@ -781,6 +816,9 @@ class CardMixin:
             treegrid_static_data=static_data or [],
             treegrid_checkbox=treegrid_checkbox,
             treegrid_checkbox_column=treegrid_checkbox_column,
+            treegrid_show_select_buttons=treegrid_show_select_buttons,
+            treegrid_show_submit_button=treegrid_show_submit_button,
+            treegrid_show_select_count=treegrid_show_select_count,
             treegrid_context_menu=treegrid_context_menu or [],
             treegrid_context_menu_html=self._build_context_menu_html(
                 treegrid_context_menu, card_name),
