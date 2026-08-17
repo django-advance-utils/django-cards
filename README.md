@@ -1126,11 +1126,16 @@ class DashboardView(CardMixin, TemplateView):
 | `layout_id` | str | auto | DOM id for the layout container |
 | `direction` | str | `'horizontal'` | Root split direction — `'horizontal'` or `'vertical'` |
 | `resizable` | bool | `True` | Whether panels can be resized by dragging |
-| `full_height` | bool | `True` | Automatically size the layout to fill viewport height |
+| `full_height` | bool | `True` | Automatically size the layout to fill viewport height (see note below) |
 | `min_height` | str | `'400px'` | CSS min-height value |
 | `css_class` | str | `''` | Extra CSS classes on the layout container |
 | `css_style` | str | `''` | Extra inline styles on the layout container |
 | `persist` | bool | `True` | Save/restore panel sizes and collapse state to localStorage |
+
+With `full_height=True` the layout is sized to what is left of the viewport below its own top edge,
+less whatever comes *after* it on the page — a breadcrumb, a footer — so those land on the bottom edge
+instead of being pushed past it. A page with nothing below the layout is sized as it always was. The
+measurement is re-taken on resize and again on load, when the heights below have settled.
 
 ### Splits
 
@@ -1383,16 +1388,23 @@ class OrgTreeView(CardMixin, TemplateView):
 | `treegrid_indentation` | int | `20` | Pixels of indentation per tree level |
 | `treegrid_icon_map` | dict | `{}` | Maps node `data.type` → FontAwesome class |
 | `treegrid_show_filter` | bool | `True` | Show the Expand All / Collapse All / global filter toolbar |
+| `treegrid_show_search` | bool | `None` | Show the search box on its own. `None` follows `treegrid_show_filter` |
+| `treegrid_show_expand_buttons` | bool | `None` | Show Expand All / Collapse All on their own. `None` follows `treegrid_show_filter` |
+| `treegrid_auto_hide_expand_buttons` | bool | `False` | Hide Expand All / Collapse All while nothing in the tree can expand |
 | `treegrid_expand_all` | bool | `False` | Expand all root nodes on initial load |
 | `treegrid_show_column_filters` | bool | `False` | Show per-column filter inputs in header row |
 | `treegrid_toolbar` | list | `[]` | Custom toolbar buttons (see below) |
 | `treegrid_toolbar_after` | list | `[]` | Additional buttons rendered after the checkbox controls |
+| `treegrid_toolbar_end` | list | `[]` | Additional buttons rendered at the end of the toolbar, after Expand All / Collapse All |
 | `treegrid_submit_label` | str | `'Submit Selected'` | Label for the submit button when `treegrid_checkbox=True` |
 | `treegrid_header_rows` | list | `[]` | Multi-row header definitions (for colspan/rowspan headers) |
 | `treegrid_node_column` | int | `0` | Column index that displays the tree node title and expand icon |
 | `treegrid_save_mode` | str | `'auto'` | `'auto'` = save on each change; `'batch'` = collect then save all |
 | `treegrid_checkbox` | bool | `False` | Enable row selection checkboxes |
 | `treegrid_checkbox_column` | int | `0` | Column index for the checkbox (default: leftmost extra column) |
+| `treegrid_show_select_buttons` | bool | `True` | Show the Select All / Deselect All buttons a checkbox grid renders |
+| `treegrid_show_submit_button` | bool | `True` | Show the submit button a checkbox grid renders (see `treegrid_submit_label`) |
+| `treegrid_show_select_count` | bool | `True` | Show the "N selected" counter a checkbox grid renders |
 | `treegrid_context_menu` | list | `None` | Context menu items on right-click (MenuItems or dicts) |
 | `treegrid_resizable` | bool | `False` | Allow dragging column borders to resize columns |
 | `treegrid_pagination` | bool | `False` | Enable client-side pagination of root-level nodes |
@@ -1409,6 +1421,8 @@ Each entry in `treegrid_columns` is a dict:
 | `title` | str | — | Column header text |
 | `field` | str | — | Key in node `data` dict. Use `'title'` for the node title column |
 | `width` | str | `None` | CSS column width (e.g. `'30%'`, `'120px'`) |
+| `css_class` | str | `None` | Classes added to every cell in the column **and** to its header, e.g. `'text-center'` |
+| `header_css_class` | str | `None` | Classes for the header only. Overrides `css_class` there |
 | `type` | str | `None` | `'boolean'`, `'html'`, `'actions'`, `'checkbox'`, `'select'` |
 | `editable` | bool | `False` | Enable inline editing for this column |
 | `inline` | bool | `True` | `False` = open a popup widget instead of editing in-place |
@@ -1501,14 +1515,21 @@ Include styling keys in `node.data` to colour individual cells or entire rows:
         'type': 'company',
         'status': 'Critical',
         'amount': '99500',
-        # Per-cell: field__bg, field__color
+        # Per-cell: field__bg, field__color, field__class
         'amount__bg': '#d4edda',
         'amount__color': '#28a745',
-        # Per-row: _row_bg, _row_color
+        'amount__class': 'font-weight-bold',
+        # Per-row: _row_bg, _row_color, _row_class
         '_row_bg': '#fff3cd',
+        '_row_class': 'my-group-row',
     }
 }
 ```
+
+`_row_class` is handed to Fancytree as an `extraClasses` entry as well as applied to the `<tr>`, so
+it survives the row re-renders Fancytree does on expand, collapse, activate and focus. A class that
+should apply to a whole column, rather than to the rows that happen to carry a key for it, belongs on
+the column instead (`css_class`, see Column Definitions) — that puts it on the header too.
 
 You can also apply styles server-side after a save using the helper methods:
 
@@ -1621,6 +1642,33 @@ def button_my_tree_new_company(self, **kwargs):
     return self.command_response(toast_commands(header='New Company', text='...'))
 ```
 
+Each button dict takes:
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `name` | str | — | Identifier; posted back to `button_<card_name>_<name>()` |
+| `label` | str | — | Button text |
+| `icon` | str | `None` | FontAwesome class |
+| `button_class` | str | `'btn-outline-secondary'` | Bootstrap button class (`treegrid_toolbar_after` / `treegrid_toolbar_end` only) |
+| `needs_selection` | int/bool | `None` | Render disabled until this many rows are ticked (`True` means 1) |
+
+There are three toolbar slots. `treegrid_toolbar` renders first, `treegrid_toolbar_after` follows
+the selection controls, and `treegrid_toolbar_end` renders last — after the card's own Expand All /
+Collapse All, which is where a button that acts on the grid usually belongs:
+
+```python
+self.add_treegrid_card(
+    card_name='my_tree',
+    treegrid_checkbox=True,
+    treegrid_toolbar_end=[
+        # Dead until two rows are ticked: the row's own action covers the single case.
+        {'name': 'delete', 'label': 'Delete', 'icon': 'fas fa-trash',
+         'button_class': 'btn-danger', 'needs_selection': 2},
+    ],
+    ...
+)
+```
+
 ### Row Selection (Checkboxes)
 
 Set `treegrid_checkbox=True` to add a checkbox column. Select All / Deselect All buttons appear in the toolbar. Clicking Submit posts the selected keys:
@@ -1639,6 +1687,41 @@ def button_select_tree_selected(self, **kwargs):
     # keys is a list of selected node key strings
     return self.command_response()
 ```
+
+Each of those three controls can be left out where the grid does not want it — a grid whose rows
+carry their own actions, or one where "select every row" is not something anyone means to press:
+
+```python
+self.add_treegrid_card(
+    card_name='pick_tree',
+    treegrid_checkbox=True,
+    treegrid_show_select_buttons=False,   # no Select All / Deselect All
+    treegrid_show_submit_button=False,    # no Submit Selected
+    treegrid_show_select_count=False,     # no "3 selected"
+    ...
+)
+```
+
+### Search and Expand Buttons
+
+`treegrid_show_filter` switches the search box and the Expand All / Collapse All pair together.
+`treegrid_show_search` and `treegrid_show_expand_buttons` split that switch when a grid wants one
+without the other — a page of rows the reader can see all of needs no search box, but still needs to
+open and close its groups:
+
+```python
+self.add_treegrid_card(
+    card_name='usage_tree',
+    treegrid_show_search=False,               # no search box
+    treegrid_show_expand_buttons=True,        # keep Expand All / Collapse All
+    ...
+)
+```
+
+`treegrid_auto_hide_expand_buttons=True` hides those two buttons while nothing in the tree can
+expand, so a flat list does not carry a pair of controls that do nothing. It is decided from the
+tree on every load and lazy load, not from a flag saying the grid is flat, so a list that starts
+nesting gets them back on its own.
 
 ### Pagination
 

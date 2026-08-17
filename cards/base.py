@@ -398,16 +398,36 @@ class CardBase:
             extra_info['treegrid_indentation'] = kwargs.get('treegrid_indentation', 20)
             extra_info['treegrid_icon_map'] = kwargs.get('treegrid_icon_map', {})
             extra_info['treegrid_show_filter'] = kwargs.get('treegrid_show_filter', True)
+            # treegrid_show_filter switches the search box and the Expand/Collapse All pair
+            # together, as it always has. treegrid_show_search and
+            # treegrid_show_expand_buttons split that switch for a card that wants one
+            # without the other; left as None they follow treegrid_show_filter.
+            show_search = kwargs.get('treegrid_show_search')
+            if show_search is None:
+                show_search = extra_info['treegrid_show_filter']
+            extra_info['treegrid_show_search'] = show_search
+            show_expand_buttons = kwargs.get('treegrid_show_expand_buttons')
+            if show_expand_buttons is None:
+                show_expand_buttons = extra_info['treegrid_show_filter']
+            extra_info['treegrid_show_expand_buttons'] = show_expand_buttons
+            extra_info['treegrid_auto_hide_expand_buttons'] = kwargs.get(
+                'treegrid_auto_hide_expand_buttons', False)
             extra_info['treegrid_expand_all'] = kwargs.get('treegrid_expand_all', False)
             extra_info['treegrid_show_column_filters'] = kwargs.get('treegrid_show_column_filters', False)
             extra_info['treegrid_toolbar'] = kwargs.get('treegrid_toolbar', [])
             extra_info['treegrid_toolbar_after'] = kwargs.get('treegrid_toolbar_after', [])
+            extra_info['treegrid_toolbar_end'] = kwargs.get('treegrid_toolbar_end', [])
             extra_info['treegrid_submit_label'] = kwargs.get('treegrid_submit_label', 'Submit Selected')
             extra_info['treegrid_header_rows'] = kwargs.get('treegrid_header_rows', [])
             extra_info['treegrid_node_column'] = kwargs.get('treegrid_node_column', 0)
             extra_info['treegrid_save_mode'] = kwargs.get('treegrid_save_mode', 'auto')
             extra_info['treegrid_checkbox'] = kwargs.get('treegrid_checkbox', False)
             extra_info['treegrid_checkbox_column'] = kwargs.get('treegrid_checkbox_column', 0)
+            # The three things a checkbox grid renders alongside the ticks. All on, as they
+            # always were; each can be left out by a card whose rows carry their own actions.
+            extra_info['treegrid_show_select_buttons'] = kwargs.get('treegrid_show_select_buttons', True)
+            extra_info['treegrid_show_submit_button'] = kwargs.get('treegrid_show_submit_button', True)
+            extra_info['treegrid_show_select_count'] = kwargs.get('treegrid_show_select_count', True)
             extra_info['treegrid_context_menu'] = kwargs.get('treegrid_context_menu', [])
             extra_info['treegrid_context_menu_json'] = json.dumps(
                 [i for i in extra_info['treegrid_context_menu'] if isinstance(i, dict)])

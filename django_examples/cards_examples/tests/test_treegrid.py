@@ -9,7 +9,7 @@ from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
     TreegridWidgetsExample, TreegridFullExample, TreegridBatchExample, TreegridColspanExample,
-    TreegridStyledExample,
+    TreegridStyledExample, TreegridSelectExample, TreegridToolbarSlotsExample,
     TreegridData, TreegridMultiData, TreegridCompactData, TreegridPaymentsData,
     TreegridWidgetsData, TreegridFullData, TreegridColspanData, TreegridStyledData,
 )
@@ -595,6 +595,130 @@ class TestTreegridStyledData(TestCase):
         self.assertIn('thickness__bg', d)
         self.assertIn('width_val__bg', d)
         self.assertIn('material__bg', d)
+
+
+class TestTreegridToolbarSlots(TreegridViewTestMixin, TestCase):
+    """Toolbar slots, the show/hide flags, and the column classes."""
+    view_class = TreegridToolbarSlotsExample
+
+    def setUp(self):
+        super().setUp()
+        self.html = self._render()
+        # Everything below asks about the card's HTML, not the script or the stylesheet, both
+        # of which mention the same ids and class names.
+        self.markup = self.html.split('</style>')[1].split('<style>')[0]
+
+    def test_renders_200(self):
+        request = self.factory.get('/treegrid/toolbar-slots/')
+        request.user = self.user
+        response = self.view_class.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_box_left_out(self):
+        self.assertEqual(self._count_filter_inputs(self.markup), 0)
+
+    def test_expand_buttons_kept_without_the_search_box(self):
+        self.assertIn('usages_expand_all', self.markup)
+        self.assertIn('usages_collapse_all', self.markup)
+
+    def test_toolbar_end_button_after_collapse_all(self):
+        self.assertLess(self.markup.index('usages_collapse_all'),
+                        self.markup.index('data-needs-selection'))
+
+    def test_needs_selection_renders_disabled(self):
+        self.assertIn('data-needs-selection="2" disabled', self.markup)
+
+    def test_select_count_left_out(self):
+        self.assertNotIn('usages_select_count', self.markup)
+
+    def test_select_all_left_out_on_the_products_grid(self):
+        self.assertNotIn('products_select_all', self.markup)
+        self.assertNotIn('products_deselect_all', self.markup)
+
+    def test_submit_button_left_out_on_the_products_grid(self):
+        self.assertNotIn('products_get_selected', self.markup)
+
+    def test_select_all_kept_on_the_usages_grid(self):
+        """The flag is per card: the other grid still renders its own."""
+        self.assertIn('usages_select_all', self.markup)
+        self.assertIn('usages_get_selected', self.markup)
+
+    def test_auto_hide_expand_buttons_flag_reaches_the_script(self):
+        self.assertIn('AUTO_HIDE_EXPAND = true', self.html)
+        self.assertIn('AUTO_HIDE_EXPAND = false', self.html)
+
+    def test_column_class_on_header(self):
+        self.assertIn('<th class="text-right">Qty</th>', self.markup)
+        self.assertIn('<th class="text-center">Stock</th>', self.markup)
+
+    def test_column_class_reaches_the_script(self):
+        self.assertIn('"css_class": "text-right"', self.html)
+
+    def test_row_class_in_static_data(self):
+        self.assertIn('_row_class', self.html)
+
+
+class TestTreegridToolbarDefaults(TreegridViewTestMixin, TestCase):
+    """A card that names none of the new options renders exactly what it always did."""
+    view_class = TreegridSelectExample
+
+    def setUp(self):
+        super().setUp()
+        self.markup = self._render().split('</style>')[1].split('<style>')[0]
+
+    def test_selection_controls_all_present(self):
+        for piece in ('select_tree_select_all', 'select_tree_deselect_all',
+                      'select_tree_get_selected', 'select_tree_select_count'):
+            self.assertIn(piece, self.markup)
+
+    def test_search_and_expand_buttons_present(self):
+        self.assertEqual(self._count_filter_inputs(self.markup), 1)
+        self.assertIn('select_tree_expand_all', self.markup)
+        self.assertIn('select_tree_collapse_all', self.markup)
+
+    def test_no_needs_selection_attribute(self):
+        self.assertNotIn('data-needs-selection', self.markup)
+
+    def test_expand_buttons_not_auto_hidden(self):
+        self.assertIn('AUTO_HIDE_EXPAND = false', self._render())
+
+
+class TestTreegridFlagDefaults(TestCase):
+    """The resolved flags on the card itself, without rendering a page."""
+
+    def _card(self, **kwargs):
+        from cards.base import CardBase, CARD_TYPE_TREEGRID
+        return CardBase(request=None, code='t', group_type=CARD_TYPE_TREEGRID,
+                        **kwargs).extra_card_info
+
+    def test_search_and_expand_follow_show_filter(self):
+        for show_filter in (True, False):
+            info = self._card(treegrid_show_filter=show_filter)
+            self.assertEqual(info['treegrid_show_search'], show_filter)
+            self.assertEqual(info['treegrid_show_expand_buttons'], show_filter)
+
+    def test_search_can_be_dropped_on_its_own(self):
+        info = self._card(treegrid_show_filter=True, treegrid_show_search=False)
+        self.assertFalse(info['treegrid_show_search'])
+        self.assertTrue(info['treegrid_show_expand_buttons'])
+
+    def test_expand_buttons_can_be_dropped_on_their_own(self):
+        info = self._card(treegrid_show_filter=True, treegrid_show_expand_buttons=False)
+        self.assertTrue(info['treegrid_show_search'])
+        self.assertFalse(info['treegrid_show_expand_buttons'])
+
+    def test_search_can_be_added_back_where_show_filter_is_off(self):
+        info = self._card(treegrid_show_filter=False, treegrid_show_search=True)
+        self.assertTrue(info['treegrid_show_search'])
+        self.assertFalse(info['treegrid_show_expand_buttons'])
+
+    def test_selection_controls_default_on(self):
+        info = self._card()
+        self.assertTrue(info['treegrid_show_select_buttons'])
+        self.assertTrue(info['treegrid_show_submit_button'])
+        self.assertTrue(info['treegrid_show_select_count'])
+        self.assertFalse(info['treegrid_auto_hide_expand_buttons'])
+        self.assertEqual(info['treegrid_toolbar_end'], [])
 
 
 class TestTreegridPayments(TreegridViewTestMixin, TestCase):

@@ -1680,6 +1680,131 @@ class TreegridSelectExample(MainMenu, CardMixin, TemplateView):
         return self.command_response()
 
 
+class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
+    """The three toolbar slots, and the flags that leave a control out.
+
+    Left: a grid of usages under group bands (a row class), with no search box -- every row is
+    on screen already -- and a Delete button in the end slot that stays dead until two rows are
+    ticked, because each row carries its own single-row action.
+
+    Right: a flat list of products. Expand All and Collapse All hide themselves, there being
+    nothing in it to expand, and the grid leaves out Select All and Submit Selected too.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    USAGE_COLUMNS = [
+        {'title': 'Usage', 'field': 'usage', 'width': '20%'},
+        {'title': 'Name', 'field': 'title', 'width': '40%'},
+        {'title': 'Qty', 'field': 'qty', 'width': '15%', 'css_class': 'text-right'},
+        {'title': 'Stock', 'field': 'in_stock', 'width': '15%', 'type': 'boolean',
+         'css_class': 'text-center'},
+        {'title': '', 'field': 'actions', 'width': '10%', 'type': 'actions',
+         'actions': [{'name': 'remove', 'icon': 'fas fa-times', 'title': 'Remove'}]},
+    ]
+
+    PRODUCT_COLUMNS = [
+        {'title': 'Product', 'field': 'title', 'width': '55%'},
+        {'title': 'Code', 'field': 'code', 'width': '25%'},
+        {'title': 'Stock', 'field': 'in_stock', 'width': '20%', 'type': 'boolean',
+         'css_class': 'text-center'},
+    ]
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='usages',
+            title='Set Contents',
+            treegrid_columns=self.USAGE_COLUMNS,
+            treegrid_static_data=self._usage_data(),
+            treegrid_node_column=1,
+            treegrid_checkbox=True,
+            treegrid_expand_all=True,
+            treegrid_height='400px',
+            # A page of rows the reader can see all of needs no search box; it does still need
+            # to open and close its groups.
+            treegrid_show_search=False,
+            treegrid_show_select_count=False,
+            treegrid_toolbar_end=[
+                {'name': 'delete', 'label': 'Delete', 'icon': 'fas fa-trash',
+                 'button_class': 'btn-danger', 'needs_selection': 2},
+            ],
+        )
+        self.add_treegrid_card(
+            card_name='products',
+            title='Products',
+            treegrid_columns=self.PRODUCT_COLUMNS,
+            treegrid_static_data=self._product_data(),
+            treegrid_checkbox=True,
+            treegrid_height='400px',
+            treegrid_show_search=False,
+            treegrid_auto_hide_expand_buttons=True,
+            treegrid_show_select_buttons=False,
+            treegrid_show_submit_button=False,
+            treegrid_toolbar_end=[
+                {'name': 'add', 'label': 'Add', 'icon': 'fas fa-plus',
+                 'button_class': 'btn-primary', 'needs_selection': 2},
+            ],
+        )
+        self.add_card_group('usages', div_css_class='col-7 float-left')
+        self.add_card_group('products', div_css_class='col-5 float-left')
+
+    @staticmethod
+    def _usage_data():
+        groups = [('Timber', [('Oak Rail', '4', True), ('Ash Stile', '2', False)]),
+                  ('Glass', [('Float 4mm', '6', True)])]
+        nodes = []
+        for group_name, items in groups:
+            nodes.append({
+                'title': group_name,
+                'key': f'group_{group_name.lower()}',
+                'folder': True,
+                'data': {
+                    'type': 'group',
+                    'usage': '',
+                    'qty': '',
+                    'in_stock': '',
+                    # Survives the row re-render fancytree does on expand/collapse/activate.
+                    '_row_class': 'table-primary',
+                },
+                'children': [
+                    {
+                        'title': name,
+                        'key': f'item_{name.lower().replace(" ", "_")}',
+                        'data': {'type': 'item', 'usage': group_name, 'qty': qty,
+                                 'in_stock': in_stock},
+                    }
+                    for name, qty, in_stock in items
+                ],
+            })
+        return nodes
+
+    @staticmethod
+    def _product_data():
+        return [
+            {'title': f'Product {n}', 'key': f'product_{n}',
+             'data': {'type': 'product', 'code': f'P-{n:03d}', 'in_stock': n % 2 == 0}}
+            for n in range(1, 7)
+        ]
+
+    def button_usages_delete(self, **kwargs):
+        import json
+        keys = json.loads(kwargs.get('selected_keys', '[]'))
+        self.add_command(toast_commands(
+            header=f'Delete {len(keys)} row(s)', text=', '.join(keys)))
+        return self.command_response()
+
+    def button_products_add(self, **kwargs):
+        import json
+        keys = json.loads(kwargs.get('selected_keys', '[]'))
+        self.add_command(toast_commands(
+            header=f'Add {len(keys)} product(s)', text=', '.join(keys)))
+        return self.command_response()
+
+    def button_usages_action(self, **kwargs):
+        self.add_command(toast_commands(
+            header='Row action', text=f"{kwargs.get('action')} on {kwargs.get('key')}"))
+        return self.command_response()
+
+
 class TreegridAdvancedExample(MainMenu, CardMixin, TemplateView):
     """Context menu with MenuItems, resizable columns, and dynamic add/remove nodes."""
     template_name = 'cards_examples/cards.html'
