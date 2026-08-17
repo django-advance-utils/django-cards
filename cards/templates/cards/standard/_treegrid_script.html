@@ -272,6 +272,14 @@
                 };
             }
         }
+        // Stop Fancytree intercepting Backspace/arrow keys typed into cell editors.
+        // Fancytree's keymap treats Backspace as "navigate to parent", so without this
+        // it preventDefaults the keystroke and Backspace appears dead while editing.
+        // Delegated so it also covers lazily-created editors. Body-cell editors live in
+        // <td>; column filters live in <th>, so this won't collide with their handler.
+        $('#' + CARD_CODE + '_table').on('keydown', 'td input, td select', function(e) {
+            e.stopPropagation();
+        });
     }
 
     // Batch save: pending changes keyed by "nodeKey:field"
