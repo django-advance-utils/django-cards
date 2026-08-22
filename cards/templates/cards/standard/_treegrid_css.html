@@ -203,6 +203,13 @@
         font-size: 12px;
     }
 
+    /* Menu column cells (colType 'menu') align right by class, so the markup does not
+       need a float wrapper element on every row. */
+    .fancytree-ext-table tbody td.treegrid-menu-cell {
+        text-align: right;
+        white-space: nowrap;
+    }
+
     /* Action buttons in cells */
     .treegrid-action-btn {
         border: none;

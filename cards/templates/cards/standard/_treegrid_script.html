@@ -571,6 +571,21 @@
         node.extraClasses = known.trim();
     }
 
+    // Build a row's action menu from the column's single markup template, substituting the
+    // record ids this row supplies. col.menu_subs is [{var: '%1%', field: 'id'}, ...].
+    // A row-action menu is byte-identical on every row apart from those ids, so a caller
+    // rendering it server side per row ships the same few hundred bytes once per row; this
+    // lets the column carry the markup once instead.
+    function _renderMenuTemplate(col, d) {
+        var html = col.html || '';
+        var subs = col.menu_subs || [];
+        for (var s = 0; s < subs.length; s++) {
+            var v = d[subs[s].field];
+            html = html.split(subs[s].var).join(v == null ? '' : String(v));
+        }
+        return html;
+    }
+
     function renderCells(node) {
         var $tr = $(node.tr);
         var $tds = $tr.find('>td');
@@ -682,6 +697,10 @@
             } else if (colType === 'html') {
                 var htmlHlTerm = PAGINATION ? (_filterTerm || _filterColTerms[i] || '') : '';
                 $td.html(htmlHlTerm ? _highlightInHtml(val, htmlHlTerm) : val);
+            } else if (colType === 'menu') {
+                // Row-action menu rendered from the column's single markup template.
+                // Right-aligned by class so the markup needs no float wrapper per row.
+                $td.addClass('treegrid-menu-cell').html(_renderMenuTemplate(col, d));
             } else if (colType === 'actions') {
                 if (!$td.find('.treegrid-action-btn').length) {
                     var actions = col.actions || [];
