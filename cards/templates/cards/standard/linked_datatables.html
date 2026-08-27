@@ -40,20 +40,22 @@
 </div>
 
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     var cardId = '{{ card.code }}';
-    var panels = $('#' + cardId + '_card .linked-datatable-panel');
+    var cardEl = document.getElementById(cardId + '_card');
+    if (!cardEl) return;
+    var panels = cardEl.querySelectorAll('.linked-datatable-panel');
     var tableConfigs = [];
 
-    panels.each(function() {
+    for (var p = 0; p < panels.length; p++) {
         tableConfigs.push({
-            tableId: $(this).data('table-id'),
-            index: $(this).data('index'),
-            linkedField: $(this).data('linked-field') || null,
-            rowLink: $(this).data('row-link') || null,
+            tableId: panels[p].getAttribute('data-table-id'),
+            index: parseInt(panels[p].getAttribute('data-index'), 10),
+            linkedField: panels[p].getAttribute('data-linked-field') || null,
+            rowLink: panels[p].getAttribute('data-row-link') || null,
             selectedId: null
         });
-    });
+    }
 
     var autoSelect = {{ auto_select_first|default:"true" }};
 
@@ -61,6 +63,18 @@ $(document).ready(function() {
     var style = document.createElement('style');
     style.textContent = '.linked-datatable-row-selected { background-color: #d4edfa !important; } .linked-dt-arrow { color: #ccc; width: 30px !important; padding: 4px !important; } .linked-datatable-row-selected .linked-dt-arrow { color: #007bff; }';
     document.head.appendChild(style);
+
+    function setStatus(tableId, text) {
+        var el = document.getElementById(tableId + '_status');
+        if (el) el.textContent = text;
+    }
+
+    function clearRowSelection(tableId) {
+        var rows = document.querySelectorAll('#' + tableId + ' tbody tr.linked-datatable-row-selected');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].classList.remove('linked-datatable-row-selected');
+        }
+    }
 
     function clearDownstreamTables(fromIndex) {
         for (var i = fromIndex + 1; i < tableConfigs.length; i++) {
@@ -70,9 +84,18 @@ $(document).ready(function() {
             if (dt) {
                 dt.table.api().clear().draw();
             }
-            $('#' + config.tableId + '_status').text('Select a row above to load data');
-            $('#' + config.tableId + ' tbody tr').removeClass('linked-datatable-row-selected');
+            setStatus(config.tableId, 'Select a row above to load data');
+            clearRowSelection(config.tableId);
         }
+    }
+
+    function formEncode(data) {
+        var parts = [];
+        for (var key in data) {
+            if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key] == null ? '' : data[key]));
+        }
+        return parts.join('&');
     }
 
     function loadTable(index, filterField, filterValue) {
@@ -80,43 +103,48 @@ $(document).ready(function() {
         var dt = django_datatables.DataTables[config.tableId];
         if (!dt) return;
 
-        var tableEl = $('#' + config.tableId);
-        var url = tableEl.data('url') || window.location.pathname;
+        var tableEl = document.getElementById(config.tableId);
+        var url = (tableEl && tableEl.getAttribute('data-url')) || window.location.pathname;
         var csrf = ajax_helpers.getCookie('csrftoken');
 
-        $('#' + config.tableId + '_status').text('Loading...');
+        setStatus(config.tableId, 'Loading...');
 
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-CSRFToken': csrf
+            },
+            body: formEncode({
                 csrfmiddlewaretoken: csrf,
                 table_id: config.tableId,
                 datatable_data: true,
                 linked_filter_field: filterField,
                 linked_filter_value: filterValue
-            },
-            success: function(response) {
-                dt.table.api().clear();
-                if (response.data && response.data.length > 0) {
-                    dt.table.api().rows.add(response.data);
-                    $('#' + config.tableId + '_status').text(response.data.length + ' rows');
-                } else {
-                    $('#' + config.tableId + '_status').text('No results');
-                }
-                dt.table.api().draw();
-
-                // Auto-select first row in the loaded table (skip the last table)
-                if (autoSelect && index < tableConfigs.length - 1 && response.data && response.data.length > 0) {
-                    var firstRow = $('#' + config.tableId + ' tbody tr:first');
-                    if (firstRow.length) {
-                        selectRow(index, config.tableId, firstRow[0]);
-                    }
-                }
-            },
-            error: function() {
-                $('#' + config.tableId + '_status').text('Error loading data');
+            }),
+            credentials: 'same-origin'
+        }).then(function(response) {
+            if (!response.ok) throw new Error('request failed');
+            return response.json();
+        }).then(function(response) {
+            dt.table.api().clear();
+            if (response.data && response.data.length > 0) {
+                dt.table.api().rows.add(response.data);
+                setStatus(config.tableId, response.data.length + ' rows');
+            } else {
+                setStatus(config.tableId, 'No results');
             }
+            dt.table.api().draw();
+
+            // Auto-select first row in the loaded table (skip the last table)
+            if (autoSelect && index < tableConfigs.length - 1 && response.data && response.data.length > 0) {
+                var firstRow = document.querySelector('#' + config.tableId + ' tbody tr');
+                if (firstRow) {
+                    selectRow(index, config.tableId, firstRow);
+                }
+            }
+        }).catch(function() {
+            setStatus(config.tableId, 'Error loading data');
         });
     }
 
@@ -135,14 +163,14 @@ $(document).ready(function() {
         // Toggle selection if clicking same row
         if (toggle && tableConfigs[panelIndex].selectedId === rowId) {
             tableConfigs[panelIndex].selectedId = null;
-            $(row).removeClass('linked-datatable-row-selected');
+            row.classList.remove('linked-datatable-row-selected');
             clearDownstreamTables(panelIndex);
             return;
         }
 
         // Highlight selected row
-        $('#' + tableId + ' tbody tr').removeClass('linked-datatable-row-selected');
-        $(row).addClass('linked-datatable-row-selected');
+        clearRowSelection(tableId);
+        row.classList.add('linked-datatable-row-selected');
         tableConfigs[panelIndex].selectedId = rowId;
 
         // Clear and load downstream tables
@@ -166,31 +194,40 @@ $(document).ready(function() {
         activePanelIndex = index;
     }
 
-    panels.each(function() {
-        var panelIndex = $(this).data('index');
-        var tableId = $(this).data('table-id');
+    for (var k = 0; k < panels.length; k++) {
+        (function(panel) {
+            var panelIndex = parseInt(panel.getAttribute('data-index'), 10);
+            var tableId = panel.getAttribute('data-table-id');
 
-        // Set initial status for tables that need a selection
-        if (panelIndex > 0 && tableConfigs[panelIndex].linkedField) {
-            $('#' + tableId + '_status').text('Select a row in the previous table');
-        }
+            // Set initial status for tables that need a selection
+            if (panelIndex > 0 && tableConfigs[panelIndex].linkedField) {
+                setStatus(tableId, 'Select a row in the previous table');
+            }
 
-        // Bind click handler
-        $('#' + tableId + ' tbody').on('click', 'tr', function() {
-            setActivePanel(panelIndex);
-            selectRow(panelIndex, tableId, this, true, true);
-        });
+            var tbody = document.querySelector('#' + tableId + ' tbody');
+            if (tbody) {
+                tbody.addEventListener('click', function(e) {
+                    var row = e.target.closest('tr');
+                    if (!row || !tbody.contains(row)) return;
+                    setActivePanel(panelIndex);
+                    selectRow(panelIndex, tableId, row, true, true);
+                });
+            }
 
-        // Focus panel when clicking anywhere on it
-        $('#' + tableId + '_panel').on('click', function() {
-            setActivePanel(panelIndex);
-        });
-    });
+            var panelEl = document.getElementById(tableId + '_panel');
+            if (panelEl) {
+                panelEl.addEventListener('click', function() {
+                    setActivePanel(panelIndex);
+                });
+            }
+        })(panels[k]);
+    }
 
     // Keyboard navigation
-    $('#' + cardId + '_card').attr('tabindex', '0').css('outline', 'none');
-    $('#' + cardId + '_card').on('keydown', function(e) {
-        var key = e.which;
+    cardEl.setAttribute('tabindex', '0');
+    cardEl.style.outline = 'none';
+    cardEl.addEventListener('keydown', function(e) {
+        var key = e.keyCode || e.which;
         // Up=38, Down=40, Left=37, Right=39
         if (key < 37 || key > 40) return;
         e.preventDefault();
@@ -202,11 +239,16 @@ $(document).ready(function() {
 
         if (key === 38 || key === 40) {
             // Up / Down - move selection within current table
-            var rows = $('#' + tableId + ' tbody tr');
+            var rows = document.querySelectorAll('#' + tableId + ' tbody tr');
             if (rows.length === 0) return;
 
-            var selectedRow = $('#' + tableId + ' tbody tr.linked-datatable-row-selected');
-            var currentIdx = selectedRow.length ? rows.index(selectedRow[0]) : -1;
+            var selectedRow = document.querySelector('#' + tableId + ' tbody tr.linked-datatable-row-selected');
+            var currentIdx = -1;
+            if (selectedRow) {
+                for (var r = 0; r < rows.length; r++) {
+                    if (rows[r] === selectedRow) { currentIdx = r; break; }
+                }
+            }
             var newIdx;
 
             if (key === 38) {
@@ -217,14 +259,7 @@ $(document).ready(function() {
 
             if (newIdx !== currentIdx) {
                 selectRow(activePanelIndex, tableId, rows[newIdx], false);
-                // Scroll row into view
-                var rowEl = $(rows[newIdx]);
-                var container = rowEl.closest('.linked-datatable-panel');
-                var rowTop = rowEl.position().top;
-                var containerHeight = container.height();
-                if (rowTop < 0 || rowTop > containerHeight - 30) {
-                    rowEl[0].scrollIntoView({block: 'nearest'});
-                }
+                rows[newIdx].scrollIntoView({block: 'nearest'});
             }
         } else if (key === 39) {
             // Right - move focus to next panel
@@ -239,18 +274,27 @@ $(document).ready(function() {
         }
     });
 
-    // Auto-select first row of the first table once data loads
+    // Auto-select first row of the first table once data loads.
+    // DataTables still needs jQuery elsewhere, but we poll the django_datatables
+    // registry so this card script itself does not call $.
     if (autoSelect && tableConfigs.length > 0) {
         var firstTableId = tableConfigs[0].tableId;
-        $('#' + firstTableId).on('init.dt', function() {
+        var tries = 0;
+        var timer = setInterval(function() {
             var dt = django_datatables.DataTables[firstTableId];
+            tries += 1;
             if (dt && dt.table.api().rows().count() > 0) {
-                var firstRow = $('#' + firstTableId + ' tbody tr:first');
-                selectRow(0, firstTableId, firstRow[0], false);
-                setActivePanel(0);
-                $('#' + cardId + '_card').focus();
+                clearInterval(timer);
+                var firstRow = document.querySelector('#' + firstTableId + ' tbody tr');
+                if (firstRow) {
+                    selectRow(0, firstTableId, firstRow, false);
+                    setActivePanel(0);
+                    cardEl.focus();
+                }
+            } else if (tries > 100) {
+                clearInterval(timer);
             }
-        });
+        }, 50);
     }
 });
 </script>

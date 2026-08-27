@@ -7,4 +7,14 @@
     </div>
     {% if group.script %}<script>{{ group.script|safe }}</script>{% endif %}
 {% endfor %}
-<script>$(function(){$('[data-toggle="tooltip"]').tooltip({container:'body'});$('[data-toggle="popover"]').popover({container:'body'})})</script>
+<script>
+(function() {
+    // Bootstrap 4 tooltip/popover plugins require jQuery; skip when unavailable.
+    if (typeof window.jQuery === 'undefined') return;
+    var $ = window.jQuery;
+    $(function() {
+        $('[data-toggle="tooltip"]').tooltip({container: 'body'});
+        $('[data-toggle="popover"]').popover({container: 'body'});
+    });
+})();
+</script>

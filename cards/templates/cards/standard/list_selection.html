@@ -13,31 +13,35 @@
 
     function load_details(entry_id) {
         last_loaded_entry_id = entry_id;
-        $('.cards-list-group-item.active').removeClass('active');
-        $('#list_' + entry_id).addClass('active');
-        $(document).ready(function () {
-            {% if modal %}
-                django_modal.send_inputs({'button': '{{ details_button_action_name }}', 'entry_id': entry_id})
-            {% else %}
-                ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
-            {% endif %}
-        });
+        var active = document.querySelectorAll('.cards-list-group-item.active');
+        for (var i = 0; i < active.length; i++) {
+            active[i].classList.remove('active');
+        }
+        var item = document.getElementById('list_' + entry_id);
+        if (item) item.classList.add('active');
+        {% if modal %}
+            django_modal.send_inputs({'button': '{{ details_button_action_name }}', 'entry_id': entry_id})
+        {% else %}
+            ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+        {% endif %}
     }
 
     function load_empty_details() {
         last_loaded_entry_id = null;
-        $('.cards-list-group-item.active').removeClass('active');
-        $(document).ready(function () {
-            {% if modal %}
-                django_modal.send_inputs({'button': '{{ details_empty_button_action_name }}'})
-            {% else %}
-                ajax_helpers.post_json({'data': {'button': '{{ details_empty_button_action_name }}'}});
-            {% endif %}
-        });
+        var active = document.querySelectorAll('.cards-list-group-item.active');
+        for (var i = 0; i < active.length; i++) {
+            active[i].classList.remove('active');
+        }
+        {% if modal %}
+            django_modal.send_inputs({'button': '{{ details_empty_button_action_name }}'})
+        {% else %}
+            ajax_helpers.post_json({'data': {'button': '{{ details_empty_button_action_name }}'}});
+        {% endif %}
     }
 
-    $(document).ready(function () {
-         $( "#list_{{ selected_id }}" ).focus();
+    document.addEventListener('DOMContentLoaded', function () {
+         var selected = document.getElementById('list_{{ selected_id }}');
+         if (selected) selected.focus();
     });
 
     ajax_helpers.command_functions.load_details = function (command) {
@@ -87,7 +91,7 @@
         </div>
 
         <script>
-            $(document).ready(function () {load_empty_details();});
+            document.addEventListener('DOMContentLoaded', function () {load_empty_details();});
 
         </script>
 
