@@ -1,0 +1,12 @@
+{
+  "name": "django-cards",
+  "install": "./.cursor/install.sh",
+  "start": "./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "cd django_examples && PYTHONPATH=\"$PWD/..\" ../.venv/bin/python manage.py runserver 0.0.0.0:8011"
+    }
+  ],
+  "ports": [{ "name": "dev-server", "port": 8011 }]
+}
