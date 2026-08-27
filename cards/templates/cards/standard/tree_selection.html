@@ -1,10 +1,12 @@
 <script>
     function load_details(entry_id) {
-        $('.cards-list-group-item.active').removeClass('active');
-        $('#list_' + entry_id).addClass('active');
-        $(document).ready(function () {
-            ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
-        });
+        var active = document.querySelectorAll('.cards-list-group-item.active');
+        for (var i = 0; i < active.length; i++) {
+            active[i].classList.remove('active');
+        }
+        var item = document.getElementById('list_' + entry_id);
+        if (item) item.classList.add('active');
+        ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
     }
 </script>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
@@ -20,6 +22,7 @@
     <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
         <div id="{{ card.code }}_tree"></div>
         <script>
+            {# jsTree still requires jQuery; this is the only remaining $ usage for CardTree. #}
             $('#{{ card.code }}_tree').jstree({
                 'core': {
                     'data': {{ data|safe }},
