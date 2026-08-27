@@ -1,34 +1,41 @@
-{% load i18n %}
 <script>
-(function() {
-    var CARD_CODE = '{{ card.code }}';
-    var DATA_URL = '{{ card.extra_card_info.treegrid_data_url }}';
-    var DATA_MODE = '{{ card.extra_card_info.treegrid_data_mode }}';
-    var STATIC_DATA = {{ card.extra_card_info.treegrid_static_data_json|safe }};
-    var READ_ONLY = {{ card.extra_card_info.treegrid_read_only|yesno:"true,false" }};
-    var INDENTATION = {{ card.extra_card_info.treegrid_indentation }};
-    var ICON_MAP = {{ card.extra_card_info.treegrid_icon_map_json|safe }};
-    var COLUMNS = {{ card.extra_card_info.treegrid_columns_json|safe }};
-    var EXPAND_ALL = {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }};
-    var FILTER_AUTO_EXPAND = {{ card.extra_card_info.treegrid_filter_auto_expand|yesno:"true,false" }};
-    var SHOW_COL_FILTERS = {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }} || {{ card.column_search|yesno:"true,false" }};
-    var TOOLBAR = {{ card.extra_card_info.treegrid_toolbar_json|safe }};
-    var NODE_COLUMN = {{ card.extra_card_info.treegrid_node_column }};
-    var SAVE_MODE = '{{ card.extra_card_info.treegrid_save_mode }}';
-    var CHECKBOX = {{ card.extra_card_info.treegrid_checkbox|yesno:"true,false" }};
-    var CHECKBOX_COLUMN = {{ card.extra_card_info.treegrid_checkbox_column }};
-    var CONTEXT_MENU = {{ card.extra_card_info.treegrid_context_menu_json|safe }};
-    var RESIZABLE = {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }};
-    var PAGINATION = {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }};
-    var JS_FILTERS = {{ card.extra_card_info.treegrid_js_filters_json|safe }};
-    var CURRENT_NODE = '{{ card.extra_card_info.treegrid_current_node|escapejs }}';
-    var SORTABLE = {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }};
-    var DRAG_DROP = {{ card.extra_card_info.treegrid_drag_drop|yesno:"true,false" }};
-    var DRAG_CROSS_LEVEL = {{ card.extra_card_info.treegrid_drag_cross_level|yesno:"true,false" }};
-    var FORM_FIELD = '{{ card.extra_card_info.treegrid_form_field }}';
-    var ROW_CLICK = '{{ card.extra_card_info.treegrid_row_click }}';
-    var DEFAULT_SELECTED = {{ card.extra_card_info.treegrid_default_selected_json|safe }};
-    var AUTO_HIDE_EXPAND = {{ card.extra_card_info.treegrid_auto_hide_expand_buttons|yesno:"true,false" }};
+{% comment %}
+    Every treegrid on a page needs the same ~100 KiB of function definitions, so they are
+    emitted once and handed each card's config in turn. One call per card, and the
+    per-card state each call closes over is what keeps two grids on a page independent.
+
+    The config a card emits lives in _treegrid_init.html; anything below that reads a
+    per-card value reads it from CFG.
+{% endcomment %}
+window._treegridInit = window._treegridInit || function(CFG) {
+    var CARD_CODE = CFG.card_code;
+    var DATA_URL = CFG.data_url;
+    var DATA_MODE = CFG.data_mode;
+    var STATIC_DATA = CFG.static_data;
+    var READ_ONLY = CFG.read_only;
+    var INDENTATION = CFG.indentation;
+    var ICON_MAP = CFG.icon_map;
+    var COLUMNS = CFG.columns;
+    var EXPAND_ALL = CFG.expand_all;
+    var FILTER_AUTO_EXPAND = CFG.filter_auto_expand;
+    var SHOW_COL_FILTERS = CFG.show_column_filters || CFG.column_search;
+    var TOOLBAR = CFG.toolbar;
+    var NODE_COLUMN = CFG.node_column;
+    var SAVE_MODE = CFG.save_mode;
+    var CHECKBOX = CFG.checkbox;
+    var CHECKBOX_COLUMN = CFG.checkbox_column;
+    var CONTEXT_MENU = CFG.context_menu;
+    var RESIZABLE = CFG.resizable;
+    var PAGINATION = CFG.pagination;
+    var JS_FILTERS = CFG.js_filters;
+    var CURRENT_NODE = CFG.current_node;
+    var SORTABLE = CFG.sortable;
+    var DRAG_DROP = CFG.drag_drop;
+    var DRAG_CROSS_LEVEL = CFG.drag_cross_level;
+    var FORM_FIELD = CFG.form_field;
+    var ROW_CLICK = CFG.row_click;
+    var DEFAULT_SELECTED = CFG.default_selected;
+    var AUTO_HIDE_EXPAND = CFG.auto_hide_expand;
 
     // Form-field mode: accumulate edits/reorders/moves/selections client-side, write JSON to a named input.
     // Keys: edits keyed by "nodeKey:field" (last write wins); reorders keyed by parent key.
@@ -57,7 +64,7 @@
     var _allNodes = [];
     var _allKeys = [];
     var _currentPage = 1;
-    var _pageSize = {{ card.extra_card_info.treegrid_page_size|default:50 }};
+    var _pageSize = CFG.page_size;
     var _filteredNodes = null;  // null = no filter active; array = current filter result set
     var _filterTerm = '';       // global search term for highlight
     var _filterColTerms = {};   // {colIdx: term} for column-specific highlight
@@ -2096,5 +2103,23 @@
             });
         }
     });
+};
+
+{# A card can emit its config before this block reaches the page, so a queued one is run now. #}
+(function() {
+    var queued = window._treegridQueued;
+    window._treegridQueued = null;
+    if (queued) {
+        for (var i = 0; i < queued.length; i++) {
+            {# Each direct init runs in its own script element, so one card's failure stays #}
+            {# its own; the drain has to provide that isolation itself. #}
+            try {
+                window._treegridInit(queued[i]);
+            } catch (err) {
+                console.error('django-cards: treegrid "' + (queued[i] && queued[i].card_code) +
+                    '" failed to initialise:', err);
+            }
+        }
+    }
 })();
 </script>

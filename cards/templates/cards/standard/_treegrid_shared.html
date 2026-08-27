@@ -1,0 +1,7 @@
+{% comment %}
+    Everything a treegrid card carries that is identical between cards. Emitted once per
+    page by the treegrid_shared_assets tag, not per card -- a modal holding four grids
+    would otherwise ship four copies of about 110 KiB.
+{% endcomment %}
+{% include 'cards/standard/_treegrid_css.html' %}
+{% include 'cards/standard/_treegrid_script.html' %}

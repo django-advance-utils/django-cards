@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 
 from cards.includes import FancytreeJS, FancytreeAwesomeSkinCSS
 from cards_examples.models import Company, CompanyCategory
+from cards_examples.tests import FACTORY, INIT_CALL, STYLE_RULE
 from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
@@ -64,6 +65,35 @@ class TreegridViewTestMixin:
     def _count_filter_inputs(self, html):
         return len(re.findall(r'<input[^>]*filter_input', html))
 
+    def _assert_config(self, html, name, value):
+        """Assert a per-card config entry reached the page.
+
+        The grid's behaviour is emitted once for the page; what a card carries of its own
+        is an entry in the config object in cards/standard/_treegrid_init.html.
+        """
+        self.assertIn(f'{name}: {value}', html)
+
+    @staticmethod
+    def _card_config(html):
+        """The text of the first card's config object (see _treegrid_init.html)."""
+        start = html.index('var cfg = {')
+        return html[start:html.index('\n    };', start)]
+
+    @classmethod
+    def _card_columns(cls, html):
+        """The column definitions out of the first card's config object."""
+        entry = re.search(r'^ +columns: (.*),$', cls._card_config(html), re.M)
+        return json.loads(entry.group(1))
+
+    @staticmethod
+    def _markup_only(html):
+        """The page with every script and stylesheet taken out.
+
+        A test that asks about a card's markup has to say so: the shared script and
+        stylesheet name the same ids and classes the markup does.
+        """
+        return re.sub(r'<(script|style)\b.*?</\1>', '', html, flags=re.DOTALL)
+
 
 class TestTreegridBasic(TreegridViewTestMixin, TestCase):
     view_class = TreegridBasicExample
@@ -115,7 +145,7 @@ class TestTreegridBasic(TreegridViewTestMixin, TestCase):
 
     def test_expand_all_disabled(self):
         html = self._render()
-        self.assertIn('EXPAND_ALL = false', html)
+        self._assert_config(html, 'expand_all', 'false')
 
     def test_data_url(self):
         html = self._render()
@@ -137,7 +167,7 @@ class TestTreegridEditable(TreegridViewTestMixin, TestCase):
 
     def test_editable_columns(self):
         html = self._render()
-        self.assertIn('READ_ONLY = false', html)
+        self._assert_config(html, 'read_only', 'false')
 
     def test_footer_present(self):
         html = self._render()
@@ -168,7 +198,7 @@ class TestTreegridMultiLevel(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
 
 class TestTreegridCompact(TreegridViewTestMixin, TestCase):
@@ -200,7 +230,7 @@ class TestTreegridExpanded(TreegridViewTestMixin, TestCase):
 
     def test_expand_all_enabled(self):
         html = self._render()
-        self.assertIn('EXPAND_ALL = true', html)
+        self._assert_config(html, 'expand_all', 'true')
 
     def test_filter_shown_by_default(self):
         html = self._render()
@@ -218,7 +248,7 @@ class TestTreegridWidgets(TreegridViewTestMixin, TestCase):
 
     def test_not_read_only(self):
         html = self._render()
-        self.assertIn('READ_ONLY = false', html)
+        self._assert_config(html, 'read_only', 'false')
 
     def test_tree_column_not_editable(self):
         """Tree column (Name) should not be marked editable."""
@@ -227,11 +257,7 @@ class TestTreegridWidgets(TreegridViewTestMixin, TestCase):
         # The columns JSON should show first column without editable
         self.assertIn('"field": "title"', html)
         # Name column has no 'editable': true
-        import json
-        # Extract COLUMNS JSON from script
-        start = html.index('var COLUMNS = ') + len('var COLUMNS = ')
-        end = html.index(';\n', start)
-        columns = json.loads(html[start:end])
+        columns = self._card_columns(html)
         self.assertFalse(columns[0].get('editable', False))
 
     def test_checkbox_column_defined(self):
@@ -249,7 +275,7 @@ class TestTreegridWidgets(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
     def test_footer_present(self):
         html = self._render()
@@ -300,7 +326,7 @@ class TestTreegridBatch(TreegridViewTestMixin, TestCase):
 
     def test_batch_save_mode(self):
         html = self._render()
-        self.assertIn("SAVE_MODE = 'batch'", html)
+        self._assert_config(html, 'save_mode', "'batch'")
 
     def test_save_button_present(self):
         html = self._render()
@@ -387,7 +413,7 @@ class TestTreegridWidgetsAutoSave(TreegridViewTestMixin, TestCase):
 
     def test_auto_save_mode(self):
         html = self._render()
-        self.assertIn("SAVE_MODE = 'auto'", html)
+        self._assert_config(html, 'save_mode', "'auto'")
 
     def test_no_save_button(self):
         html = self._render()
@@ -432,7 +458,7 @@ class TestTreegridFull(TreegridViewTestMixin, TestCase):
 
     def test_column_filter_js(self):
         html = self._render()
-        self.assertIn('SHOW_COL_FILTERS = true', html)
+        self._assert_config(html, 'show_column_filters', 'true')
 
     def test_global_filter_hidden(self):
         """Full example uses column filters instead of global filter."""
@@ -446,7 +472,7 @@ class TestTreegridFull(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
 
 class TestTreegridFullData(TestCase):
@@ -518,7 +544,7 @@ class TestTreegridColspan(TreegridViewTestMixin, TestCase):
     def test_node_column_set_to_4(self):
         """Tree node should render in column 4 (Subitem Type / Style Name)."""
         html = self._render()
-        self.assertIn('NODE_COLUMN = 4', html)
+        self._assert_config(html, 'node_column', '4')
 
     def test_node_column_in_fancytree_config(self):
         html = self._render()
@@ -526,7 +552,7 @@ class TestTreegridColspan(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
     def test_rendercells_skips_node_column(self):
         """renderCells should skip NODE_COLUMN, not hardcoded 0."""
@@ -562,7 +588,7 @@ class TestTreegridStyled(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
 
 class TestTreegridStyledData(TestCase):
@@ -604,9 +630,9 @@ class TestTreegridToolbarSlots(TreegridViewTestMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.html = self._render()
-        # Everything below asks about the card's HTML, not the script or the stylesheet, both
-        # of which mention the same ids and class names.
-        self.markup = self.html.split('</style>')[1].split('<style>')[0]
+        # Everything below asks about the cards' HTML, not the script or the stylesheet,
+        # both of which mention the same ids and class names.
+        self.markup = self._markup_only(self.html)
 
     def test_renders_200(self):
         request = self.factory.get('/treegrid/toolbar-slots/')
@@ -644,8 +670,8 @@ class TestTreegridToolbarSlots(TreegridViewTestMixin, TestCase):
         self.assertIn('usages_get_selected', self.markup)
 
     def test_auto_hide_expand_buttons_flag_reaches_the_script(self):
-        self.assertIn('AUTO_HIDE_EXPAND = true', self.html)
-        self.assertIn('AUTO_HIDE_EXPAND = false', self.html)
+        self._assert_config(self.html, 'auto_hide_expand', 'true')
+        self._assert_config(self.html, 'auto_hide_expand', 'false')
 
     def test_column_class_on_header(self):
         self.assertIn('<th class="text-right">Qty</th>', self.markup)
@@ -664,7 +690,7 @@ class TestTreegridToolbarDefaults(TreegridViewTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.markup = self._render().split('</style>')[1].split('<style>')[0]
+        self.markup = self._markup_only(self._render())
 
     def test_selection_controls_all_present(self):
         for piece in ('select_tree_select_all', 'select_tree_deselect_all',
@@ -680,7 +706,7 @@ class TestTreegridToolbarDefaults(TreegridViewTestMixin, TestCase):
         self.assertNotIn('data-needs-selection', self.markup)
 
     def test_expand_buttons_not_auto_hidden(self):
-        self.assertIn('AUTO_HIDE_EXPAND = false', self._render())
+        self._assert_config(self._render(), 'auto_hide_expand', 'false')
 
 
 class TestTreegridFlagDefaults(TestCase):
@@ -736,7 +762,7 @@ class TestTreegridPayments(TreegridViewTestMixin, TestCase):
 
     def test_data_url(self):
         html = self._render()
-        self.assertIn("DATA_MODE = 'ajax'", html)
+        self._assert_config(html, 'data_mode', "'ajax'")
 
 
 # ---------------------------------------------------------------------------
@@ -823,3 +849,86 @@ class TestTreegridPaymentsData(TestCase):
         request = RequestFactory().get('/', {'parent': 'company_999999'})
         response = TreegridPaymentsData.as_view()(request)
         self.assertEqual(json.loads(response.content), [])
+
+
+class TestTreegridSharedAssets(TreegridViewTestMixin, TestCase):
+    """The stylesheet and the behaviour land once per page; only the config is per card."""
+
+    view_class = TreegridToolbarSlotsExample  # two grids, both with static data
+
+    def setUp(self):
+        super().setUp()
+        self.html = self._render()
+
+    def test_behaviour_emitted_once(self):
+        self.assertEqual(self.html.count(FACTORY), 1)
+
+    def test_stylesheet_emitted_once(self):
+        self.assertEqual(self.html.count(STYLE_RULE), 1)
+
+    def test_one_init_call_per_card(self):
+        self.assertEqual(self.html.count(INIT_CALL), 2)
+
+    def test_each_card_carries_its_own_code(self):
+        self.assertIn("card_code: 'usages'", self.html)
+        self.assertIn("card_code: 'products'", self.html)
+
+    def test_each_card_gets_its_own_element_ids(self):
+        """Two grids on a page stay independent because they address different elements."""
+        for card_code in ('usages', 'products'):
+            self.assertIn(f'id="{card_code}_table"', self.html)
+            self.assertIn(f'id="{card_code}_card"', self.html)
+
+
+class TestTreegridSharedAssetsTag(TestCase):
+    """treegrid_shared_assets emits the shared half once for a request, then nothing."""
+
+    def _tag(self, context):
+        from django.template import Context
+        from cards.templatetags.django_cards_tags import treegrid_shared_assets
+        return treegrid_shared_assets(Context(context))
+
+    def test_first_call_emits_the_shared_half(self):
+        request = RequestFactory().get('/')
+        self.assertIn(FACTORY, self._tag({'request': request}))
+
+    def test_second_call_on_the_same_request_emits_nothing(self):
+        request = RequestFactory().get('/')
+        self._tag({'request': request})
+        self.assertEqual(self._tag({'request': request}), '')
+
+    def test_a_fresh_request_gets_it_again(self):
+        """A card reloaded over ajax, or a modal body, is a request of its own."""
+        factory = RequestFactory()
+        self._tag({'request': factory.get('/')})
+        self.assertIn(FACTORY, self._tag({'request': factory.get('/')}))
+
+    def test_without_a_request_or_a_scope_it_is_always_emitted(self):
+        """Nothing marks the page, so the safe answer is to carry it.
+
+        A page carrying it twice is large; a page carrying it not at all is broken.
+        """
+        self.assertIn(FACTORY, self._tag({}))
+        self.assertIn(FACTORY, self._tag({}))
+
+    def test_a_render_scope_dedupes_cards_that_have_no_request(self):
+        """A form widget builds its own card mixin, so its card has no request.
+
+        Four such widgets in one modal are the page this split is for, so the request cycle
+        rather than the request object is what has to count as the page.
+        """
+        from cards.render_scope import _close_scope, _open_scope
+        _open_scope()
+        try:
+            self.assertIn(FACTORY, self._tag({}))
+            self.assertEqual(self._tag({}), '')
+            self.assertEqual(self._tag({'request': RequestFactory().get('/')}), '')
+        finally:
+            _close_scope()
+
+    def test_the_scope_closing_lets_the_next_page_carry_it_again(self):
+        from cards.render_scope import _close_scope, _open_scope
+        _open_scope()
+        self._tag({})
+        _close_scope()
+        self.assertIn(FACTORY, self._tag({}))

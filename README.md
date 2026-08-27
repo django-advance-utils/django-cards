@@ -1934,6 +1934,46 @@ NOTES:
 - This does not work with lazy treegrids, only static data treegrids. For lazy, the `self.add_command('reload_treegrid', card=card_name)` command can be used.
 - This also does not work with paginated treegrids currently. 
 
+### Several Treegrids on One Page
+
+The stylesheet and the grid's behaviour -- about 110 KiB together -- are the same for every
+treegrid, so they are emitted **once per page** rather than once per card. Each card emits only
+its own config object and one call into the shared behaviour, which is what keeps two grids on
+a page independent: the per-card state lives in the closure that call makes.
+
+Nothing needs configuring for this, and each card still renders as it always did. Two things
+are worth knowing:
+
+- **"The page" means the request cycle.** A card reloaded over ajax, or a modal body fetched on
+  its own, is a request of its own and carries the shared half again -- harmlessly, since the
+  browser already has it and the second copy does not overwrite the first.
+- **A card rendered outside a request cycle carries its own copy.** Building cards in a
+  management command or straight from `RequestFactory` fires no request signals, so there is no
+  page to mark; the shared half is emitted per card, as it was before. Rendering the same cards
+  through a served request -- including through a form widget that builds its own card mixin,
+  and so has no request to hand its card -- shares one copy.
+
+Overriding `cards/standard/treegrid.html` in a project means keeping its last three lines,
+which are what fetch the shared half and this card's config:
+
+```django
+{% treegrid_shared_assets %}
+{% include 'cards/standard/_treegrid_init.html' %}
+{% include 'cards/standard/_reload_script.html' %}
+```
+
+`treegrid_shared_assets` comes from `{% load django_cards_tags %}`.
+
+#### Upgrading from 1.4.x
+
+Nothing changes for a project using the package templates as-is, or for one that wraps
+`cards/standard/treegrid.html` with `{% include %}`. A project that **copied** the 1.4.x
+`treegrid.html` (or `_treegrid_script.html`) to override it must update its copy:
+`_treegrid_script.html` no longer initialises a grid by itself -- it defines the shared
+behaviour once -- so a stale copy renders grids that never come to life. When that happens
+each affected grid now logs a console error naming its card code; the fix is the three
+closing lines shown above.
+
 ---
 
 ## Iframe Card

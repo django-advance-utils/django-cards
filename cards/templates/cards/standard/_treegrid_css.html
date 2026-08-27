@@ -380,4 +380,19 @@
         font-size: 10px;
         flex-shrink: 0;
     }
+
+    /* Column filter dropdown built from the values in the column (filter_options: 'html') */
+    .treegrid-html-filter { position: relative; }
+    .treegrid-html-filter-toggle { width: 100%; height: calc(1.5em + .5rem + 2px); padding: .25rem 1.5rem .25rem .5rem;
+        font-size: .875rem; line-height: 1.5; text-align: left; background-color: #fff; cursor: pointer;
+        overflow: hidden; white-space: nowrap; position: relative; }
+    .treegrid-html-filter-toggle::after { content: ""; position: absolute; right: .5rem; top: 50%; margin-top: -.15rem;
+        border: .3rem solid transparent; border-top-color: #495057; pointer-events: none; }
+    .treegrid-html-filter-label { display: inline-block; vertical-align: middle; }
+    .treegrid-html-filter-menu { display: none; position: absolute; z-index: 1050; left: 0; min-width: 100%;
+        max-height: 240px; overflow-y: auto; background: #fff; border: 1px solid rgba(0,0,0,.15);
+        border-radius: .25rem; box-shadow: 0 .25rem .5rem rgba(0,0,0,.15); }
+    .treegrid-html-filter-menu.show { display: block; }
+    .treegrid-html-filter-item { padding: .25rem .5rem; cursor: pointer; white-space: nowrap; }
+    .treegrid-html-filter-item:hover { background: #f1f3f5; }
 </style>

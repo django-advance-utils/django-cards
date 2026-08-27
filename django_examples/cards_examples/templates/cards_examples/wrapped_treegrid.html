@@ -1,0 +1,12 @@
+{% comment %}
+    A project wrapping the standard treegrid card to append its own overrides -- the shape
+    jms_cloud uses in core/templates/core/cards/treegrid.html. The overrides have to keep
+    landing after the shared stylesheet, whichever card on the page carried it.
+{% endcomment %}
+{% include 'cards/standard/treegrid.html' %}
+<style>
+    .fancytree-partsel span.fancytree-checkbox::before {
+        content: "\f146" !important;
+        color: #123456 !important;
+    }
+</style>
