@@ -1,0 +1,13 @@
+{
+  "name": "django-cards",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "runserver",
+      "command": "cd django_examples && PYTHONPATH=\"$(cd .. && pwd)\" ../.venv/bin/python manage.py runserver 0.0.0.0:8011"
+    }
+  ],
+  "ports": [8011]
+}
