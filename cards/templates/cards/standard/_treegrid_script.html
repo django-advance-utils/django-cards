@@ -8,6 +8,9 @@
     per-card value reads it from CFG.
 {% endcomment %}
 window._treegridInit = window._treegridInit || function(CFG) {
+    {# Counted so the block at the foot of this file can tell "no grid called me" from #}
+    {# "the grids called me and one of them threw". #}
+    window._treegridInitCalls = (window._treegridInitCalls || 0) + 1;
     var CARD_CODE = CFG.card_code;
     var DATA_URL = CFG.data_url;
     var DATA_MODE = CFG.data_mode;
@@ -2107,6 +2110,9 @@ window._treegridInit = window._treegridInit || function(CFG) {
 
 {# A card can emit its config before this block reaches the page, so a queued one is run now. #}
 (function() {
+    {# Snapshotted before the drain, so a card this copy runs off the queue counts as having #}
+    {# used it. #}
+    var before = window._treegridInitCalls || 0;
     var queued = window._treegridQueued;
     window._treegridQueued = null;
     if (queued) {
@@ -2120,6 +2126,32 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     '" failed to initialise:', err);
             }
         }
+    }
+
+    {# The other half of the override check. _treegrid_init.html catches a card whose config #}
+    {# arrives with no shared behaviour to run it; this catches the mirror image -- shared #}
+    {# behaviour arriving with no card to call it, which is what a project copy of the 1.4.x #}
+    {# treegrid.html produces, since that copy includes this file per card and never includes #}
+    {# _treegrid_init.html. Nothing queues, so the warning there cannot fire and the page #}
+    {# would otherwise show dead grids and an empty console. #}
+    {# Compared against a snapshot rather than against zero: a fragment carrying a stale copy #}
+    {# into a document whose earlier grids did initialise has to be caught too. #}
+    if (window._treegridSharedCheckPending) { return; }
+    window._treegridSharedCheckPending = true;
+    var check = function() {
+        window._treegridSharedCheckPending = false;
+        if ((window._treegridInitCalls || 0) > before) { return; }
+        console.error('django-cards: the shared treegrid behaviour reached this document but ' +
+            'no treegrid card called it. A project copy of cards/standard/treegrid.html from ' +
+            '1.4.x initialises no grid: its last lines must be the treegrid_shared_assets tag ' +
+            'followed by the cards/standard/_treegrid_init.html include (README, "Upgrading ' +
+            'from 1.4.x").');
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(check, 0); });
+    } else {
+        {# An ajax fragment: check once the fragment's own scripts have run. #}
+        setTimeout(check, 0);
     }
 })();
 </script>

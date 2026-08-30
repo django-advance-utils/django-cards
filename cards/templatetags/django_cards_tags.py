@@ -33,6 +33,12 @@ def _shared_assets_html():
     re-building ~110 KiB of it per request. Under DEBUG it renders fresh each time, so an
     edited template (or a project override dropped in mid-development) shows up without a
     restart.
+
+    That makes context-freedom a requirement of any project override of
+    _treegrid_css.html or _treegrid_script.html, not just a property of the package's own:
+    the first served request's render is frozen for the life of the process, so an override
+    carrying {% trans %}, a request value or anything else that varies would serve that
+    first request's version -- its language, its user -- to everyone after it.
     """
     if settings.DEBUG:
         return render_to_string('cards/standard/_treegrid_shared.html')

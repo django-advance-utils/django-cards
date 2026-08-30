@@ -1,0 +1,12 @@
+{% comment %}
+    Stands in for a project's copy of the 1.4.x cards/standard/treegrid.html: the shape that
+    matters is the tail, which pulls the stylesheet and the script in per card and never
+    includes _treegrid_init.html, because in 1.4.x the script initialised the grid itself.
+    Trimmed to the one element the tests assert on -- the point is the includes, not the
+    2,000 lines of markup between them.
+{% endcomment %}
+<div id="{{ card.code }}_card">
+    <table id="{{ card.code }}_table"></table>
+</div>
+{% include 'cards/standard/_treegrid_css.html' %}
+{% include 'cards/standard/_treegrid_script.html' %}

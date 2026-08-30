@@ -428,6 +428,9 @@ class CardBase:
             extra_info['treegrid_auto_hide_expand_buttons'] = kwargs.get(
                 'treegrid_auto_hide_expand_buttons', False)
             extra_info['treegrid_expand_all'] = kwargs.get('treegrid_expand_all', False)
+            # Passed by add_treegrid_card since 1.4.x but never stored, so the template's
+            # lookup silently resolved to '' and the filter never auto-expanded.
+            extra_info['treegrid_filter_auto_expand'] = kwargs.get('treegrid_filter_auto_expand', True)
             extra_info['treegrid_show_column_filters'] = kwargs.get('treegrid_show_column_filters', False)
             extra_info['treegrid_toolbar'] = kwargs.get('treegrid_toolbar', [])
             extra_info['treegrid_toolbar_after'] = kwargs.get('treegrid_toolbar_after', [])

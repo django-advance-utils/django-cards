@@ -42,9 +42,10 @@
         window._treegridInit(cfg);
     } else {
         (window._treegridQueued = window._treegridQueued || []).push(cfg);
-        {# A queue nothing ever drains means the shared half never reached this document -- #}
-        {# a stale override of treegrid.html, or a fragment landing on a page with no grid. #}
+        {# A queue nothing ever drains means the shared half never reached this document. #}
         {# That must be loud: the symptom is otherwise a grid that silently never wakes up. #}
+        {# The mirror case -- shared half present, no card calling it -- cannot queue at all, #}
+        {# and is caught by the check at the foot of _treegrid_script.html instead. #}
         if (!window._treegridQueueWarn) {
             window._treegridQueueWarn = function() {
                 var q = window._treegridQueued;
@@ -52,9 +53,11 @@
                 var codes = [];
                 for (var i = 0; i < q.length; i++) { codes.push(q[i].card_code); }
                 console.error('django-cards: treegrid "' + codes.join('", "') + '" queued its ' +
-                    'config but the shared treegrid script never arrived in this document. An ' +
-                    'overridden cards/standard/treegrid.html must keep the treegrid_shared_assets ' +
-                    'tag and the _treegrid_init.html include at its end (README, treegrid section).');
+                    'config but the shared treegrid script never arrived in this document. Either ' +
+                    'an overridden cards/standard/treegrid.html dropped the treegrid_shared_assets ' +
+                    'tag, or a project copy of cards/standard/_treegrid_script.html from 1.4.x is ' +
+                    'overriding the shared one and defines no shared behaviour (README, ' +
+                    '"Upgrading from 1.4.x").');
             };
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function() { window._treegridQueueWarn(); });

@@ -1967,12 +1967,26 @@ which are what fetch the shared half and this card's config:
 #### Upgrading from 1.4.x
 
 Nothing changes for a project using the package templates as-is, or for one that wraps
-`cards/standard/treegrid.html` with `{% include %}`. A project that **copied** the 1.4.x
-`treegrid.html` (or `_treegrid_script.html`) to override it must update its copy:
-`_treegrid_script.html` no longer initialises a grid by itself -- it defines the shared
-behaviour once -- so a stale copy renders grids that never come to life. When that happens
-each affected grid now logs a console error naming its card code; the fix is the three
-closing lines shown above.
+`cards/standard/treegrid.html` with `{% include %}`. A project that **copied** either
+template to override it must update its copy, because `_treegrid_script.html` no longer
+initialises a grid by itself -- it defines the shared behaviour once, and something has to
+call it. A stale copy renders grids that never come to life, so each shape logs a console
+error rather than failing silently:
+
+- A copied **`treegrid.html`** includes `_treegrid_script.html` per card and never includes
+  `_treegrid_init.html`, so the shared behaviour lands with nothing to call it. The console
+  error says so; the fix is the three closing lines shown above.
+- A copied **`_treegrid_script.html`** overrides the shared half with per-card 1.4.x code
+  that defines no shared behaviour, so every card's config queues and nothing drains it. The
+  console error names the affected card codes; the fix is to drop the override, or to
+  re-copy it from 1.5.
+
+The same queued-config error covers an overridden `treegrid.html` that kept the
+`_treegrid_init.html` include but dropped the `{% treegrid_shared_assets %}` tag.
+
+An override of `_treegrid_script.html` or `_treegrid_css.html` must also stay free of
+`{% trans %}` and of anything else that varies per request: the shared half is rendered
+without a context and cached for the life of the process.
 
 ---
 

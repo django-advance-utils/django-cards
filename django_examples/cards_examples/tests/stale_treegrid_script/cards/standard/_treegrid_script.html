@@ -1,0 +1,12 @@
+{% comment %}
+    Stands in for a project's copy of the 1.4.x cards/standard/_treegrid_script.html: per-card
+    code reading {{ card.* }} directly, defining no shared behaviour. Rendered by
+    treegrid_shared_assets with no context, so the card lookups resolve to '' -- which is
+    exactly what the real stale copy does.
+{% endcomment %}
+<script>
+(function() {
+    var CARD_CODE = '{{ card.code }}';
+    window._staleTreegridScriptRan = true;
+})();
+</script>

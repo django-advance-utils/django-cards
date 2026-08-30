@@ -9,6 +9,10 @@ _treegrid_script.html is one edit here, not a hunt across modules.
 FACTORY = 'window._treegridInit = window._treegridInit || function(CFG)'
 INIT_CALL = 'window._treegridInit(cfg);'
 STYLE_RULE = '.fancytree-ext-table tbody td.treegrid-menu-cell'
+CONFIG_BLOCK = 'var cfg = {'
+# The two override checks, one per shape -- see test_treegrid_stale_override.
+QUEUE_WARN = 'queued its '
+SHARED_CHECK = 'no treegrid card called it'
 
 SIMPLE_COLUMNS = [{'title': 'Name', 'field': 'title'}, {'title': 'Code', 'field': 'code'}]
 
