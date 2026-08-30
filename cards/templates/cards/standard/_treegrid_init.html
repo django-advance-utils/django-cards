@@ -1,0 +1,70 @@
+{% comment %}
+    A treegrid card's own half: the values that differ between cards, and the one call
+    that builds this card's grid. The behaviour it calls into is emitted once per page by
+    _treegrid_shared.html.
+{% endcomment %}
+<script>
+(function() {
+    var cfg = {
+        card_code: '{{ card.code|escapejs }}',
+        data_url: '{{ card.extra_card_info.treegrid_data_url|escapejs }}',
+        data_mode: '{{ card.extra_card_info.treegrid_data_mode|escapejs }}',
+        static_data: {{ card.extra_card_info.treegrid_static_data_json|safe }},
+        read_only: {{ card.extra_card_info.treegrid_read_only|yesno:"true,false" }},
+        indentation: {{ card.extra_card_info.treegrid_indentation }},
+        icon_map: {{ card.extra_card_info.treegrid_icon_map_json|safe }},
+        columns: {{ card.extra_card_info.treegrid_columns_json|safe }},
+        expand_all: {{ card.extra_card_info.treegrid_expand_all|yesno:"true,false" }},
+        filter_auto_expand: {{ card.extra_card_info.treegrid_filter_auto_expand|yesno:"true,false" }},
+        show_column_filters: {{ card.extra_card_info.treegrid_show_column_filters|yesno:"true,false" }},
+        column_search: {{ card.column_search|yesno:"true,false" }},
+        toolbar: {{ card.extra_card_info.treegrid_toolbar_json|safe }},
+        node_column: {{ card.extra_card_info.treegrid_node_column }},
+        save_mode: '{{ card.extra_card_info.treegrid_save_mode|escapejs }}',
+        checkbox: {{ card.extra_card_info.treegrid_checkbox|yesno:"true,false" }},
+        checkbox_column: {{ card.extra_card_info.treegrid_checkbox_column }},
+        context_menu: {{ card.extra_card_info.treegrid_context_menu_json|safe }},
+        resizable: {{ card.extra_card_info.treegrid_resizable|yesno:"true,false" }},
+        pagination: {{ card.extra_card_info.treegrid_pagination|yesno:"true,false" }},
+        page_size: {{ card.extra_card_info.treegrid_page_size|default:50 }},
+        js_filters: {{ card.extra_card_info.treegrid_js_filters_json|safe }},
+        current_node: '{{ card.extra_card_info.treegrid_current_node|escapejs }}',
+        sortable: {{ card.extra_card_info.treegrid_sortable|yesno:"true,false" }},
+        drag_drop: {{ card.extra_card_info.treegrid_drag_drop|yesno:"true,false" }},
+        drag_cross_level: {{ card.extra_card_info.treegrid_drag_cross_level|yesno:"true,false" }},
+        form_field: '{{ card.extra_card_info.treegrid_form_field|escapejs }}',
+        row_click: '{{ card.extra_card_info.treegrid_row_click|escapejs }}',
+        default_selected: {{ card.extra_card_info.treegrid_default_selected_json|safe }},
+        auto_hide_expand: {{ card.extra_card_info.treegrid_auto_hide_expand_buttons|yesno:"true,false" }}
+    };
+    {# The shared half is normally already above this card; a card rendered ahead of it queues instead. #}
+    if (window._treegridInit) {
+        window._treegridInit(cfg);
+    } else {
+        (window._treegridQueued = window._treegridQueued || []).push(cfg);
+        {# A queue nothing ever drains means the shared half never reached this document. #}
+        {# That must be loud: the symptom is otherwise a grid that silently never wakes up. #}
+        {# The mirror case -- shared half present, no card calling it -- cannot queue at all, #}
+        {# and is caught by the check at the foot of _treegrid_script.html instead. #}
+        if (!window._treegridQueueWarn) {
+            window._treegridQueueWarn = function() {
+                var q = window._treegridQueued;
+                if (!q || !q.length) return;
+                var codes = [];
+                for (var i = 0; i < q.length; i++) { codes.push(q[i].card_code); }
+                console.error('django-cards: treegrid "' + codes.join('", "') + '" queued its ' +
+                    'config but the shared treegrid script never arrived in this document. Either ' +
+                    'an overridden cards/standard/treegrid.html dropped the treegrid_shared_assets ' +
+                    'tag, or a project copy of cards/standard/_treegrid_script.html from 1.4.x is ' +
+                    'overriding the shared one and defines no shared behaviour (README, ' +
+                    '"Upgrading from 1.4.x").');
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { window._treegridQueueWarn(); });
+            }
+        }
+        {# Past document-ready (an ajax fragment), check after the fragment's own scripts run. #}
+        if (document.readyState !== 'loading') { setTimeout(window._treegridQueueWarn, 0); }
+    }
+})();
+</script>

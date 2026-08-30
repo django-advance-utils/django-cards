@@ -17,6 +17,21 @@ from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
 
+def json_for_script(value):
+    """json.dumps hardened for embedding inside a <script> element.
+
+    These blobs reach the page through mark_safe, so the JSON text itself must not be able
+    to close the script element or open a tag: a node title containing '</script>' would
+    otherwise end the script mid-JSON and hand the rest of the value to the HTML parser.
+    The escapes are ordinary JSON string escapes, so json.loads and a JS engine both read
+    back the original characters.
+    """
+    return (json.dumps(value)
+            .replace('<', '\\u003c')
+            .replace('>', '\\u003e')
+            .replace('&', '\\u0026'))
+
+
 class ScrollableTabMenu:
     """
     Wraps an HtmlMenu tab menu to add left/right scroll buttons when tabs overflow.
@@ -413,6 +428,11 @@ class CardBase:
             extra_info['treegrid_auto_hide_expand_buttons'] = kwargs.get(
                 'treegrid_auto_hide_expand_buttons', False)
             extra_info['treegrid_expand_all'] = kwargs.get('treegrid_expand_all', False)
+            # Passed by add_treegrid_card since 1.4.x but never stored, so the template's
+            # lookup silently resolved to '' and the filter never auto-expanded whatever the
+            # caller asked for. Stored now, and defaulted off to match what grids have
+            # actually been doing since then -- a caller who wants it says so.
+            extra_info['treegrid_filter_auto_expand'] = kwargs.get('treegrid_filter_auto_expand', False)
             extra_info['treegrid_show_column_filters'] = kwargs.get('treegrid_show_column_filters', False)
             extra_info['treegrid_toolbar'] = kwargs.get('treegrid_toolbar', [])
             extra_info['treegrid_toolbar_after'] = kwargs.get('treegrid_toolbar_after', [])
@@ -429,7 +449,7 @@ class CardBase:
             extra_info['treegrid_show_submit_button'] = kwargs.get('treegrid_show_submit_button', True)
             extra_info['treegrid_show_select_count'] = kwargs.get('treegrid_show_select_count', True)
             extra_info['treegrid_context_menu'] = kwargs.get('treegrid_context_menu', [])
-            extra_info['treegrid_context_menu_json'] = json.dumps(
+            extra_info['treegrid_context_menu_json'] = json_for_script(
                 [i for i in extra_info['treegrid_context_menu'] if isinstance(i, dict)])
             extra_info['treegrid_context_menu_html'] = kwargs.get('treegrid_context_menu_html', '')
             extra_info['treegrid_resizable'] = kwargs.get('treegrid_resizable', False)
@@ -451,12 +471,12 @@ class CardBase:
             extra_info['treegrid_drag_cross_level'] = kwargs.get('treegrid_drag_cross_level', False)
             extra_info['treegrid_nowrap'] = kwargs.get('treegrid_nowrap', False)
             # Pre-serialise for template JS
-            extra_info['treegrid_icon_map_json'] = json.dumps(extra_info['treegrid_icon_map'])
-            extra_info['treegrid_columns_json'] = json.dumps(extra_info['treegrid_columns'])
-            extra_info['treegrid_toolbar_json'] = json.dumps(extra_info['treegrid_toolbar'])
-            extra_info['treegrid_static_data_json'] = json.dumps(extra_info['treegrid_static_data'])
-            extra_info['treegrid_js_filters_json'] = json.dumps(extra_info['treegrid_js_filters'])
-            extra_info['treegrid_default_selected_json'] = json.dumps(extra_info['treegrid_default_selected'] or [])
+            extra_info['treegrid_icon_map_json'] = json_for_script(extra_info['treegrid_icon_map'])
+            extra_info['treegrid_columns_json'] = json_for_script(extra_info['treegrid_columns'])
+            extra_info['treegrid_toolbar_json'] = json_for_script(extra_info['treegrid_toolbar'])
+            extra_info['treegrid_static_data_json'] = json_for_script(extra_info['treegrid_static_data'])
+            extra_info['treegrid_js_filters_json'] = json_for_script(extra_info['treegrid_js_filters'])
+            extra_info['treegrid_default_selected_json'] = json_for_script(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
             extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width', '600px')
 

@@ -1393,6 +1393,7 @@ class OrgTreeView(CardMixin, TemplateView):
 | `treegrid_auto_hide_expand_buttons` | bool | `False` | Hide Expand All / Collapse All while nothing in the tree can expand |
 | `treegrid_expand_all` | bool | `False` | Expand all root nodes on initial load |
 | `treegrid_show_column_filters` | bool | `False` | Show per-column filter inputs in header row |
+| `treegrid_filter_auto_expand` | bool | `False` | Expand collapsed branches to reveal filter matches (before 1.5.0 this was accepted but had no effect) |
 | `treegrid_toolbar` | list | `[]` | Custom toolbar buttons (see below) |
 | `treegrid_toolbar_after` | list | `[]` | Additional buttons rendered after the checkbox controls |
 | `treegrid_toolbar_end` | list | `[]` | Additional buttons rendered at the end of the toolbar, after Expand All / Collapse All |
@@ -1933,6 +1934,60 @@ class SomeView:
 NOTES: 
 - This does not work with lazy treegrids, only static data treegrids. For lazy, the `self.add_command('reload_treegrid', card=card_name)` command can be used.
 - This also does not work with paginated treegrids currently. 
+
+### Several Treegrids on One Page
+
+The stylesheet and the grid's behaviour -- about 110 KiB together -- are the same for every
+treegrid, so they are emitted **once per page** rather than once per card. Each card emits only
+its own config object and one call into the shared behaviour, which is what keeps two grids on
+a page independent: the per-card state lives in the closure that call makes.
+
+Nothing needs configuring for this, and each card still renders as it always did. Two things
+are worth knowing:
+
+- **"The page" means the request cycle.** A card reloaded over ajax, or a modal body fetched on
+  its own, is a request of its own and carries the shared half again -- harmlessly, since the
+  browser already has it and the second copy does not overwrite the first.
+- **A card rendered outside a request cycle carries its own copy.** Building cards in a
+  management command or straight from `RequestFactory` fires no request signals, so there is no
+  page to mark; the shared half is emitted per card, as it was before. Rendering the same cards
+  through a served request -- including through a form widget that builds its own card mixin,
+  and so has no request to hand its card -- shares one copy.
+
+Overriding `cards/standard/treegrid.html` in a project means keeping its last three lines,
+which are what fetch the shared half and this card's config:
+
+```django
+{% treegrid_shared_assets %}
+{% include 'cards/standard/_treegrid_init.html' %}
+{% include 'cards/standard/_reload_script.html' %}
+```
+
+`treegrid_shared_assets` comes from `{% load django_cards_tags %}`.
+
+#### Upgrading from 1.4.x
+
+Nothing changes for a project using the package templates as-is, or for one that wraps
+`cards/standard/treegrid.html` with `{% include %}`. A project that **copied** either
+template to override it must update its copy, because `_treegrid_script.html` no longer
+initialises a grid by itself -- it defines the shared behaviour once, and something has to
+call it. A stale copy renders grids that never come to life, so each shape logs a console
+error rather than failing silently:
+
+- A copied **`treegrid.html`** includes `_treegrid_script.html` per card and never includes
+  `_treegrid_init.html`, so the shared behaviour lands with nothing to call it. The console
+  error says so; the fix is the three closing lines shown above.
+- A copied **`_treegrid_script.html`** overrides the shared half with per-card 1.4.x code
+  that defines no shared behaviour, so every card's config queues and nothing drains it. The
+  console error names the affected card codes; the fix is to drop the override, or to
+  re-copy it from 1.5.
+
+The same queued-config error covers an overridden `treegrid.html` that kept the
+`_treegrid_init.html` include but dropped the `{% treegrid_shared_assets %}` tag.
+
+An override of `_treegrid_script.html` or `_treegrid_css.html` must also stay free of
+`{% trans %}` and of anything else that varies per request: the shared half is rendered
+without a context and cached for the life of the process.
 
 ---
 

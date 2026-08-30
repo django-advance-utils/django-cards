@@ -1,0 +1,3 @@
+{% load django_cards_tags %}
+<input type="hidden" name="{{ widget.name }}" id="id_{{ widget.name }}"{% if widget.value %} value="{{ widget.value }}"{% endif %}>
+{% show_card tree_grid_card %}
