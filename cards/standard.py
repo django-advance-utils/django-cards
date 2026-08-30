@@ -689,7 +689,7 @@ class CardMixin:
                           treegrid_show_select_count=True,
                           treegrid_context_menu=None, treegrid_resizable=False,
                           treegrid_pagination=False, treegrid_page_size=50,
-                          treegrid_filter_auto_expand=True,
+                          treegrid_filter_auto_expand=False,
                           treegrid_sortable=False,
                           treegrid_form_field='',
                           treegrid_row_click='',

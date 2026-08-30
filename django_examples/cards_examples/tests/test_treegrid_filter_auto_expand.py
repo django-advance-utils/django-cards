@@ -1,8 +1,10 @@
 """treegrid_filter_auto_expand has to reach the card's config.
 
-add_treegrid_card has accepted it since 1.4.x and defaults it to True, but nothing wrote it
-into extra_card_info, so the template's lookup resolved to '' and every grid rendered it
-false. These pin both ends: the default, and a caller who turns it off.
+add_treegrid_card has accepted it since 1.4.x, but nothing wrote it into extra_card_info, so
+the template's lookup resolved to '' and every grid rendered it false whatever the caller
+asked for. It is stored now, and defaulted off so that grids built before 1.5.0 keep the
+behaviour they have actually had -- which makes the default worth pinning as much as the
+caller's own value.
 """
 from django.test import RequestFactory, TestCase
 from django.views.generic import TemplateView
@@ -48,8 +50,9 @@ class TestTreegridFilterAutoExpand(TestCase):
         response.render()
         return response.content.decode()
 
-    def test_on_by_default(self):
-        self.assertIn('filter_auto_expand: true', self._html(DefaultFilterAutoExpandView))
+    def test_off_by_default(self):
+        """Off, so upgrading a grid that never asked for it changes nothing it does."""
+        self.assertIn('filter_auto_expand: false', self._html(DefaultFilterAutoExpandView))
 
     def test_a_caller_can_turn_it_off(self):
         html = self._html(FilterAutoExpandView, filter_auto_expand=False)

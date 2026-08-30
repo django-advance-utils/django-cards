@@ -1393,6 +1393,7 @@ class OrgTreeView(CardMixin, TemplateView):
 | `treegrid_auto_hide_expand_buttons` | bool | `False` | Hide Expand All / Collapse All while nothing in the tree can expand |
 | `treegrid_expand_all` | bool | `False` | Expand all root nodes on initial load |
 | `treegrid_show_column_filters` | bool | `False` | Show per-column filter inputs in header row |
+| `treegrid_filter_auto_expand` | bool | `False` | Expand collapsed branches to reveal filter matches (before 1.5.0 this was accepted but had no effect) |
 | `treegrid_toolbar` | list | `[]` | Custom toolbar buttons (see below) |
 | `treegrid_toolbar_after` | list | `[]` | Additional buttons rendered after the checkbox controls |
 | `treegrid_toolbar_end` | list | `[]` | Additional buttons rendered at the end of the toolbar, after Expand All / Collapse All |
