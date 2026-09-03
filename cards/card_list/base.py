@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django_datatables.reorder_datatable import reorder
@@ -310,6 +312,9 @@ class CardListBaseMixin:
         By default, this uses Django’s `get_object_or_404()` with `self.model`.
         If `self.model` is None, the PK itself is returned (useful for testing or loose contexts).
 
+        A pk the model cannot parse raises Http404 rather than propagating, so a junk
+        client-supplied id is answered the same way as one that is merely absent.
+
         Args:
             pk (int or str): The primary key to fetch.
 
@@ -318,7 +323,26 @@ class CardListBaseMixin:
         """
         if self.model is None:
             return pk
-        return get_object_or_404(self.model, pk=pk)
+        try:
+            return get_object_or_404(self.model, pk=pk)
+        except (TypeError, ValueError, ValidationError) as exception:
+            # get_object_or_404 turns an ABSENT row into a 404, but a pk the field cannot even
+            # parse never gets as far as the query: an integer pk raises ValueError and a UUID
+            # pk raises ValidationError while the lookup is being built. So `entry_id=garbage`
+            # came back as a 500 where `entry_id=999999` was a tidy 404.
+            #
+            # The pk is client-supplied either way -- posted by the list card, and for a tree
+            # taken straight out of the url by tree_selection.html, which calls
+            # load_details('{{ selected_id }}') with whatever the url said.
+            #
+            # 404, to match the row that is merely missing: both are a request for a record
+            # that is not there, and no caller can tell the two apart.
+            # getattr, not self.model._meta directly: get_object_or_404 accepts a Manager or a
+            # QuerySet as well as a model class, and reaching through _meta on one of those
+            # would raise AttributeError from inside this handler -- turning the 500 this
+            # method exists to prevent into a messier one.
+            model_name = getattr(getattr(self.model, '_meta', None), 'object_name', 'object')
+            raise Http404(f'No {model_name} matches the given query.') from exception
 
     def get_details_menu(self, details_object):
         """
