@@ -69,7 +69,20 @@ class CardListMixin(CardListBaseMixin):
             selected_id = ''
 
         if selected_id:
-            selected_id = int(selected_id)
+            try:
+                selected_id = int(selected_id)
+            except (TypeError, ValueError):
+                # The pk comes out of the url, and CardListConverter matches `[^/]*` -- so
+                # anything without a slash reaches this int(), and `/things/garbage` used to
+                # be a 500 rather than a page.
+                #
+                # It selects nothing instead, which is what a pk of the right shape that is
+                # simply not in the list already does: `/things/999999` passes through here
+                # untouched, matches no entry, and renders with an empty details pane. An
+                # unparseable pk is the same request phrased less carefully, so it gets the
+                # same answer. Raising 404 instead would have to apply to both to make sense,
+                # and that is a behaviour change for every card list rather than a fix.
+                selected_id = ''
         return selected_id
 
     def get_default_selected_id(self):
