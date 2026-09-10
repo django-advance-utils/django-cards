@@ -33,9 +33,15 @@ class FancytreeAwesomeSkinCSS(SourceBase):
     css_filename = 'skin-awesome/ui.fancytree.min.css'
 
 
+class CardsCSS(SourceBase):
+    static_path = 'cards/css/'
+    css_filename = 'cards.css'
+
+
 packages = {
     'jstree_default': [JSSourceTree, JSSourceDefaultTheme],
     'jstree_proton': [JSSourceTree, JSSourceDarkProtonTheme],
     'jstree_dark': [JSSourceTree, JSSourceDarkTheme],
     'fancytree': [FancytreeJS, FancytreeAwesomeSkinCSS],
+    'cards': [CardsCSS],
 }

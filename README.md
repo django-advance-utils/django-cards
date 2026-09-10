@@ -288,6 +288,7 @@ These are passed to `add_card()` or `CardBase.__init__()`:
 | `exportable` | bool | `False` | Adds CSV/JSON export dropdown button |
 | `show_created_modified_dates` | bool | `False` | Show created/modified timestamps from the details object |
 | `column_search` | bool | `False` | Adds per-column search inputs to the header row (treegrid cards) |
+| `border` | str/bool | `None` | Card chrome: `None` keeps the default Bootstrap card border, `'thin'` draws a 1px hairline, `'none'` (or `False`) removes the border |
 | `details_object` | object | `None` | The data object for field-based entries |
 | `is_empty` | bool | `False` | Render as empty state |
 | `empty_message` | str | `'N/A'` | Message shown when card is empty |
@@ -307,6 +308,33 @@ card = self.add_card('profile',
                      reload_interval=30,
                      searchable=True,
                      exportable=True)
+```
+
+### Thin and borderless cards
+
+Pass `border='thin'` for a 1px hairline around the card — the same look as a compact
+detail box on a purchase-order page. Pass `border='none'` (or `False`) to drop the box
+entirely, which is how you get a card that is just icons sitting on the page:
+
+```python
+# 1px hairline, like Purchase Order Details / Delivery Address
+details = self.add_card('po_details', title='Purchase Order Details',
+                        template_name='table', border='thin',
+                        extra_card_context={'table_css_class': 'table table-sm mb-0'})
+details.add_entry(value='25/03/2026', label='Order Date')
+details.add_entry(value='GBP', label='Currency')
+
+# No chrome at all — just the icons
+self.add_html_data_card(
+    '<div class="d-flex align-items-center" style="gap:0.75rem">'
+    '<i class="fas fa-print fa-lg text-secondary"></i>'
+    '<i class="fas fa-cog fa-lg text-secondary"></i>'
+    '<i class="fas fa-file-alt fa-lg text-secondary"></i>'
+    '</div>',
+    card_name='po_actions',
+    show_header=False,
+    border='none',
+)
 ```
 
 ### Table Template

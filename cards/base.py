@@ -16,6 +16,8 @@ from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
+from cards.render_scope import get_render_scope
+
 
 def json_for_script(value):
     """json.dumps hardened for embedding inside a <script> element.
@@ -102,6 +104,47 @@ CARD_TYPE_ACCORDION = 10
 CARD_TYPE_PANEL_LAYOUT = 11
 CARD_TYPE_IFRAME = 12
 CARD_TYPE_TREEGRID = 13
+
+# Opt-in card chrome. None keeps the Bootstrap `.card` border; 'thin' is a 1px
+# hairline like the purchase-order detail boxes; 'none' drops the box entirely
+# so a card can be just icons (or any other content) sitting on the page.
+CARD_BORDER_THIN = 'thin'
+CARD_BORDER_NONE = 'none'
+CARD_BORDER_CSS_CLASSES = {
+    CARD_BORDER_THIN: 'django-card--thin-border',
+    CARD_BORDER_NONE: 'django-card--borderless',
+}
+CARD_CSS_MARK = '_django_cards_css_rendered'
+
+
+def normalize_card_border(border):
+    """Map add_card(border=...) to 'thin', 'none', or None (default chrome)."""
+    if border is None or border == 'default':
+        return None
+    if border is False or border == 0:
+        return CARD_BORDER_NONE
+    if isinstance(border, str):
+        value = border.lower().strip()
+        if value in ('none', 'off', 'false', '0'):
+            return CARD_BORDER_NONE
+        if value == CARD_BORDER_THIN:
+            return CARD_BORDER_THIN
+        if value == 'default':
+            return None
+    raise ValueError(
+        f"Unknown card border {border!r}. Use None, 'thin', or 'none'."
+    )
+
+
+def card_css_once():
+    """The shared card stylesheet, emitted once per request when a bordered card renders."""
+    holder = get_render_scope()
+    if holder is not None and getattr(holder, CARD_CSS_MARK, False):
+        return ''
+    html = render_to_string('cards/standard/_card_css.html')
+    if holder is not None:
+        setattr(holder, CARD_CSS_MARK, True)
+    return html
 
 
 class CardBase:
@@ -249,6 +292,7 @@ class CardBase:
                  ajax_reload=False, reload_interval=None,
                  searchable=False, exportable=False,
                  column_search=False,
+                 border=None,
                  **kwargs):
         """
         Initializes a card instance used to render a block of content within a view.
@@ -285,6 +329,10 @@ class CardBase:
             hidden_if_blank_or_none (list, optional): Field names to hide if their values are blank or None.
             hidden_if_zero (list, optional): Field names to hide if their values are zero.
             show_header (bool, optional): Whether to show the header / title of the card.
+            border (str/bool, optional): Card chrome. ``None`` keeps the default Bootstrap
+                card border. ``'thin'`` draws a 1px hairline around the card. ``'none'``
+                (or ``False``) removes the border so the card can be just content — for
+                example a row of icons with no box.
             **kwargs: Additional keyword arguments for custom behavior or extension.
 
         Notes:
@@ -334,6 +382,7 @@ class CardBase:
         self.searchable = searchable
         self.exportable = exportable
         self.column_search = column_search
+        self.border = normalize_card_border(border)
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -1642,7 +1691,14 @@ class CardBase:
         else:
             template = template_name
 
-        return mark_safe(render_to_string(template, context))
+        if self.border:
+            border_class = CARD_BORDER_CSS_CLASSES[self.border]
+            context['card_css_class'] = f"{context.get('card_css_class', '')} {border_class}".strip()
+
+        html = render_to_string(template, context)
+        if self.border:
+            html = card_css_once() + html
+        return mark_safe(html)
 
     def render(self, override_card_context=None):
         """

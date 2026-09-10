@@ -201,6 +201,7 @@ class CardMixin:
                  searchable=False,
                  exportable=False,
                  column_search=False,
+                 border=None,
                  **kwargs) -> CardBase:
         """
         Creates and adds a detail card to the view, using the configured card class.
@@ -227,6 +228,9 @@ class CardMixin:
             hidden_if_blank_or_none (list, optional): Field names to hide if blank or None.
             hidden_if_zero (list, optional): Field names to hide if value is zero.
             show_header (bool, optional): Whether to show the title / header of the card.
+            border (str/bool, optional): Card chrome. ``None`` (default) keeps the Bootstrap
+                card border. ``'thin'`` is a 1px hairline. ``'none'`` or ``False`` removes
+                the border entirely — use with ``show_header=False`` for an icon-only card.
             **kwargs: Additional keyword arguments forwarded to the card constructor.
 
         Returns:
@@ -269,6 +273,7 @@ class CardMixin:
                              searchable=searchable,
                              exportable=exportable,
                              column_search=column_search,
+                             border=border,
                              **kwargs)
 
         if card_name is not None:

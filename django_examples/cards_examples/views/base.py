@@ -72,6 +72,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:new_features_table', 'New Features (Table)'),
                 ('cards_examples:new_features_2', 'New Features 2'),
                 ('cards_examples:image_gallery', 'Image Gallery'),
+                ('cards_examples:card_borders', 'Card Borders'),
                 ('cards_examples:column_search', 'Column Search'),
             )),
             MenuItem(url='admin:index',

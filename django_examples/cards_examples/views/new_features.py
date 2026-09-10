@@ -640,3 +640,88 @@ class TooltipTestIndex(MainMenu, CardMixin, TemplateView):
                        label='Value link',
                        value_link='https://example.com',
                        tooltip='Click the value text')
+
+
+class CardBordersIndex(MainMenu, CardMixin, TemplateView):
+    """Thin 1px card borders and a borderless icon card, matching a PO-style layout."""
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_action_buttons_card()
+        self.add_po_details_card()
+        self.add_icon_card()
+        self.add_delivery_card()
+        self.add_default_card()
+        self.add_thin_standard_card()
+
+        self.add_card_group('po_actions',
+                            div_css_class='col-2 float-left')
+        self.add_card_group('po_details',
+                            div_css_class='col-4 float-left')
+        self.add_card_group('icon_actions',
+                            div_css_class='col-2 float-left')
+        self.add_card_group('delivery',
+                            div_css_class='col-4 float-left')
+        self.add_card_group('default_border', 'thin_standard',
+                            div_css_class='col-12',
+                            div_css='clear:both',
+                            group_title='Default vs thin (standard template)')
+
+    def add_action_buttons_card(self):
+        html = (
+            '<div class="d-flex flex-column" style="gap:0.4rem">'
+            '<button type="button" class="btn btn-success btn-sm">Process Invoice</button>'
+            '<button type="button" class="btn btn-info btn-sm">Receive Order</button>'
+            '<button type="button" class="btn btn-outline-secondary btn-sm">'
+            'Calculate Fully Received</button>'
+            '</div>'
+        )
+        self.add_html_data_card(html, card_name='po_actions', show_header=False, border='none')
+
+    def add_po_details_card(self):
+        card = self.add_card('po_details',
+                             title='Purchase Order Details',
+                             template_name='table',
+                             border='thin',
+                             extra_card_context={'table_css_class': 'table table-sm mb-0'})
+        card.add_entry(value='25/03/2026', label='Order Date')
+        card.add_entry(value='N/M - Net Monthly', label='Terms')
+        card.add_entry(value='GBP', label='Currency')
+        card.add_entry(value='IMI', label='Owner')
+
+    def add_icon_card(self):
+        html = (
+            '<div class="d-flex align-items-center justify-content-center" '
+            'style="gap:1rem; min-height:4.5rem">'
+            '<a href="#" class="text-secondary" title="Print">'
+            '<i class="fas fa-print fa-lg"></i></a>'
+            '<a href="#" class="text-secondary" title="Settings">'
+            '<i class="fas fa-cog fa-lg"></i></a>'
+            '<a href="#" class="text-secondary" title="Documents">'
+            '<i class="fas fa-file-alt fa-lg"></i></a>'
+            '</div>'
+        )
+        self.add_html_data_card(html, card_name='icon_actions', show_header=False, border='none')
+
+    def add_delivery_card(self):
+        card = self.add_card('delivery',
+                             title='Delivery Address',
+                             template_name='table',
+                             border='thin',
+                             extra_card_context={'table_css_class': 'table table-sm mb-0'})
+        card.add_entry(value='RACELOGIC LTD', label='Company')
+        card.add_entry(value='10 Swan Business Centre', label='Address')
+        card.add_entry(value='Osier Way', label='')
+        card.add_entry(value='Buckingham', label='')
+        card.add_entry(value='MK18 1TB', label='')
+
+    def add_default_card(self):
+        card = self.add_card('default_border', title='Default Bootstrap border')
+        card.add_entry(value='This is the existing card chrome', label='Style')
+        card.add_entry(value='No border= argument', label='Setting')
+
+    def add_thin_standard_card(self):
+        card = self.add_card('thin_standard', title='Thin border (standard template)',
+                             border='thin')
+        card.add_entry(value='Same 1px hairline, list-group layout', label='Style')
+        card.add_entry(value="border='thin'", label='Setting')
