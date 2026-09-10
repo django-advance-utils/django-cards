@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from cards.standard import CardMixin
+from django_menus.menu import MenuItem
 
 
 class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
@@ -670,19 +671,30 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
     def add_action_buttons_card(self):
         html = (
             '<div class="d-flex flex-column" style="gap:0.4rem">'
-            '<button type="button" class="btn btn-success btn-sm">Process Invoice</button>'
-            '<button type="button" class="btn btn-info btn-sm">Receive Order</button>'
+            '<button type="button" class="btn btn-success btn-sm">'
+            '<i class="fas fa-file-invoice"></i> Process Invoice</button>'
+            '<button type="button" class="btn btn-outline-info btn-sm">'
+            '<i class="fas fa-truck"></i> Receive Order</button>'
             '<button type="button" class="btn btn-outline-secondary btn-sm">'
-            'Calculate Fully Received</button>'
+            '<i class="fas fa-calculator"></i> Calculate Fully Received</button>'
             '</div>'
         )
         self.add_html_data_card(html, card_name='po_actions', show_header=False, border='none')
 
     def add_po_details_card(self):
+        menu = [
+            MenuItem('cards_examples:hello_modal', menu_display='',
+                     font_awesome='fas fa-print',
+                     css_classes='btn btn-sm btn-outline-secondary'),
+            MenuItem('cards_examples:hello_modal', menu_display='',
+                     font_awesome='fas fa-edit',
+                     css_classes='btn btn-sm btn-outline-secondary'),
+        ]
         card = self.add_card('po_details',
                              title='Purchase Order Details',
                              template_name='table',
                              border='thin',
+                             menu=menu,
                              extra_card_context={'table_css_class': 'table table-sm mb-0'})
         card.add_entry(value='25/03/2026', label='Order Date')
         card.add_entry(value='N/M - Net Monthly', label='Terms')
@@ -692,22 +704,31 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
     def add_icon_card(self):
         html = (
             '<div class="d-flex align-items-center justify-content-center" '
-            'style="gap:1rem; min-height:4.5rem">'
-            '<a href="#" class="text-secondary" title="Print">'
-            '<i class="fas fa-print fa-lg"></i></a>'
-            '<a href="#" class="text-secondary" title="Settings">'
-            '<i class="fas fa-cog fa-lg"></i></a>'
-            '<a href="#" class="text-secondary" title="Documents">'
-            '<i class="fas fa-file-alt fa-lg"></i></a>'
+            'style="gap:0.4rem; min-height:4.5rem">'
+            '<button type="button" class="btn btn-sm btn-outline-secondary" title="Print">'
+            '<i class="fas fa-print"></i></button>'
+            '<button type="button" class="btn btn-sm btn-outline-secondary" title="Settings">'
+            '<i class="fas fa-cog"></i></button>'
+            '<button type="button" class="btn btn-sm btn-outline-secondary" title="Documents">'
+            '<i class="fas fa-file-alt"></i></button>'
             '</div>'
         )
-        self.add_html_data_card(html, card_name='icon_actions', show_header=False, border='none')
+        self.add_html_data_card(html, card_name='icon_actions', show_header=False, border='thin')
 
     def add_delivery_card(self):
+        menu = [
+            MenuItem('cards_examples:hello_modal', menu_display='',
+                     font_awesome='fas fa-map-marker-alt',
+                     css_classes='btn btn-sm btn-outline-secondary'),
+            MenuItem('cards_examples:hello_modal', menu_display='',
+                     font_awesome='fas fa-copy',
+                     css_classes='btn btn-sm btn-outline-secondary'),
+        ]
         card = self.add_card('delivery',
                              title='Delivery Address',
                              template_name='table',
                              border='thin',
+                             menu=menu,
                              extra_card_context={'table_css_class': 'table table-sm mb-0'})
         card.add_entry(value='Example Supplies Ltd', label='Company')
         card.add_entry(value='12 Harbour Yard', label='Address')

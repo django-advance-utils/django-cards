@@ -90,4 +90,6 @@ class TestCardBordersPage(TestCase):
         self.assertIn('django-card--borderless', html)
         self.assertIn('Purchase Order Details', html)
         self.assertIn('fa-print', html)
+        self.assertIn('btn-outline-secondary', html)
+        self.assertIn('fa-file-invoice', html)
         self.assertIn('cards/css/cards.css', html)
