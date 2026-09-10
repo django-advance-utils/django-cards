@@ -11,15 +11,15 @@ cd "$REPO_ROOT"
 # --- System toolchain (Django 3.2 requires Python 3.11; app uses PostgreSQL) ---
 if ! command -v python3.11 >/dev/null 2>&1; then
     sudo apt-get update
-    sudo apt-get install -y software-properties-common
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common
     sudo add-apt-repository -y ppa:deadsnakes/ppa
     sudo apt-get update
-    sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3.11 python3.11-venv python3.11-dev
 fi
 
 if ! command -v psql >/dev/null 2>&1; then
     sudo apt-get update
-    sudo apt-get install -y postgresql postgresql-contrib
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql postgresql-contrib
 fi
 
 # --- Python virtual environment ---
