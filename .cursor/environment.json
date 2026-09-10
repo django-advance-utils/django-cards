@@ -9,5 +9,10 @@
       "command": "cd django_examples && PYTHONPATH=\"$(cd .. && pwd)\" ../.venv/bin/python manage.py runserver 0.0.0.0:8011"
     }
   ],
-  "ports": [8011]
+  "ports": [
+    {
+      "name": "runserver",
+      "port": 8011
+    }
+  ]
 }
