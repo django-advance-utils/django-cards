@@ -709,11 +709,11 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
                              template_name='table',
                              border='thin',
                              extra_card_context={'table_css_class': 'table table-sm mb-0'})
-        card.add_entry(value='RACELOGIC LTD', label='Company')
-        card.add_entry(value='10 Swan Business Centre', label='Address')
-        card.add_entry(value='Osier Way', label='')
-        card.add_entry(value='Buckingham', label='')
-        card.add_entry(value='MK18 1TB', label='')
+        card.add_entry(value='Example Supplies Ltd', label='Company')
+        card.add_entry(value='12 Harbour Yard', label='Address')
+        card.add_entry(value='Quay Street', label='')
+        card.add_entry(value='Riverton', label='')
+        card.add_entry(value='RV12 4AB', label='')
 
     def add_default_card(self):
         card = self.add_card('default_border', title='Default Bootstrap border')
