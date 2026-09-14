@@ -288,7 +288,7 @@ These are passed to `add_card()` or `CardBase.__init__()`:
 | `exportable` | bool | `False` | Adds CSV/JSON export dropdown button |
 | `show_created_modified_dates` | bool | `False` | Show created/modified timestamps from the details object |
 | `column_search` | bool | `False` | Adds per-column search inputs to the header row (treegrid cards) |
-| `border` | str/bool | `None` | Card chrome: `None` keeps the default Bootstrap card border, `'thin'` draws a 1px hairline, `'none'` (or `False`) removes the border |
+| `border` | str/bool | `None` | Card chrome: `None` (or `True`) keeps the default Bootstrap card border, `'thin'` draws a 1px hairline, `'none'` (or `False`) removes the border |
 | `details_object` | object | `None` | The data object for field-based entries |
 | `is_empty` | bool | `False` | Render as empty state |
 | `empty_message` | str | `'N/A'` | Message shown when card is empty |
@@ -336,6 +336,15 @@ self.add_html_data_card(
     border='none',
 )
 ```
+
+The stylesheet that draws these looks after itself: `cards.css` is emitted once per
+request, immediately before the first card that asks for a non-default border, so there
+is no `lib_include` to add and nothing to change in your base template. Cards left on
+the default chrome never pull it in.
+
+`border` styles the card itself and is separate from `treegrid_borderless`, which
+controls the grid lines *inside* a treegrid card. They compose: a treegrid card can have
+`border='thin'` around the card and `treegrid_borderless=True` within it.
 
 ### Table Template
 

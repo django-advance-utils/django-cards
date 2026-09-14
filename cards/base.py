@@ -118,27 +118,39 @@ CARD_CSS_MARK = '_django_cards_css_rendered'
 
 
 def normalize_card_border(border):
-    """Map add_card(border=...) to 'thin', 'none', or None (default chrome)."""
+    """Map add_card(border=...) to 'thin', 'none', or None (default chrome).
+
+    A caller flipping the option from a flag can have that flag either way round, so
+    False/0 (and 'false'/'off'/'0') mean "no chrome at all" while True/1 (and
+    'true'/'on'/'1') mean "whatever the default chrome is" -- the same answer as None.
+    """
     if border is None or border == 'default':
         return None
     if border is False or border == 0:
         return CARD_BORDER_NONE
+    if border is True or border == 1:
+        return None
     if isinstance(border, str):
         value = border.lower().strip()
         if value in ('none', 'off', 'false', '0'):
             return CARD_BORDER_NONE
         if value == CARD_BORDER_THIN:
             return CARD_BORDER_THIN
-        if value == 'default':
+        if value in ('default', 'true', 'on', '1'):
             return None
     raise ValueError(
-        f"Unknown card border {border!r}. Use None, 'thin', or 'none'."
+        f"Unknown card border {border!r}. Use None, True, 'thin', or 'none'."
     )
 
 
-def card_css_once():
-    """The shared card stylesheet, emitted once per request when a bordered card renders."""
-    holder = get_render_scope()
+def card_css_once(request=None):
+    """The shared card stylesheet, emitted once per request when a bordered card renders.
+
+    Falls back to the request when there is no render scope, matching the treegrid
+    shared-asset tag: outside a request cycle there is nothing to mark, and carrying a
+    second copy of a stylesheet the browser has already cached beats a page with none.
+    """
+    holder = get_render_scope() or request
     if holder is not None and getattr(holder, CARD_CSS_MARK, False):
         return ''
     html = render_to_string('cards/standard/_card_css.html')
@@ -329,9 +341,10 @@ class CardBase:
             hidden_if_blank_or_none (list, optional): Field names to hide if their values are blank or None.
             hidden_if_zero (list, optional): Field names to hide if their values are zero.
             show_header (bool, optional): Whether to show the header / title of the card.
-            border (str/bool, optional): Card chrome. ``None`` keeps the default Bootstrap
-                card border. ``'thin'`` draws a 1px hairline around the card. ``'none'``
-                (or ``False``) removes the border so the card can be just content — for
+            border (str/bool, optional): Card chrome. ``None`` (or ``True``) keeps the
+                default Bootstrap card border. ``'thin'`` draws a 1px hairline around the
+                card. ``'none'`` (or ``False``) removes the border so the card can be
+                just content — for
                 example a row of icons with no box.
             **kwargs: Additional keyword arguments for custom behavior or extension.
 
@@ -1697,7 +1710,7 @@ class CardBase:
 
         html = render_to_string(template, context)
         if self.border:
-            html = card_css_once() + html
+            html = card_css_once(self.request) + html
         return mark_safe(html)
 
     def render(self, override_card_context=None):

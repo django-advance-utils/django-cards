@@ -25,6 +25,15 @@ class TestNormalizeCardBorder(TestCase):
         self.assertEqual(normalize_card_border(0), CARD_BORDER_NONE)
         self.assertEqual(normalize_card_border('off'), CARD_BORDER_NONE)
 
+    def test_truthy_keeps_default_chrome(self):
+        # The mirror of test_none_aliases: a caller flipping the option from a flag can
+        # have the flag either way round, and border=True must not blow up.
+        self.assertIsNone(normalize_card_border(True))
+        self.assertIsNone(normalize_card_border(1))
+        self.assertIsNone(normalize_card_border('true'))
+        self.assertIsNone(normalize_card_border('on'))
+        self.assertIsNone(normalize_card_border('1'))
+
     def test_unknown_raises(self):
         with self.assertRaises(ValueError):
             normalize_card_border('thick')
@@ -58,6 +67,12 @@ class TestCardBorderRender(TestCase):
         html = self.view.build(border=False).render()
         self.assertIn('django-card--borderless', html)
 
+    def test_true_renders_default_chrome(self):
+        html = self.view.build(border=True).render()
+        self.assertIn('card django-card', html)
+        self.assertNotIn('django-card--thin-border', html)
+        self.assertNotIn('django-card--borderless', html)
+
     def test_appends_to_extra_card_css_class(self):
         html = self.view.build(
             border='thin',
@@ -80,6 +95,21 @@ class TestCardBorderRender(TestCase):
         finally:
             _current_scope.reset(token)
 
+    def test_css_emitted_once_against_the_request_without_a_scope(self):
+        # No render scope -- outside a request cycle the request itself carries the mark,
+        # the same fallback the treegrid shared-asset tag uses.
+        from cards.base import CARD_CSS_MARK, card_css_once
+        from cards.render_scope import _current_scope
+
+        token = _current_scope.set(None)
+        try:
+            request = self.factory.get('/')
+            self.assertIn('cards/css/cards.css', card_css_once(request))
+            self.assertEqual(card_css_once(request), '')
+            self.assertTrue(getattr(request, CARD_CSS_MARK))
+        finally:
+            _current_scope.reset(token)
+
 
 class TestCardBordersPage(TestCase):
     def test_example_page_renders_thin_and_borderless(self):
@@ -92,4 +122,6 @@ class TestCardBordersPage(TestCase):
         self.assertIn('fa-print', html)
         self.assertIn('btn-outline-secondary', html)
         self.assertIn('fa-file-invoice', html)
-        self.assertIn('cards/css/cards.css', html)
+        # Exactly one copy: the stylesheet is injected before the first bordered card and
+        # the render scope stops every later card on the page repeating it.
+        self.assertEqual(html.count('cards/css/cards.css'), 1)

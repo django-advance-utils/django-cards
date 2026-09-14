@@ -1,14 +1,24 @@
-/* django-cards — optional card border styles (border='thin' / border='none') */
+/* django-cards — optional card chrome (border='thin' / border='none').
+ *
+ * Colours come from custom properties so a theme can retint the chrome without
+ * having to out-specify anything here:
+ *
+ *   .my-theme { --django-card-border-color: #444; --django-card-header-bg: #222 }
+ *
+ * Structural selectors are scoped to direct children on purpose: a default card
+ * nested inside a thin-bordered card_group keeps its own chrome rather than
+ * inheriting the parent's.
+ */
 
 .django-card--thin-border {
-    border: 1px solid #dee2e6 !important;
+    border: 1px solid var(--django-card-border-color, #dee2e6) !important;
     border-radius: 2px;
     box-shadow: none;
 }
 
 .django-card--thin-border > .card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #dee2e6;
+    background-color: var(--django-card-header-bg, #fff);
+    border-bottom: 1px solid var(--django-card-border-color, #dee2e6);
     min-height: 0 !important;
     padding: 0.4rem 0.75rem;
 }
@@ -25,25 +35,25 @@
     padding: 0.5rem 0.75rem;
 }
 
-.django-card--thin-border .list-group-item {
+.django-card--thin-border > .card-body > .list-group > .list-group-item {
     border-left: 0;
     border-right: 0;
-    border-color: #e9ecef;
+    border-color: var(--django-card-inner-border-color, #e9ecef);
     padding-top: 0.45rem;
     padding-bottom: 0.45rem;
 }
 
-.django-card--thin-border .list-group-item:last-child {
+.django-card--thin-border > .card-body > .list-group > .list-group-item:last-child {
     border-bottom: 0;
 }
 
-.django-card--thin-border .table {
+.django-card--thin-border > .card-body > .list-group > .table {
     margin-bottom: 0;
 }
 
-.django-card--thin-border .table td,
-.django-card--thin-border .table th {
-    border-color: #e9ecef;
+.django-card--thin-border > .card-body > .list-group > .table td,
+.django-card--thin-border > .card-body > .list-group > .table th {
+    border-color: var(--django-card-inner-border-color, #e9ecef);
 }
 
 .django-card--borderless {
@@ -51,7 +61,6 @@
     border-radius: 0;
     box-shadow: none;
     background: transparent;
-    margin-top: 0 !important;
 }
 
 .django-card--borderless > .card-header {
@@ -68,13 +77,9 @@
     padding: 0.25rem 0;
 }
 
-.django-card--borderless .list-group-item {
+.django-card--borderless > .card-body > .list-group > .list-group-item {
     border: 0;
     background: transparent;
     padding-left: 0;
     padding-right: 0;
-}
-
-.django-card--borderless .list-group-item i {
-    opacity: 1;
 }
