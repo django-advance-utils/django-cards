@@ -48,17 +48,66 @@ class TestCardStyleHooks(TestCase):
         self.assertNotIn('style=""', html)
         self.assertNotIn('<div class="card django-card" id="demo" data-title="" style', html)
 
-    def test_entry_css_class_reaches_the_table_row(self):
+    def test_no_style_attribute_without_one_on_the_table_template(self):
         card = self.view.build(template_name='table')
-        card.add_entry(value='Overdue', label='Status', css_class='table-warning')
+        card.add_entry(value='GBP', label='Currency')
+        html = card.render()
+        self.assertNotIn('style=""', html)
+        self.assertNotIn('data-title="" style', html)
+
+    def test_row_css_class_reaches_the_table_row(self):
+        card = self.view.build(template_name='table')
+        card.add_entry(value='Overdue', label='Status', row_css_class='table-warning')
         card.add_entry(value='GBP', label='Currency')
         html = card.render()
         self.assertIn('<tr class="table-warning">', html)
         # only the row that asked for it
         self.assertEqual(html.count('table-warning'), 1)
 
+    def test_css_class_still_does_not_touch_the_table_row(self):
+        # css_class means the value heading on the standard template; giving it a second
+        # meaning here would silently restyle existing table cards, so the row needs its
+        # own option and css_class keeps doing what it did.
+        card = self.view.build(template_name='table')
+        card.add_entry(value='Overdue', label='Status', css_class='text-danger')
+        html = card.render()
+        self.assertNotIn('<tr class="text-danger">', html)
+
+    def test_row_css_class_lands_on_the_row_after_a_separator(self):
+        # A separator closes the row it is on and opens the real one; the class has to
+        # follow the content, not stay on the empty row left behind.
+        card = self.view.build(template_name='table')
+        card.add_entry(value='First', label='Before')
+        card.add_entry(value='Second', label='After', separator=True,
+                       row_css_class='table-warning')
+        html = card.render()
+        self.assertNotIn('<tr class="table-warning"> </tr>', ' '.join(html.split()))
+        self.assertIn('table-warning', html)
+        self.assertEqual(html.count('table-warning'), 1)
+        # the class is on the row that actually holds the value
+        body = ' '.join(html.split())
+        row = body[body.index('table-warning'):]
+        self.assertIn('Second', row[:400])
+
     def test_html_rows_keep_their_own_row_class(self):
         card = self.view.build(template_name='table')
         card.add_html_string_entry('<b>raw</b>', exclude_td=False)
         html = card.render()
         self.assertIn('cards-html-row', html)
+
+
+class TestPurchaseOrderLayoutPage(TestCase):
+    def test_example_page_renders_the_whole_layout(self):
+        response = self.client.get('/purchase-order-layout/')
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Purchase Order Details', html)
+        self.assertIn('Delivery Address', html)
+        self.assertIn('django-card--thin-border', html)
+        self.assertIn('max-height:200px;overflow:auto', html)
+        self.assertIn('width:fit-content', html)
+        self.assertIn('<tr class="table-warning">', html)
+        # blank values drop out rather than rendering an empty row
+        self.assertNotIn('Free Issue', html)
+        self.assertNotIn('Customer Sales Order', html)
+        self.assertEqual(html.count('cards/css/cards.css'), 1)

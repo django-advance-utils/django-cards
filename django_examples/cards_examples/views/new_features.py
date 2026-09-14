@@ -754,7 +754,8 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
     Everything here is a stock card option: the 1px chrome from border='thin', values
     right-aligned with table_td_css_class, a scrolling body and a fit-content card from
     card_body_css_style / card_css_style, a highlighted line from add_entry(css_class=...),
-    an edit icon in the header from menu=, and blank rows dropped by
+    an edit icon in the header from menu=, a highlighted line from row_css_class,
+    and blank rows dropped by
     hidden_if_blank_or_none rather than filtered out before they are added.
     """
     template_name = 'cards_examples/cards.html'
@@ -793,7 +794,7 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='GBP', label='Currency')
         card.add_entry(value='IMI', label='Owner')
         # Overdue lines are called out on the row itself, not the value.
-        card.add_entry(value='3 lines overdue', label='Status', css_class='table-warning')
+        card.add_entry(value='3 lines overdue', label='Status', row_css_class='table-warning')
         # Nothing to show, so no row at all -- the blank-row drop, not a caller-side check.
         card.add_entry(value='', label='Free Issue')
         card.add_entry(value=None, label='Customer Sales Order')
@@ -834,4 +835,4 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
                                                  'card_css_style': 'width:fit-content'})
         card.add_entry(value='£1,240.00', label='Goods')
         card.add_entry(value='£248.00', label='VAT')
-        card.add_entry(value='£1,488.00', label='Total', css_class='table-active')
+        card.add_entry(value='£1,488.00', label='Total', row_css_class='table-active')

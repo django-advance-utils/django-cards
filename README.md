@@ -358,8 +358,9 @@ passed through `extra_card_context`, which covers the rest of a compact detail-b
 | `table_css_class` | The table's classes, e.g. `table table-sm mb-1` |
 | `table_td_css_class` | The value cell's classes, e.g. `text-right` |
 
-`add_entry(css_class=...)` puts a class on the row container — in the table template that
-is the `<tr>`, so a line can be highlighted with `css_class='table-warning'`. Pass
+`add_entry(row_css_class=...)` puts a class on the row itself — in the table template
+that is the `<tr>`, so a line can be highlighted with `row_css_class='table-warning'`.
+It is separate from `css_class`, which styles the value heading and is left alone. Pass
 `hidden_if_blank_or_none=True` on the card and entries with no value drop out entirely
 rather than rendering a blank row.
 
@@ -371,7 +372,7 @@ card = self.add_card('po_details', title='Purchase Order Details',
                                          'table_td_css_class': 'text-right',
                                          'card_body_css_style': 'max-height:600px;overflow:auto'})
 card.add_entry(value='GBP', label='Currency')
-card.add_entry(value='3 lines overdue', label='Status', css_class='table-warning')
+card.add_entry(value='3 lines overdue', label='Status', row_css_class='table-warning')
 card.add_entry(value='', label='Free Issue')   # no value, so no row
 ```
 
