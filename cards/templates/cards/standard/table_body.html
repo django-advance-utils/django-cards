@@ -1,5 +1,5 @@
 {{ card.tab_menu.render }}
-<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
+<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body"{% if card_body_css_style %} style="{{ card_body_css_style }}"{% endif %}>
     <div class="list-group">
         <table class="{{ table_css_class }}">
             {% if card.column_search %}
@@ -12,11 +12,11 @@
             <tbody id="{{ card.code }}_tbody">
             {% endif %}
             {% for row in card.rows %}
-                <tr{% if row.type == 'html' %} class="cards-html-row"{% endif %}>
+                <tr{% if row.type == 'html' %} class="cards-html-row"{% elif row.entries.0.row_css_class and not row.entries.0.separator %} class="{{ row.entries.0.row_css_class }}"{% endif %}>
                     {% if row.type == 'html' %}{% if not row.exclude_td %}<td class="{{ table_td_css_class }}"{% if row.colspan %} colspan="{{ row.colspan }}"{% endif %} {% if row.rowspan %} rowspan="{{ row.rowspan }}"{% endif %}>{{ row.html|safe }}</td>{% else %}{{ row.html|safe }}{% endif %}{% else %}
                     {% for entry in row.entries %}
                         {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}
-                        {% if entry.separator %}</tr><tr><td colspan="2"><hr class="my-1"></td></tr><tr>{% endif %}
+                        {% if entry.separator %}</tr><tr><td colspan="2"><hr class="my-1"></td></tr><tr{% if entry.row_css_class %} class="{{ entry.row_css_class }}"{% endif %}>{% endif %}
                         {% if forloop.first %}{% if entry.label_td %}<td>{{ entry.label|safe }}</td>{% else %}<th class="{{ table_th_css_class }}">{{ entry.label|safe }}</th>{% endif %}{% endif %}
                         {% if entry.value_th %}<th{% else %}<td class="{{ table_td_css_class }}"{% endif %}{% if entry.colspan %} colspan="{{ entry.colspan }}"{% endif %}{% if entry.rowspan %} rowspan="{{ entry.rowspan }}"{% endif %}{% if entry.popover %} tabindex="0" data-toggle="popover" data-trigger="focus" title="{{ entry.popover.title }}" data-content="{{ entry.popover.content }}"{% elif entry.tooltip %} data-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.link %}
                             <a class="list-group-item cards-list-group-item" href="{{ entry.link }}">{% endif %}{% if entry.progress_bar %}

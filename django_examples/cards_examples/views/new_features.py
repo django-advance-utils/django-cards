@@ -746,3 +746,93 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
                              border='thin')
         card.add_entry(value='Same 1px hairline, list-group layout', label='Style')
         card.add_entry(value="border='thin'", label='Setting')
+
+
+class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
+    """A purchase-order page built the way the compact-card layout it came from builds one.
+
+    Everything here is a stock card option: the 1px chrome from border='thin', values
+    right-aligned with table_td_css_class, a scrolling body and a fit-content card from
+    card_body_css_style / card_css_style, a highlighted line from add_entry(css_class=...),
+    an edit icon in the header from menu=, a highlighted line from row_css_class,
+    and blank rows dropped by
+    hidden_if_blank_or_none rather than filtered out before they are added.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    # The compact table treatment every card on this page shares.
+    COMPACT = {'table_css_class': 'table table-sm mb-1',
+               'table_td_css_class': 'text-right'}
+
+    def setup_cards(self):
+        self.add_details_card()
+        self.add_delivery_card()
+        self.add_scrolling_card()
+        self.add_fit_content_card()
+
+        self.add_card_group('po_details', div_css_class='col-xl-4 col-lg-6 col-md-6')
+        self.add_card_group('delivery', div_css_class='col-xl-4 col-lg-6 col-md-6')
+        self.add_card_group('lines', div_css_class='col-xl-4 col-lg-6 col-md-6')
+        self.add_card_group('totals',
+                            div_css_class='col-12',
+                            div_css='clear:both',
+                            group_title='A card only as wide as its contents')
+
+    def add_details_card(self):
+        card = self.add_card('po_details',
+                             title='Purchase Order Details',
+                             template_name='table',
+                             border='thin',
+                             hidden_if_blank_or_none=True,
+                             menu=[MenuItem('cards_examples:hello_modal', menu_display='',
+                                            font_awesome='fas fa-edit',
+                                            css_classes='btn btn-sm btn-outline-secondary')],
+                             extra_card_context=self.COMPACT)
+        card.add_entry(value='25/03/2026', label='Order Date')
+        card.add_entry(value='02/04/2026', label='Expected Date')
+        card.add_entry(value='N/M - Net Monthly', label='Terms')
+        card.add_entry(value='GBP', label='Currency')
+        card.add_entry(value='IMI', label='Owner')
+        # Overdue lines are called out on the row itself, not the value.
+        card.add_entry(value='3 lines overdue', label='Status', row_css_class='table-warning')
+        # Nothing to show, so no row at all -- the blank-row drop, not a caller-side check.
+        card.add_entry(value='', label='Free Issue')
+        card.add_entry(value=None, label='Customer Sales Order')
+
+    def add_delivery_card(self):
+        card = self.add_card('delivery',
+                             title='Delivery Address',
+                             template_name='table',
+                             border='thin',
+                             hidden_if_blank_or_none=True,
+                             menu=[MenuItem('cards_examples:hello_modal', menu_display='',
+                                            font_awesome='fas fa-map-marker-alt',
+                                            css_classes='btn btn-sm btn-outline-secondary')],
+                             extra_card_context=self.COMPACT)
+        card.add_entry(value='Example Supplies Ltd', label='Company')
+        card.add_entry(value='12 Harbour Yard', label='Address')
+        card.add_entry(value='Quay Street', label='')
+        card.add_entry(value='Riverton', label='')
+        card.add_entry(value='RV12 4AB', label='')
+
+    def add_scrolling_card(self):
+        """A long card that scrolls inside itself instead of stretching the row."""
+        card = self.add_card('lines',
+                             title='Order Lines',
+                             template_name='table',
+                             border='thin',
+                             extra_card_context={**self.COMPACT,
+                                                 'card_body_css_style': 'max-height:200px;overflow:auto'})
+        for number in range(1, 16):
+            card.add_entry(value=f'{number * 3} off', label=f'Line {number}')
+
+    def add_fit_content_card(self):
+        card = self.add_card('totals',
+                             title='Totals',
+                             template_name='table',
+                             border='thin',
+                             extra_card_context={**self.COMPACT,
+                                                 'card_css_style': 'width:fit-content'})
+        card.add_entry(value='£1,240.00', label='Goods')
+        card.add_entry(value='£248.00', label='VAT')
+        card.add_entry(value='£1,488.00', label='Total', row_css_class='table-active')

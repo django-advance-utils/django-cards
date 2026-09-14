@@ -719,7 +719,10 @@ class CardBase:
             field (str, optional): Field name to auto-fetch value from `details_object` if `value` is not provided.
             label (str, optional): Label to display alongside the value.
             entry_css_class (str, optional): CSS class for the value span/div.
-            css_class (str, optional): CSS class for the row container.
+            css_class (str, optional): CSS class for the value heading (standard template).
+            row_css_class (str, optional): CSS class for the row itself. In the table template
+                this lands on the ``<tr>``, so a line can be highlighted with e.g.
+                ``row_css_class='table-warning'``.
             default (str, optional): Default text to display if the value is None or empty. Defaults to 'N/A'.
             link (str or callable, optional): URL or link generator for making the value a hyperlink.
             hidden (bool, optional): If True, the entry is not shown.
@@ -1024,7 +1027,8 @@ class CardBase:
     def _add_entry_internal(self, value=None, field=None, label=None, default='N/A', link=None,
                             hidden=False, hidden_if_blank_or_none=None, hidden_if_zero=None, html_override=None,
                             value_method=None, value_type=None,
-                            entry_css_class=None, css_class=None, menu=None, default_if=None, row_style=None,
+                            entry_css_class=None, css_class=None, row_css_class=None, menu=None,
+                            default_if=None, row_style=None,
                             tooltip=None, value_link=None, css_class_method=None,
                             badge=None, icon=None, copy_to_clipboard=False, truncate=None,
                             prefix=None, suffix=None, placeholder=None, status_dot=None,
@@ -1272,6 +1276,7 @@ class CardBase:
                      'html': value,
                      'entry_css_class': entry_css_class,
                      'css_class': css_class or '',
+                     'row_css_class': row_css_class or '',
                      'multiple_lines': multiple_parts,
                      'link': link,
                      'tooltip': tooltip,
