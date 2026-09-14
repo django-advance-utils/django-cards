@@ -111,3 +111,7 @@ class TestPurchaseOrderLayoutPage(TestCase):
         self.assertNotIn('Free Issue', html)
         self.assertNotIn('Customer Sales Order', html)
         self.assertEqual(html.count('cards/css/cards.css'), 1)
+        # Every header menu item on this page carries the icon class -- without it the
+        # button chrome django-menus adds stretches the compact header back out. Counted
+        # rather than asserted present, so dropping it from one card is caught too.
+        self.assertEqual(html.count('django-card__header-icon'), 2)

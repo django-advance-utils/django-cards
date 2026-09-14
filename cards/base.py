@@ -3,6 +3,7 @@ import json
 import re
 from collections import defaultdict
 
+from ajax_helpers.html_include import pip_version
 from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
@@ -115,6 +116,11 @@ CARD_BORDER_CSS_CLASSES = {
     CARD_BORDER_NONE: 'django-card--borderless',
 }
 CARD_CSS_MARK = '_django_cards_css_rendered'
+# The stylesheet is injected by hand rather than through lib_include, so it has to carry
+# its own cache-buster: without one a browser holding the previous release's copy styles
+# this release's markup, which is worse than having no stylesheet at all. Same ?v= the
+# sibling libraries put on theirs.
+CARD_CSS_VERSION_QS = f'?v={pip_version("django-cards")}'
 
 
 def normalize_card_border(border):
@@ -153,7 +159,8 @@ def card_css_once(request=None):
     holder = get_render_scope() or request
     if holder is not None and getattr(holder, CARD_CSS_MARK, False):
         return ''
-    html = render_to_string('cards/standard/_card_css.html')
+    html = render_to_string('cards/standard/_card_css.html',
+                            {'card_css_version_qs': CARD_CSS_VERSION_QS})
     if holder is not None:
         setattr(holder, CARD_CSS_MARK, True)
     return html

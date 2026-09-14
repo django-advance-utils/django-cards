@@ -342,6 +342,30 @@ request, immediately before the first card that asks for a non-default border, s
 is no `lib_include` to add and nothing to change in your base template. Cards left on
 the default chrome never pull it in.
 
+#### Icons in a compact header
+
+django-menus gives every menu item the `.btn` class, and a button is taller than the
+title beside it. On the Card Borders example a thin header with two icon buttons measured
+44.8px, against 32px for the same header with no menu — so the compact chrome bought
+nothing. `django-card__header-icon` ships in the same stylesheet and brings it back to
+32px, identical to having no menu at all:
+
+```python
+menu = [MenuItem('app:edit_modal', menu_display='', font_awesome='fas fa-edit',
+                 css_classes='django-card__header-icon',
+                 attributes={'title': 'Edit', 'aria-label': 'Edit'})]
+card = self.add_card('po_details', title='Purchase Order Details',
+                     border='thin', menu=menu)
+```
+
+An icon-only item has no text for a screen reader to read, so give it a `title` and an
+`aria-label`. The class itself lives in `cards.css`, which is only emitted for cards with
+a non-default `border=` — on a page with no bordered card the class styles nothing.
+
+It is meant for icon-only items (`menu_display=''`); an item with a text label wants the
+button. Buttons in the card *body* are unaffected — this is only about what sits on the
+header row next to the title.
+
 `border` styles the card itself and is separate from `treegrid_borderless`, which
 controls the grid lines *inside* a treegrid card. They compose: a treegrid card can have
 `border='thin'` around the card and `treegrid_borderless=True` within it.

@@ -88,3 +88,36 @@
     padding-left: 0;
     padding-right: 0;
 }
+
+/* Header icons.
+ *
+ * django-menus renders every menu item with the .btn class, and a button is taller than
+ * the title beside it: measured on the Card Borders example, a thin header with two
+ * btn-sm icon buttons came to 44.8px against 32px for the same header with no menu --
+ * near enough a default card, so the compact chrome bought nothing.
+ *
+ * This is the treatment to use for an icon-only menu item instead. It strips the button
+ * padding and border, and the line-height of 1 keeps the icon inside the title's line box
+ * rather than the header's taller one, which brings the header back to 32px -- identical
+ * to having no menu at all. Intended for icon-only items (menu_display=''); an item with
+ * a text label wants the button.
+ *
+ * Scoped through .django-card > .card-header so it carries more weight than a consuming
+ * theme's own .card-header .btn rule; on the bare class it would only be beating .btn on
+ * load order.
+ */
+
+.django-card > .card-header .django-card__header-icon {
+    padding: 0 0.25rem;
+    border: 0;
+    background: transparent;
+    line-height: 1;
+    color: var(--django-card-header-icon-color, #495057);
+    text-decoration: none;
+}
+
+.django-card > .card-header .django-card__header-icon:hover,
+.django-card > .card-header .django-card__header-icon:focus {
+    color: var(--django-card-header-icon-hover-color, #212529);
+    text-decoration: none;
+}
