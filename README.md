@@ -346,6 +346,37 @@ the default chrome never pull it in.
 controls the grid lines *inside* a treegrid card. They compose: a treegrid card can have
 `border='thin'` around the card and `treegrid_borderless=True` within it.
 
+#### Compact card layouts
+
+The standard and table templates take the same inline style hooks the html template has,
+passed through `extra_card_context`, which covers the rest of a compact detail-box page:
+
+| Key | Effect |
+| --- | --- |
+| `card_css_style` | Inline style on the card itself, e.g. `width:fit-content` |
+| `card_body_css_style` | Inline style on the body, e.g. `max-height:600px;overflow:auto` to scroll a long card in place |
+| `table_css_class` | The table's classes, e.g. `table table-sm mb-1` |
+| `table_td_css_class` | The value cell's classes, e.g. `text-right` |
+
+`add_entry(css_class=...)` puts a class on the row container — in the table template that
+is the `<tr>`, so a line can be highlighted with `css_class='table-warning'`. Pass
+`hidden_if_blank_or_none=True` on the card and entries with no value drop out entirely
+rather than rendering a blank row.
+
+```python
+card = self.add_card('po_details', title='Purchase Order Details',
+                     template_name='table', border='thin',
+                     hidden_if_blank_or_none=True,
+                     extra_card_context={'table_css_class': 'table table-sm mb-1',
+                                         'table_td_css_class': 'text-right',
+                                         'card_body_css_style': 'max-height:600px;overflow:auto'})
+card.add_entry(value='GBP', label='Currency')
+card.add_entry(value='3 lines overdue', label='Status', css_class='table-warning')
+card.add_entry(value='', label='Free Issue')   # no value, so no row
+```
+
+See the Purchase Order Layout example page for the whole thing.
+
 ### Table Template
 
 Use `template_name='table'` for a table-style layout:

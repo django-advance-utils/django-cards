@@ -1,5 +1,5 @@
 {{ card.tab_menu.render }}
-<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
+<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body"{% if card_body_css_style %} style="{{ card_body_css_style }}"{% endif %}>
     <div class="list-group">
         <table class="{{ table_css_class }}">
             {% if card.column_search %}
@@ -12,7 +12,7 @@
             <tbody id="{{ card.code }}_tbody">
             {% endif %}
             {% for row in card.rows %}
-                <tr{% if row.type == 'html' %} class="cards-html-row"{% endif %}>
+                <tr{% if row.type == 'html' %} class="cards-html-row"{% elif row.entries.0.css_class %} class="{{ row.entries.0.css_class }}"{% endif %}>
                     {% if row.type == 'html' %}{% if not row.exclude_td %}<td class="{{ table_td_css_class }}"{% if row.colspan %} colspan="{{ row.colspan }}"{% endif %} {% if row.rowspan %} rowspan="{{ row.rowspan }}"{% endif %}>{{ row.html|safe }}</td>{% else %}{{ row.html|safe }}{% endif %}{% else %}
                     {% for entry in row.entries %}
                         {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}

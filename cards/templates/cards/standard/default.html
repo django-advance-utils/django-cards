@@ -1,4 +1,4 @@
-<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title=""{% if card_css_style %} style="{{ card_css_style }}"{% endif %}>
     {% if show_header %}
         <div class="card-header {{ card.header_css_class }}">
             <div class="d-flex align-items-center">
