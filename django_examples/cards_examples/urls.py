@@ -14,7 +14,7 @@ from cards_examples.views.accordion import AccordionExample, AccordionAjaxExampl
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
-from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample
+from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample, CardBordersIndex
 from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
@@ -78,6 +78,7 @@ urlpatterns = [
 
     path('new-features-2/', NewFeatures2Index.as_view(), name='new_features_2'),
     path('image-gallery/', ImageGalleryIndex.as_view(), name='image_gallery'),
+    path('card-borders/', CardBordersIndex.as_view(), name='card_borders'),
 
     path('treegrid/', TreegridBasicExample.as_view(), name='treegrid'),
     path('treegrid/editable/', TreegridEditableExample.as_view(), name='treegrid_editable'),
