@@ -122,6 +122,9 @@ class TestCardBordersPage(TestCase):
         self.assertIn('fa-print', html)
         self.assertIn('btn-outline-secondary', html)
         self.assertIn('fa-file-invoice', html)
+        # Header icons are links, not buttons: a btn in the header row is ~31px against an
+        # 18px title and stretches the compact header back to default height.
+        self.assertIn('django-card__header-icon', html)
         # Exactly one copy: the stylesheet is injected before the first bordered card and
         # the render scope stops every later card on the page repeating it.
         self.assertEqual(html.count('cards/css/cards.css'), 1)

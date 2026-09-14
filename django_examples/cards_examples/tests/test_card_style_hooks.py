@@ -111,3 +111,7 @@ class TestPurchaseOrderLayoutPage(TestCase):
         self.assertNotIn('Free Issue', html)
         self.assertNotIn('Customer Sales Order', html)
         self.assertEqual(html.count('cards/css/cards.css'), 1)
+        # Header icons are links here too, and this page has no buttons anywhere else,
+        # so a stray btn in the markup means one crept back into a header.
+        self.assertIn('django-card__header-icon', html)
+        self.assertNotIn('btn btn-sm', html)
