@@ -685,10 +685,12 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
         menu = [
             MenuItem('cards_examples:hello_modal', menu_display='',
                      font_awesome='fas fa-print',
-                     css_classes='django-card__header-icon'),
+                     css_classes='django-card__header-icon',
+                     attributes={'title': 'Print', 'aria-label': 'Print'}),
             MenuItem('cards_examples:hello_modal', menu_display='',
                      font_awesome='fas fa-edit',
-                     css_classes='django-card__header-icon'),
+                     css_classes='django-card__header-icon',
+                     attributes={'title': 'Edit', 'aria-label': 'Edit'}),
         ]
         card = self.add_card('po_details',
                              title='Purchase Order Details',
@@ -719,10 +721,12 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
         menu = [
             MenuItem('cards_examples:hello_modal', menu_display='',
                      font_awesome='fas fa-map-marker-alt',
-                     css_classes='django-card__header-icon'),
+                     css_classes='django-card__header-icon',
+                     attributes={'title': 'View on map', 'aria-label': 'View on map'}),
             MenuItem('cards_examples:hello_modal', menu_display='',
                      font_awesome='fas fa-copy',
-                     css_classes='django-card__header-icon'),
+                     css_classes='django-card__header-icon',
+                     attributes={'title': 'Copy address', 'aria-label': 'Copy address'}),
         ]
         card = self.add_card('delivery',
                              title='Delivery Address',
@@ -786,7 +790,9 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
                              hidden_if_blank_or_none=True,
                              menu=[MenuItem('cards_examples:hello_modal', menu_display='',
                                             font_awesome='fas fa-edit',
-                                            css_classes='django-card__header-icon')],
+                                            css_classes='django-card__header-icon',
+                                            attributes={'title': 'Edit',
+                                                         'aria-label': 'Edit'})],
                              extra_card_context=self.COMPACT)
         card.add_entry(value='25/03/2026', label='Order Date')
         card.add_entry(value='02/04/2026', label='Expected Date')
@@ -807,7 +813,9 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
                              hidden_if_blank_or_none=True,
                              menu=[MenuItem('cards_examples:hello_modal', menu_display='',
                                             font_awesome='fas fa-map-marker-alt',
-                                            css_classes='django-card__header-icon')],
+                                            css_classes='django-card__header-icon',
+                                            attributes={'title': 'View on map',
+                                                         'aria-label': 'View on map'})],
                              extra_card_context=self.COMPACT)
         card.add_entry(value='Example Supplies Ltd', label='Company')
         card.add_entry(value='12 Harbour Yard', label='Address')

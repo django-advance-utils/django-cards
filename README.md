@@ -352,10 +352,15 @@ nothing. `django-card__header-icon` ships in the same stylesheet and brings it b
 
 ```python
 menu = [MenuItem('app:edit_modal', menu_display='', font_awesome='fas fa-edit',
-                 css_classes='django-card__header-icon')]
+                 css_classes='django-card__header-icon',
+                 attributes={'title': 'Edit', 'aria-label': 'Edit'})]
 card = self.add_card('po_details', title='Purchase Order Details',
                      border='thin', menu=menu)
 ```
+
+An icon-only item has no text for a screen reader to read, so give it a `title` and an
+`aria-label`. The class itself lives in `cards.css`, which is only emitted for cards with
+a non-default `border=` — on a page with no bordered card the class styles nothing.
 
 It is meant for icon-only items (`menu_display=''`); an item with a text label wants the
 button. Buttons in the card *body* are unaffected — this is only about what sits on the
