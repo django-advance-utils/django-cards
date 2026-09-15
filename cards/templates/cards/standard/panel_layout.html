@@ -11,5 +11,10 @@
 <script>document.addEventListener('DOMContentLoaded', function() { PanelLayout.init('{{ layout_id }}', {persist: {{ persist|yesno:'true,false' }}}); });</script>
 {% if linked_tables_json %}
 <script src="{% static 'cards/panel_layout/js/panel_linked_tables.js' %}"></script>
-<script>$(document).ready(function() { PanelLinkedTables.init('{{ layout_id }}', {{ linked_tables_json }}); });</script>
+<script>(function () {
+    var ready = function (fn) {
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn); } else { fn(); }
+    };
+    ready(function () { PanelLinkedTables.init('{{ layout_id }}', {{ linked_tables_json }}); });
+})();</script>
 {% endif %}

@@ -225,7 +225,41 @@
     var images = [{% for link in links %}{% if link.type == 'image' %}{"url": "{{ link.url|escapejs }}", "name": "{{ link.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}];
     {% if not links %}var images = [{% for image in images %}{"url": "{{ image.url|escapejs }}", "name": "{{ image.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}];{% endif %}
     var currentIndex = 0;
-    var lightboxId = '{{ card.code }}_lightbox';
+    var lightbox = document.getElementById('{{ card.code }}_lightbox');
+    var backdrop = null;
+
+    function ensureBackdrop() {
+        if (backdrop) return backdrop;
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.addEventListener('click', hideLightbox);
+        return backdrop;
+    }
+
+    function showLightbox() {
+        if (!lightbox) return;
+        document.body.classList.add('modal-open');
+        document.body.appendChild(ensureBackdrop());
+        lightbox.style.display = 'block';
+        lightbox.classList.add('show');
+        lightbox.setAttribute('aria-modal', 'true');
+        lightbox.removeAttribute('aria-hidden');
+    }
+
+    function hideLightbox() {
+        if (!lightbox) return;
+        lightbox.classList.remove('show');
+        lightbox.style.display = 'none';
+        lightbox.setAttribute('aria-hidden', 'true');
+        lightbox.removeAttribute('aria-modal');
+        if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+        // The gallery card can itself be rendered inside a django-modals modal.
+        // 'show' is already cleared above, so the lightbox excludes itself here;
+        // only drop modal-open once no other modal is still on screen.
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
 
     function show(idx) {
         currentIndex = idx;
@@ -241,9 +275,22 @@
         }
     }
 
+    if (lightbox) {
+        var closeBtns = lightbox.querySelectorAll('[data-dismiss="modal"]');
+        for (var i = 0; i < closeBtns.length; i++) {
+            closeBtns[i].addEventListener('click', hideLightbox);
+        }
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) hideLightbox();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && lightbox.classList.contains('show')) hideLightbox();
+        });
+    }
+
     window['openGalleryLightbox_{{ card.code }}'] = function(idx) {
         show(idx);
-        $('#' + lightboxId).modal('show');
+        showLightbox();
     };
 
     window['galleryNav_{{ card.code }}'] = function(dir) {
