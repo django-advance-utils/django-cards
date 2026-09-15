@@ -122,8 +122,30 @@
         }
     }
 
+    // Only this accordion's own panel bodies -- a direct .collapse child of a
+    // direct panel-wrap child. A descendant query would also match the body of
+    // any card rendered inside a panel with enable_collapse=True, and the
+    // panels of a nested accordion.
+    function ownCollapses() {
+        var out = [];
+        for (var i = 0; i < accordion.children.length; i++) {
+            var wrap = accordion.children[i];
+            if (!wrap.classList || !wrap.classList.contains(panelWrapClass)) continue;
+            for (var j = 0; j < wrap.children.length; j++) {
+                if (wrap.children[j].classList && wrap.children[j].classList.contains('collapse')) {
+                    out.push(wrap.children[j]);
+                }
+            }
+        }
+        return out;
+    }
+
     function openCount() {
-        return accordion.querySelectorAll('.collapse.show').length;
+        var open = 0, own = ownCollapses();
+        for (var i = 0; i < own.length; i++) {
+            if (own[i].classList.contains('show')) open += 1;
+        }
+        return open;
     }
 
     function loadAjaxPanel(panelId) {
@@ -143,6 +165,9 @@
         var targetSel = btn.getAttribute('data-cards-collapse-target');
         var collapseEl = document.querySelector(targetSel);
         if (!collapseEl) return;
+        // Ignore collapse toggles inside panel content, including the buttons
+        // of a nested accordion, whose clicks bubble up to this listener.
+        if (ownCollapses().indexOf(collapseEl) === -1) return;
 
         if (isExpanded(collapseEl)) {
             if (!multiOpen && openCount() <= 1) return;
@@ -151,9 +176,9 @@
         }
 
         if (!multiOpen) {
-            var openPanels = accordion.querySelectorAll('.collapse.show');
-            for (var i = 0; i < openPanels.length; i++) {
-                setExpanded(openPanels[i], false);
+            var own = ownCollapses();
+            for (var i = 0; i < own.length; i++) {
+                if (own[i].classList.contains('show')) setExpanded(own[i], false);
             }
         }
         setExpanded(collapseEl, true);

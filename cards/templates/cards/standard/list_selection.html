@@ -9,6 +9,16 @@
 
 <script>
 
+    window.cards_on_ready = window.cards_on_ready || function (fn) {
+        // Mirror $(document).ready: defer while the document is still parsing,
+        // but run immediately when this markup is injected by ajax_helpers.
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fn);
+        } else {
+            fn();
+        }
+    };
+
     var last_loaded_entry_id = null;
 
     function load_details(entry_id) {
@@ -39,7 +49,7 @@
         {% endif %}
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    window.cards_on_ready(function () {
          var selected = document.getElementById('list_{{ selected_id }}');
          if (selected) selected.focus();
     });
@@ -83,7 +93,7 @@
             </div>
         </a>
         {% if selected_id == entry.pk %}
-            <script>load_details('{{ entry.pk }}');</script>
+            <script>window.cards_on_ready(function () { load_details('{{ entry.pk }}'); });</script>
         {% endif %}
         {% empty %}
         <div class="list-group-item">
@@ -91,7 +101,7 @@
         </div>
 
         <script>
-            document.addEventListener('DOMContentLoaded', function () {load_empty_details();});
+            window.cards_on_ready(function () {load_empty_details();});
 
         </script>
 
