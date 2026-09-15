@@ -41,7 +41,17 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+window.cards_on_ready = window.cards_on_ready || function (fn) {
+    // Mirror $(document).ready: defer while the document is still parsing, but
+    // run immediately when this markup is injected by ajax_helpers after load.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn);
+    } else {
+        fn();
+    }
+};
+
+window.cards_on_ready(function() {
     var cardId = '{{ card.code }}';
     var cardEl = document.getElementById(cardId + '_card');
     if (!cardEl) return;
@@ -205,16 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 setStatus(tableId, 'Select a row in the previous table');
             }
 
-            var tbody = document.querySelector('#' + tableId + ' tbody');
-            if (tbody) {
-                tbody.addEventListener('click', function(e) {
-                    var row = e.target.closest('tr');
-                    if (!row || !tbody.contains(row)) return;
-                    setActivePanel(panelIndex);
-                    selectRow(panelIndex, tableId, row, true, true);
-                });
-            }
-
             var panelEl = document.getElementById(tableId + '_panel');
             if (panelEl) {
                 panelEl.addEventListener('click', function() {
@@ -223,6 +223,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })(panels[k]);
     }
+
+    // DataTables creates the <tbody> itself, from its own $(document).ready
+    // handler, so it does not exist yet when this runs. Delegate from the card
+    // element -- which is always present -- rather than binding to the tbody.
+    cardEl.addEventListener('click', function(e) {
+        var row = e.target.closest('tbody tr');
+        if (!row || !cardEl.contains(row)) return;
+        var table = row.closest('table');
+        if (!table || !table.id) return;
+        for (var t = 0; t < tableConfigs.length; t++) {
+            if (tableConfigs[t].tableId === table.id) {
+                setActivePanel(t);
+                selectRow(t, table.id, row, true, true);
+                break;
+            }
+        }
+    });
 
     // Keyboard navigation
     cardEl.setAttribute('tabindex', '0');

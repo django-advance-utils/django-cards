@@ -280,7 +280,12 @@
         lightbox.setAttribute('aria-hidden', 'true');
         lightbox.removeAttribute('aria-modal');
         if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
-        document.body.classList.remove('modal-open');
+        // The gallery card can itself be rendered inside a django-modals modal.
+        // 'show' is already cleared above, so the lightbox excludes itself here;
+        // only drop modal-open once no other modal is still on screen.
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+        }
     }
 
     function show(idx) {
