@@ -1243,7 +1243,7 @@ class CardBase:
             if is_default and placeholder:
                 if isinstance(placeholder, str):
                     value = placeholder
-                entry_css_class = ((entry_css_class or '') + ' text-muted fst-italic').strip()
+                entry_css_class = ((entry_css_class or '') + ' text-muted font-italic fst-italic').strip()
 
             if boolean_icon and not is_default and isinstance(value, bool):
                 if value:
