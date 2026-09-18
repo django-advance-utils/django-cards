@@ -121,3 +121,43 @@
     color: var(--django-card-header-icon-hover-color, #212529);
     text-decoration: none;
 }
+
+/* Header buttons that carry text, on a compact card.
+ *
+ * The header-icon treatment above is for icon-only items, and says an item with a text label
+ * wants the button. That is what makes a thin header taller than the default card it is meant
+ * to be more compact than: the thin header takes its own min-height off, so a 38px django-menus
+ * button is then the tallest thing in the row and sets the height on its own. Measured with a
+ * Back / Edit / Action bar: 52px thin against 45px default.
+ *
+ * Sizing the button to the header rather than the other way round brings the row to 37px with
+ * the labels still readable. A little under btn-sm, which is 31px and still taller than the
+ * title. Scoped through .django-card--thin-border > .card-header so it outweighs a consuming
+ * theme's own .card-header .btn rule, as the header-icon block is.
+ */
+
+.django-card--thin-border > .card-header .btn {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
+.django-card--thin-border > .card-header .dropdown-menu .dropdown-item {
+    font-size: 0.85rem;
+}
+
+/* ...and the same header with no button at all.
+ *
+ * With the min-height gone the header is exactly as tall as what is in it, so one with a button
+ * is 37px and one with only a title is 31px. A card that swaps its body -- a tabbed card whose
+ * tabs do not all carry an action -- then changes height on every switch, and the whole page
+ * under it moves with it.
+ *
+ * The row holds the height a sized button gives it whether or not there is one: 0.85rem of text
+ * at a line-height of 1.3, plus the 0.1rem padding above and below, plus the button's 1px border
+ * top and bottom. Override it alongside the padding and font-size above if you change them.
+ */
+
+.django-card--thin-border > .card-header > .d-flex {
+    min-height: calc(1.305rem + 2px);
+}
