@@ -827,6 +827,104 @@ class ProductDetailView(CardMixin, DetailView):
 
 ---
 
+## Tiles
+
+`add_tiles()` renders a card's body as a grid of small tiles, one per object -- the shape
+`add_link_gallery_card()` draws for links, for anything else. Where `add_entry`/`add_rows` give
+label/value rows, this gives a wrapping row of small bordered cards, each with a heading, an
+optional subheading, a few meta lines, an optional image, an optional badge and an edit pencil.
+
+```python
+from cards.standard import CardMixin, Tile
+
+card = self.add_card('colours', title='Colours & Finishes')
+card.add_tiles(
+    [
+        Tile(
+            key=f'colour_finish_{cf.pk}',     # stable id -> the tile's DOM id
+            heading=cf.colour.name,           # escaped
+            subheading=cf.finish.name,
+            meta=[cf.price_display, ('none in stock', 'text-danger')],
+            image_url=cf.finish.image.url,
+            badge='Default' if cf.is_default else None,
+            edit_url=f"javascript:django_modal.show_modal('colour_finish_modal-{cf.pk}')",
+            tooltip=f'{cf.colour.name} / {cf.finish.name}',
+            css_class='my-app-colour-tile',   # for anything only this page styles
+        )
+        for cf in colour_finishes
+    ],
+    empty_message='No colours or finishes yet. Use Add above to add one.',
+    width='150px',
+)
+```
+
+`Tile` fields -- every one but `key` is optional, and a tile draws only the parts it was given:
+
+| Field | Purpose |
+| --- | --- |
+| `key` | Stable identifier; becomes the tile's DOM id, so it must be unique on the page |
+| `heading` | The tile's first line. **Escaped** |
+| `heading_html` | The first line as markup, for a heading that is built rather than written. **Rendered as-is** -- see below |
+| `subheading` | A second, quieter line. **Escaped** |
+| `meta` | Short lines under the heading: a string, or a `(text, css_class)` pair. **Escaped** |
+| `image_url` | A 64px thumbnail under the meta lines |
+| `badge` | A flag drawn last, in a Bootstrap badge. **Escaped** |
+| `edit_url` | Where the pencil in the top-right corner goes. No pencil without one |
+| `tooltip` | The tile's `title`, and its image's alt text. **Escaped** |
+| `css_class` | Extra classes on the tile |
+
+`add_tiles()` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `tiles` | list | required | `Tile` objects, or dicts of the same fields |
+| `empty_message` | str | `None` | Shown in place of the grid when there are no tiles. Nothing is drawn without one |
+| `width` | str | `150px` | The width of one tile, as a CSS length |
+
+Called more than once, `add_tiles()` adds to the grid rather than replacing it, and it returns
+the card so the call can be chained onto `add_card()`.
+
+### Escaping
+
+Everything a tile shows is escaped **except `heading_html`**, which is the one field rendered as
+markup. It is named for what it does so that putting user-entered text through it is an obvious
+mistake rather than an invisible one:
+
+```python
+from django.utils.html import format_html
+
+# The colour's name written on the colour itself. format_html escapes the name, so only the
+# span built on this line is markup -- the tenant's text stays text.
+Tile(key=f'colour_{colour.pk}',
+     heading_html=format_html('<span style="background:{}">{}</span>', colour.hex, colour.name))
+```
+
+Pass anything that came from a form or a model field through `heading` instead, where the
+template escapes it. Markup handed to `heading` is not quietly rendered: the escaping follows the
+field the caller chose, not the shape of the value.
+
+### Styling
+
+The chrome lives in the package stylesheet (`cards/css/cards.css`, injected once per request when
+a card that needs it renders), under `.django-card__tile*`. It reuses `image_gallery`'s numbers --
+8px gap and padding, `#dee2e6` on `#f8f9fa`, `.8` hover opacity -- so a page carrying both reads
+as one family. Two differences from the gallery's own tiles are deliberate:
+
+- **The pencil is always shown, not revealed on hover.** It is what tells a reader the tile can be
+  edited at all.
+- **Tile width is per card.** `width='190px'` for a tile holding a two-part measurement that must
+  not wrap; the default 150px otherwise. It reaches the CSS as the `--django-card-tile-width`
+  custom property on the container.
+
+Retint the chrome without out-specifying anything by setting the custom properties it reads:
+`--django-card-border-color`, `--django-card-tile-bg`, `--django-card-tile-subheading-color`,
+`--django-card-tile-meta-color`.
+
+See the `/tiles/` page in `django_examples` for a tile with every field, one with none of the
+optional ones, both shapes above, and the empty state.
+
+---
+
 ## Linked Datatables
 
 Display multiple datatables side by side with drill-down filtering. Clicking a row in one table filters the next table in the chain. Supports any number of linked tables.
@@ -1117,6 +1215,7 @@ Any card type can be placed inside an accordion panel. The panel automatically h
 - Datatable cards (define in `setup_datatable_cards()`, reference via `self.cards['name']`)
 - HTML cards
 - Image gallery cards
+- Tile cards
 - Other card types
 
 ### Layout Example — Accordion with Side Panel

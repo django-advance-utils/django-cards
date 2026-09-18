@@ -8,6 +8,8 @@ from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
 from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
+# Re-exported so a view building tiles imports Tile from the same place as CardMixin.
+from cards.base import Tile  # noqa: F401
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
