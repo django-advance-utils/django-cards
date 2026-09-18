@@ -8,6 +8,7 @@
         </div>
     </div>
     {% endif %}
+    {{ card.tab_menu.render }}
     <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" style="padding: 0;{% if card.extra_card_info.full_height %} flex: 1; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
         <div class="accordion" id="{{ card.code }}_accordion"{% if card.extra_card_info.full_height %} style="display: flex; flex-direction: column; flex: 1; overflow: hidden;"{% endif %}>
             {% for panel in card.extra_card_info.initialized_panels %}
