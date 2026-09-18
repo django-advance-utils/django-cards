@@ -21,6 +21,7 @@
 
     <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
         <div id="{{ card.code }}_tree"></div>
+        {% include 'cards/standard/_cards_on_ready.html' %}
         <script>
             {# jsTree still requires jQuery; this is the only remaining $ usage for CardTree. #}
             $('#{{ card.code }}_tree').jstree({
@@ -46,7 +47,7 @@
         $('#{{ card.code }}_tree').on("ready.jstree", function (e, data) {
             $('#{{ card.code }}_tree').jstree(true).get_node('{{ selected_id }}', true).children('.jstree-anchor').focus();
         });
-        load_details('{{ selected_id }}')
+        window.cards_on_ready(function () { load_details('{{ selected_id }}'); });
         </script>
     </div>
 

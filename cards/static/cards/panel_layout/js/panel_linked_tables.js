@@ -22,6 +22,10 @@ var PanelLinkedTables = (function() {
         return parts.join('&');
     }
 
+    // The auto-select poll for each layout on the page, so a re-init can stop the one the
+    // previous render started.
+    var polls = {};
+
     function init(layoutId, tableConfigs) {
         var layout = document.getElementById(layoutId);
         if (!layout) return;
@@ -185,12 +189,18 @@ var PanelLinkedTables = (function() {
         if (tableConfigs.length > 0) {
             if (!autoSelectFirst()) {
                 var tries = 0;
+                // Cancel the poll left running by a previous init of this layout, or it
+                // would auto-select the new tables as well and load the detail twice.
+                // Keyed on the layout id rather than held on the element: a re-render
+                // replaces the element, so the outgoing timer has to be findable without it.
+                if (polls[layoutId]) clearInterval(polls[layoutId]);
                 var timer = setInterval(function() {
                     tries += 1;
                     if (autoSelectFirst() || tries > 100) {
                         clearInterval(timer);
                     }
                 }, 50);
+                polls[layoutId] = timer;
             }
         }
     }

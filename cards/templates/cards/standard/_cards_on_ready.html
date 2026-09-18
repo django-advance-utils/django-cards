@@ -1,0 +1,23 @@
+<script>
+/* Defer until the document has been parsed, the way $(document).ready did.
+
+   A card's script runs in one of two situations and has to cope with both: inline in a page
+   the browser is still parsing, where the rest of the card -- and anything it needs to find
+   by id -- does not exist yet; or injected by ajax_helpers into a document that finished
+   loading long ago, where DOMContentLoaded has already been and gone and waiting for it
+   would wait forever.
+
+   Guarded so several cards on one page define it once. */
+window.cards_on_ready = window.cards_on_ready || function (fn) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn);
+    } else {
+        // Deferred, not called straight through. jQuery's ready callbacks were always
+        // asynchronous, even with the document long since parsed, and the callers were
+        // written against that: a list card injected into a django-modals modal runs
+        // while modal_container.html(modal_html) is still executing, so calling it here
+        // and now would post its inputs before init_modal_container had run.
+        setTimeout(fn, 0);
+    }
+};
+</script>

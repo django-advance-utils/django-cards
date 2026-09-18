@@ -56,6 +56,18 @@
     #{{ card.code }}_accordion .btn-link.collapsed .accordion-chevron { transform: rotate(-90deg); }
     #{{ card.code }}_accordion .card-body .card.django-card { border: none; }
     #{{ card.code }}_accordion .card-body .card.django-card .card-header { display: none; }
+
+    /* The open/close slide. Bootstrap's collapse plugin drew this before the accordion
+       drove itself; `.show` still says whether a panel is open, and this only says it is
+       on its way, so the height can animate while a closing panel is already "closed". */
+    #{{ card.code }}_accordion .collapse.cards-collapsing {
+        display: block !important;
+        overflow: hidden;
+        transition: height 0.35s ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #{{ card.code }}_accordion .collapse.cards-collapsing { transition: none; }
+    }
     {% if card.extra_card_info.full_height %}
     #{{ card.code }}_card {
         display: flex;
@@ -103,9 +115,28 @@
         return collapseEl.classList.contains('show');
     }
 
+    // Matches the CSS transition above.
+    var SLIDE_MS = 350;
+    // In full-height mode the panel is sized by flex, not by its own height, and the style
+    // block above already turns transitions off there.
+    var slide = !fullHeight;
+
+    function endSlide(collapseEl) {
+        if (collapseEl.cardsSlideTimer) {
+            clearTimeout(collapseEl.cardsSlideTimer);
+            collapseEl.cardsSlideTimer = null;
+        }
+        collapseEl.classList.remove('cards-collapsing');
+        collapseEl.style.height = '';
+    }
+
     function setExpanded(collapseEl, expanded) {
         var btn = accordion.querySelector('[data-cards-collapse-target="#' + collapseEl.id + '"]');
         var wrap = closestPanelWrap(collapseEl);
+
+        // `.show` and the chevron move now, whatever the height does afterwards, so a
+        // second click mid-slide reads the state the user just asked for rather than the
+        // one still animating.
         if (expanded) {
             collapseEl.classList.add('show');
             if (btn) {
@@ -121,6 +152,22 @@
             }
             if (fullHeight && wrap) wrap.classList.remove('panel-expanded');
         }
+
+        if (!slide) return;
+
+        endSlide(collapseEl);
+        var target = expanded ? collapseEl.scrollHeight : 0;
+        var from = expanded ? 0 : collapseEl.scrollHeight;
+        collapseEl.classList.add('cards-collapsing');
+        collapseEl.style.height = from + 'px';
+        // Read a layout property so the browser has a frame to animate from.
+        void collapseEl.offsetHeight;
+        collapseEl.style.height = target + 'px';
+        collapseEl.cardsSlideTimer = setTimeout(function() {
+            collapseEl.cardsSlideTimer = null;
+            collapseEl.classList.remove('cards-collapsing');
+            collapseEl.style.height = '';
+        }, SLIDE_MS);
     }
 
     // Only this accordion's own panel bodies -- a direct .collapse child of a
@@ -199,6 +246,11 @@
             cardEl.style.height = height + 'px';
         }
         setCardHeight();
+        // A card re-rendered over ajax runs this script again, and the listener from the
+        // previous render would stay bound to a detached element for the life of the page.
+        var resizeKey = '_cardsAccordionResize_{{ card.code }}';
+        if (window[resizeKey]) window.removeEventListener('resize', window[resizeKey]);
+        window[resizeKey] = setCardHeight;
         window.addEventListener('resize', setCardHeight);
     })();
     {% endif %}

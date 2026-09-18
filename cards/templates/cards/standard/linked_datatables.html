@@ -40,17 +40,8 @@
     {% endif %}
 </div>
 
+{% include 'cards/standard/_cards_on_ready.html' %}
 <script>
-window.cards_on_ready = window.cards_on_ready || function (fn) {
-    // Mirror $(document).ready: defer while the document is still parsing, but
-    // run immediately when this markup is injected by ajax_helpers after load.
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', fn);
-    } else {
-        fn();
-    }
-};
-
 window.cards_on_ready(function() {
     var cardId = '{{ card.code }}';
     var cardEl = document.getElementById(cardId + '_card');
@@ -298,6 +289,10 @@ window.cards_on_ready(function() {
     if (autoSelect && tableConfigs.length > 0) {
         var firstTableId = tableConfigs[0].tableId;
         var tries = 0;
+        // Cancel the poll left running by a previous render of this card, or it would
+        // auto-select the new table as well and load the downstream one twice.
+        var pollKey = '_cardsLinkedPoll_' + cardId;
+        if (window[pollKey]) clearInterval(window[pollKey]);
         var timer = setInterval(function() {
             var dt = django_datatables.DataTables[firstTableId];
             tries += 1;
@@ -313,6 +308,7 @@ window.cards_on_ready(function() {
                 clearInterval(timer);
             }
         }, 50);
+        window[pollKey] = timer;
     }
 });
 </script>

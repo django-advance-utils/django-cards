@@ -7,18 +7,8 @@
 </style>
 
 
+{% include 'cards/standard/_cards_on_ready.html' %}
 <script>
-
-    window.cards_on_ready = window.cards_on_ready || function (fn) {
-        // Mirror $(document).ready: defer while the document is still parsing,
-        // but run immediately when this markup is injected by ajax_helpers.
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fn);
-        } else {
-            fn();
-        }
-    };
-
     var last_loaded_entry_id = null;
 
     function load_details(entry_id) {
