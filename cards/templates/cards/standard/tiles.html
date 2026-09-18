@@ -12,11 +12,11 @@
     {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
         <div class="card-header {{ card.header_css_class }}">
             <div class="d-flex align-items-center">
-                <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+                <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
                 {% include 'cards/standard/_reload_button.html' %}
                 {% if card.enable_collapse %}
-                <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+                <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-bs-target="#{{ card.code }}_body" data-toggle="collapse" data-bs-toggle="collapse">
                     <i class="expandicon"></i>
                 </div>
                 {% endif %}
@@ -56,7 +56,7 @@
                 <img src="{{ tile.image_url }}" alt="{{ tile.tooltip|default:tile.heading|default:'' }}" loading="lazy" class="django-card__tile-image">
                 {% endif %}
 
-                {% if tile.badge %}<div class="django-card__tile-badge"><span class="badge badge-primary">{{ tile.badge }}</span></div>{% endif %}
+                {% if tile.badge %}<div class="django-card__tile-badge"><span class="badge badge-primary bg-primary">{{ tile.badge }}</span></div>{% endif %}
             </div>
             {% empty %}
             {% if card.extra_card_info.tiles_empty_message %}

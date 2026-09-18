@@ -864,8 +864,8 @@ class TilesIndex(MainMenu, CardMixin, TemplateView):
         self.add_sizes_card()
         self.add_empty_card()
 
-        self.add_card_group('every_field', div_css_class='col-6 float-left')
-        self.add_card_group('minimal', div_css_class='col-6 float-right')
+        self.add_card_group('every_field', div_css_class='col-6 float-left float-start')
+        self.add_card_group('minimal', div_css_class='col-6 float-right float-end')
         self.add_card_group('colours', div_css_class='col-12', div_css='clear:both')
         self.add_card_group('sizes', div_css_class='col-12')
         self.add_card_group('empty_tiles', div_css_class='col-12')
