@@ -5,7 +5,12 @@
     <title>Panel Layout Demo</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if bootstrap_version == '5' %}
+    {% lib_include 'ajax_helpers' 'FontAwesome' module='ajax_helpers.includes' %}
+    {% lib_include 'bootstrap5' module='cards_examples.includes' %}
+    {% else %}
     {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
+    {% endif %}
     {% lib_include module='django_menus.includes' %}
     {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' 'ColourPicker' module='django_modals.includes' %}
     {% lib_include 'datatable' module='django_datatables.includes' %}

@@ -5,7 +5,12 @@
     <title></title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if bootstrap_version == '5' %}
+    {% lib_include 'ajax_helpers' 'FontAwesome' module='ajax_helpers.includes' %}
+    {% lib_include 'bootstrap5' module='cards_examples.includes' %}
+    {% else %}
     {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
+    {% endif %}
     {% lib_include module='django_menus.includes' %}
     {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' 'ColourPicker' module='django_modals.includes' %}
     {% lib_include 'datatable' module='django_datatables.includes' %}
@@ -16,7 +21,7 @@
 </head>
 <body>
  <nav class="navbar navbar-expand-lg bg-dark navbar-dark active-bar">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbarSupportedContent" data-bs-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
