@@ -29,7 +29,12 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {{ menus.main_menu.render }}
         </div>
-        <div class="text-light">
+        <div class="text-light d-flex align-items-center">
+            {# Which Bootstrap this page is on, and a click to see it on the other one. #}
+            <a href="{{ bootstrap_toggle_url }}" class="btn btn-sm btn-outline-light mr-3 me-3"
+               title="Currently Bootstrap {{ bootstrap_version }} -- switch to {{ bootstrap_other_version }}">
+                BS{{ bootstrap_version }} &rarr; BS{{ bootstrap_other_version }}
+            </a>
             {{ menus.user_menu.render }}
         </div>
     </nav>

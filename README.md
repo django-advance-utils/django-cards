@@ -87,11 +87,15 @@ crispy's `bootstrap4` template pack all still emit Bootstrap 4 markup only. Your
 correct under Bootstrap 5; the menus inside their headers, the modals around them and the
 datatables in them will not be until those libraries get the same treatment.
 
-To see the difference, the example app serves either version:
+To see the difference, the example app serves either version, and the nav bar carries a toggle
+that flips between them on the page you are looking at -- no restart:
 
 ```bash
-CARDS_EXAMPLE_BOOTSTRAP=5 python manage.py runserver
+python manage.py runserver          # starts on Bootstrap 4
 ```
+
+`?bootstrap=5` on any URL does the same thing and sticks for the session.
+`CARDS_EXAMPLE_BOOTSTRAP=5` in the environment sets where a fresh session starts.
 
 ## Quick Start
 
