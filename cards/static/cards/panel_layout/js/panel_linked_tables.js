@@ -187,13 +187,19 @@ var PanelLinkedTables = (function() {
         }
 
         if (tableConfigs.length > 0) {
+            // Cancel the poll left running by a previous init of this layout before doing
+            // anything else, or it would auto-select the new tables as well and load the
+            // detail twice. Above the autoSelectFirst() below on purpose: an init that
+            // finds rows already there returns without starting a poll of its own, and
+            // would otherwise never reach this.
+            // Keyed on the layout id rather than held on the element: a re-render replaces
+            // the element, so the outgoing timer has to be findable without it.
+            if (polls[layoutId]) {
+                clearInterval(polls[layoutId]);
+                polls[layoutId] = null;
+            }
             if (!autoSelectFirst()) {
                 var tries = 0;
-                // Cancel the poll left running by a previous init of this layout, or it
-                // would auto-select the new tables as well and load the detail twice.
-                // Keyed on the layout id rather than held on the element: a re-render
-                // replaces the element, so the outgoing timer has to be findable without it.
-                if (polls[layoutId]) clearInterval(polls[layoutId]);
                 var timer = setInterval(function() {
                     tries += 1;
                     if (autoSelectFirst() || tries > 100) {

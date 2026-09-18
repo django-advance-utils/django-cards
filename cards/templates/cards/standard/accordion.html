@@ -156,9 +156,14 @@
         if (!slide) return;
 
         endSlide(collapseEl);
-        var target = expanded ? collapseEl.scrollHeight : 0;
-        var from = expanded ? 0 : collapseEl.scrollHeight;
+        // cards-collapsing first, and only then measure. Its display:block is what makes
+        // the panel measurable on the way *out*: `.show` has already gone by this point,
+        // so without it the element is display:none, scrollHeight reads 0, and the panel
+        // snaps shut instead of sliding.
         collapseEl.classList.add('cards-collapsing');
+        var natural = collapseEl.scrollHeight;
+        var from = expanded ? 0 : natural;
+        var target = expanded ? natural : 0;
         collapseEl.style.height = from + 'px';
         // Read a layout property so the browser has a frame to animate from.
         void collapseEl.offsetHeight;
