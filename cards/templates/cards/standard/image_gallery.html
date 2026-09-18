@@ -147,15 +147,41 @@
     }
     .image-gallery-lightbox .gallery-nav-prev { left: 0; }
     .image-gallery-lightbox .gallery-nav-next { right: 0; }
+
+    /* The lightbox close button.
+     *
+     * The one piece of card chrome that cannot carry both Bootstrap spellings at once:
+     * BS4's `.close` styles a `&times;` the markup supplies, while BS5's `.btn-close`
+     * has to be empty and draws its own icon from a background image. An element with
+     * both classes shows two crosses under BS5. So own it here instead and depend on
+     * neither -- it looks the same whichever framework the page is on.
+     *
+     * Lives in this template's style block rather than cards.css because cards.css is
+     * only injected for cards that set `border`, and a gallery card usually does not.
+     */
+    .image-gallery-lightbox .django-card__modal-close {
+        padding: 0 0.5rem;
+        border: 0;
+        background: transparent;
+        font-size: 1.4rem;
+        line-height: 1;
+        color: #000;
+        opacity: 0.5;
+        cursor: pointer;
+    }
+    .image-gallery-lightbox .django-card__modal-close:hover,
+    .image-gallery-lightbox .django-card__modal-close:focus {
+        opacity: 0.85;
+    }
 </style>
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
-            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
             {% include 'cards/standard/_reload_button.html' %}
             {% if card.enable_collapse %}
-            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-bs-target="#{{ card.code }}_body" data-toggle="collapse" data-bs-toggle="collapse">
                 <i class="expandicon"></i>
             </div>
             {% endif %}
@@ -209,7 +235,7 @@
         <div class="modal-content">
             <div class="modal-header py-2">
                 <h6 class="modal-title" id="{{ card.code }}_lightbox_title"></h6>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="django-card__modal-close" aria-label="Close" data-dismiss="modal" data-bs-dismiss="modal"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
                 <button class="gallery-nav gallery-nav-prev" id="{{ card.code }}_nav_prev" onclick="galleryNav_{{ card.code }}(-1)" style="display:none"><i class="fas fa-chevron-left"></i></button>

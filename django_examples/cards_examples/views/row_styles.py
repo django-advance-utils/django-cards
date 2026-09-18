@@ -12,10 +12,10 @@ class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
 
     def setup_cards(self):
         no_db_card = self.add_row_style_no_db()
-        self.add_card_group(no_db_card, div_css_class='col-6 float-left')
+        self.add_card_group(no_db_card, div_css_class='col-6 float-left float-start')
 
         db_card = self.add_row_style_with_db()
-        self.add_card_group(db_card, div_css_class='col-6 float-right')
+        self.add_card_group(db_card, div_css_class='col-6 float-right float-end')
 
     def add_row_style_no_db(self):
         card = self.add_card(title='Row Style Examples no DB')

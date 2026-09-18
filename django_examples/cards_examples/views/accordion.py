@@ -46,7 +46,7 @@ class AccordionExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('example_accordion', div_css_class='col-12 float-right')
+        self.add_card_group('example_accordion', div_css_class='col-12 float-right float-end')
 
 
 class AccordionAjaxExample(MainMenu, CardMixin, TemplateView):
@@ -89,7 +89,7 @@ class AccordionAjaxExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('ajax_accordion', div_css_class='col-12 float-right')
+        self.add_card_group('ajax_accordion', div_css_class='col-12 float-right float-end')
 
 
 class AccordionMultiExample(MainMenu, CardMixin, TemplateView):
@@ -120,7 +120,7 @@ class AccordionMultiExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('multi_accordion', div_css_class='col-12 float-right')
+        self.add_card_group('multi_accordion', div_css_class='col-12 float-right float-end')
 
 
 class AccordionLayoutExample(MainMenu, CardMixin, TemplateView):
@@ -171,5 +171,5 @@ class AccordionLayoutExample(MainMenu, CardMixin, TemplateView):
         detail_card.add_entry(label='Employees', value=250, number_format=True)
 
         # Layout: accordion col-4, details col-8
-        self.add_card_group('layout_accordion', div_css_class='col-4 float-left')
-        self.add_card_group('right_details', div_css_class='col-8 float-left')
+        self.add_card_group('layout_accordion', div_css_class='col-4 float-left float-start')
+        self.add_card_group('right_details', div_css_class='col-8 float-left float-start')

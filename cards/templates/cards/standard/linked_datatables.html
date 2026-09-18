@@ -2,11 +2,11 @@
 <div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
-            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
             {% include 'cards/standard/_reload_button.html' %}
             {% if card.enable_collapse %}
-            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-bs-target="#{{ card.code }}_body" data-toggle="collapse" data-bs-toggle="collapse">
                 <i class="expandicon"></i>
             </div>
             {% endif %}
@@ -24,7 +24,7 @@
                  {% if dt.row_link %}data-row-link="{{ dt.row_link }}"{% endif %}
                  style="min-width: 0; overflow: auto;">
                 <div class="d-flex align-items-center px-2 pt-2 mb-1">
-                    <h6 class="font-weight-bold mr-auto mb-0">{{ dt.title }}</h6>
+                    <h6 class="font-weight-bold fw-bold mr-auto me-auto mb-0">{{ dt.title }}</h6>
                     {% if dt.menu %}{{ dt.menu.render }}{% endif %}
                 </div>
                 <div class="px-2 pb-1 linked-datatable-status text-muted small" id="{{ dt.id }}_status">&nbsp;</div>

@@ -2,7 +2,7 @@
     {% if show_header %}
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
-            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
             {% include 'cards/standard/_reload_button.html' %}
         </div>
@@ -14,21 +14,21 @@
             {% for panel in card.extra_card_info.initialized_panels %}
             <div class="card mb-0 {{ card.code }}-panel-wrap" style="border-radius: 0; border-left: 0; border-right: 0;{% if card.extra_card_info.full_height %} flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
                 <div class="card-header p-0 {{ panel.header_css_class }}" id="{{ panel.id }}_header" style="flex-shrink: 0;">
-                    <button class="btn btn-link btn-block text-left d-flex align-items-center py-2 px-3{% if not panel.expanded %} collapsed{% endif %}"
+                    <button class="btn btn-link btn-block w-100 text-left text-start d-flex align-items-center py-2 px-3{% if not panel.expanded %} collapsed{% endif %}"
                             type="button"
-                            data-toggle="collapse"
-                            data-target="#{{ panel.id }}_collapse"
+                            data-toggle="collapse" data-bs-toggle="collapse"
+                            data-target="#{{ panel.id }}_collapse" data-bs-target="#{{ panel.id }}_collapse"
                             aria-expanded="{{ panel.expanded|yesno:'true,false' }}"
                             aria-controls="{{ panel.id }}_collapse">
-                        {% if panel.icon %}<i class="{{ panel.icon }} mr-2"></i>{% endif %}
+                        {% if panel.icon %}<i class="{{ panel.icon }} mr-2 me-2"></i>{% endif %}
                         <span>{{ panel.title }}</span>
-                        <i class="fas fa-chevron-down ml-auto accordion-chevron"></i>
+                        <i class="fas fa-chevron-down ml-auto ms-auto accordion-chevron"></i>
                     </button>
                 </div>
                 <div id="{{ panel.id }}_collapse"
                      class="collapse{% if panel.expanded %} show{% endif %}"
                      aria-labelledby="{{ panel.id }}_header"
-                     {% if not card.extra_card_info.multi_open %}data-parent="#{{ card.code }}_accordion"{% endif %}
+                     {% if not card.extra_card_info.multi_open %}data-parent="#{{ card.code }}_accordion" data-bs-parent="#{{ card.code }}_accordion"{% endif %}
                      {% if card.extra_card_info.full_height %}style="overflow-y: auto; flex: 1;"{% endif %}>
                     <div class="card-body p-0" id="{{ panel.id }}_content">
                         {% if panel.ajax_load and not panel.expanded %}

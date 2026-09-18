@@ -451,7 +451,7 @@ var PanelLayout = (function() {
     // ---- tab menu switching ----
 
     function _initTabMenus(layout) {
-        var tabLinks = layout.querySelectorAll('.panel-region__tabs a[data-toggle="tab"]');
+        var tabLinks = layout.querySelectorAll('.panel-region__tabs a[data-toggle="tab"], .panel-region__tabs a[data-bs-toggle="tab"]');
         for (var i = 0; i < tabLinks.length; i++) {
             tabLinks[i].addEventListener('click', function() {
                 var tabbar = this.closest('.panel-region__tabbar');
@@ -510,7 +510,7 @@ var PanelLayout = (function() {
         }
 
         // Scroll active tab into view on click
-        var tabLinks = tabs.querySelectorAll('a[data-toggle="tab"]');
+        var tabLinks = tabs.querySelectorAll('a[data-toggle="tab"], a[data-bs-toggle="tab"]');
         for (var i = 0; i < tabLinks.length; i++) {
             tabLinks[i].addEventListener('click', function() {
                 var link = this;

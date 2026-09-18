@@ -84,16 +84,16 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
         self.add_card_group('welcome', 'split', 'table_multiple_columns',
                             'other', 'person', 'multi_fields_example', collapsed_card,
-                            div_css_class='col-6 float-left', )
+                            div_css_class='col-6 float-left float-start', )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
-                            div_css_class='col-6 float-right', error_if_not_found=False)
+                            div_css_class='col-6 float-right float-end', error_if_not_found=False)
         self.add_card_group('html_string',
                             'html_file',
                             'empty_list_message',
                             'card_with_no_header',
                             'menu_items_example',
                             'warning_message',
-                            div_css_class='col-12 float-right')
+                            div_css_class='col-12 float-right float-end')
 
     def add_welcome_card(self):
         menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]

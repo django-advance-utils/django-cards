@@ -26,8 +26,8 @@ class CardListBaseMixin:
         menu_display (str): Used for display hints on how to show menu (unused by default).
         card_cls (class): The class used to instantiate new card objects.
     """
-    list_class = 'col-sm-5 col-md-4 col-lg-3 float-left'
-    details_class = 'col-sm-7 col-md-8 col-lg-9 float-left'
+    list_class = 'col-sm-5 col-md-4 col-lg-3 float-left float-start'
+    details_class = 'col-sm-7 col-md-8 col-lg-9 float-left float-start'
 
     model = None
     datatable_model = None

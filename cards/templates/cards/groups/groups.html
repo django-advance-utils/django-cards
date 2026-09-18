@@ -7,4 +7,18 @@
     </div>
     {% if group.script %}<script>{{ group.script|safe }}</script>{% endif %}
 {% endfor %}
-<script>$(function(){$('[data-toggle="tooltip"]').tooltip({container:'body'});$('[data-toggle="popover"]').popover({container:'body'})})</script>
+<script>
+(function () {
+    // Bootstrap 4 and Bootstrap 5 both expose tooltip/popover as jQuery plugins, but only
+    // when jQuery is on the page before Bootstrap loads -- Bootstrap 5 dropped jQuery as a
+    // dependency and registers the plugins opportunistically. Skip rather than throw when
+    // it is not there, so the rest of the page still runs.
+    if (typeof window.jQuery === 'undefined') return;
+    var $ = window.jQuery;
+    // Cards emit both the 4 and the 5 spelling; a project's own markup may carry either.
+    $(function () {
+        $('[data-toggle="tooltip"],[data-bs-toggle="tooltip"]').tooltip({container: 'body'});
+        $('[data-toggle="popover"],[data-bs-toggle="popover"]').popover({container: 'body'});
+    });
+})();
+</script>

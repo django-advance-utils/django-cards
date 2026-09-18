@@ -1695,7 +1695,7 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
     USAGE_COLUMNS = [
         {'title': 'Usage', 'field': 'usage', 'width': '20%'},
         {'title': 'Name', 'field': 'title', 'width': '40%'},
-        {'title': 'Qty', 'field': 'qty', 'width': '15%', 'css_class': 'text-right'},
+        {'title': 'Qty', 'field': 'qty', 'width': '15%', 'css_class': 'text-right text-end'},
         {'title': 'Stock', 'field': 'in_stock', 'width': '15%', 'type': 'boolean',
          'css_class': 'text-center'},
         {'title': '', 'field': 'actions', 'width': '10%', 'type': 'actions',
@@ -1744,8 +1744,8 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
                  'button_class': 'btn-primary', 'needs_selection': 2},
             ],
         )
-        self.add_card_group('usages', div_css_class='col-7 float-left')
-        self.add_card_group('products', div_css_class='col-5 float-left')
+        self.add_card_group('usages', div_css_class='col-7 float-left float-start')
+        self.add_card_group('products', div_css_class='col-5 float-left float-start')
 
     @staticmethod
     def _usage_data():
@@ -2071,8 +2071,8 @@ class TreegridDualExample(MainMenu, CardMixin, TemplateView):
             },
         )
 
-        self.add_card_group('left_tree', div_css_class='col-6 float-left')
-        self.add_card_group('right_tree', div_css_class='col-6 float-left')
+        self.add_card_group('left_tree', div_css_class='col-6 float-left float-start')
+        self.add_card_group('right_tree', div_css_class='col-6 float-left float-start')
 
     def get_treegrid_left_tree_data(self, parent=None):
         return _treegrid_compact_data_nodes(parent)

@@ -55,7 +55,7 @@
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
-            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
             {% include 'cards/standard/_reload_button.html' %}
         </div>
@@ -72,7 +72,7 @@
             <div class="row">
                 <div class="col-sm-12">
                     <h4 class="list-group-item-heading {{ entry.class }}">{% if enable_reorder %}
-                        <i class="btn btn-outline-secondary btn-sm fas fa-arrows-alt-v pl-0 pr-0 " style="width: 20px"></i>{% endif %}
+                        <i class="btn btn-outline-secondary btn-sm fas fa-arrows-alt-v pl-0 ps-0 pr-0 pe-0 " style="width: 20px"></i>{% endif %}
                         {% if entry.colour %}<i class="fa fa-square"
                                                 style="color: #{{ entry.colour }};opacity: 1;"></i>{% endif %}{{ entry.name }}
                     </h4>
