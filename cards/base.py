@@ -2,6 +2,7 @@ import datetime
 import json
 import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 from ajax_helpers.html_include import pip_version
 from ajax_helpers.utils import random_string
@@ -166,6 +167,91 @@ def card_css_once(request=None):
     return html
 
 
+@dataclass
+class Tile:
+    """One tile in an :meth:`CardBase.add_tiles` grid -- a small card standing for one object.
+
+    Every field but ``key`` is optional, and a tile draws only the parts it was given::
+
+        Tile(key='colour_finish_12', heading='Brass', subheading='Satin',
+             meta=['£3.00', ('none in stock', 'text-danger')],
+             image_url='/media/finishes/satin.jpg', badge='Default',
+             edit_url="javascript:django_modal.show_modal('colour_finish_modal-12')",
+             tooltip='Brass / Satin')
+
+    Args:
+        key (str): Stable identifier for this tile; becomes the tile's DOM id, so it has to
+            be unique on the page. Usually the object's pk with a prefix.
+        heading (str, optional): The tile's first line. Escaped.
+        heading_html (str, optional): The tile's first line as markup, for a heading that is
+            built rather than written -- a swatch carrying an inline background colour, say.
+            Rendered unescaped; see the warning below. Used instead of ``heading``, not
+            alongside it: pass one or the other.
+        subheading (str, optional): A second, quieter line under the heading. Escaped.
+        meta (list, optional): Short lines under the heading -- a price, a stock figure. Each
+            entry is either a string or a ``(text, css_class)`` pair when the line needs a
+            class of its own (``'text-danger'`` on an out-of-stock line, say). Escaped.
+        image_url (str, optional): A thumbnail drawn under the meta lines.
+        badge (str, optional): A flag drawn last, in a Bootstrap badge. Escaped.
+        edit_url (str, optional): Where the pencil in the tile's top-right corner goes. No
+            pencil is drawn without one. A plain href, so a ``javascript:`` URL that opens a
+            modal works as well as a real one.
+        tooltip (str, optional): The tile's ``title``, and the alt text of its image. Escaped.
+        css_class (str, optional): Extra classes on the tile, for whatever only this caller
+            styles.
+
+    Warning:
+        ``heading_html`` is the one field rendered as-is; everything else is escaped by the
+        template. It is named for what it does so that putting user-entered text through it
+        is an obvious mistake rather than an invisible one. Build it with
+        :func:`~django.utils.html.format_html` (or escape the parts yourself) and never pass
+        a value that came from a form or a model field straight into it.
+    """
+
+    key: str
+    heading: str = None
+    heading_html: str = None
+    subheading: str = None
+    meta: list = field(default_factory=list)
+    image_url: str = None
+    badge: str = None
+    edit_url: str = None
+    tooltip: str = None
+    css_class: str = None
+
+    @classmethod
+    def build(cls, tile):
+        """Return `tile` as a Tile, accepting a dict of the same fields for convenience.
+
+        A dict goes through the constructor rather than being used as-is, so a misspelled key
+        raises here instead of quietly rendering a tile with the field missing.
+        """
+        if isinstance(tile, cls):
+            return tile
+        if isinstance(tile, dict):
+            return cls(**tile)
+        raise TypeError(f'add_tiles() takes Tile objects or dicts of Tile fields, not '
+                        f'{type(tile).__name__}')
+
+    @property
+    def meta_lines(self):
+        """`meta` as {'text', 'css_class'} dicts.
+
+        Normalised here rather than in the template because a template cannot tell a bare
+        string from a (text, css_class) pair without a filter to do it.
+        """
+        lines = []
+        for line in self.meta or ():
+            if isinstance(line, (list, tuple)):
+                if len(line) != 2:
+                    raise ValueError(f'A meta line pair is (text, css_class); got {line!r}')
+                text, css_class = line
+            else:
+                text, css_class = line, None
+            lines.append({'text': text, 'css_class': css_class or ''})
+        return lines
+
+
 class CardBase:
     """
     Card Framework for Django Views
@@ -262,6 +348,9 @@ class CardBase:
                  'image_gallery': {'name': 'cards/standard/image_gallery.html',
                                    'context': {'card_css_class': 'card django-card',
                                                'card_body_css_class': 'card-body cards-list'}},
+                 'tiles': {'name': 'cards/standard/tiles.html',
+                           'context': {'card_css_class': 'card django-card',
+                                       'card_body_css_class': 'card-body cards-list'}},
                  'message': {'name': 'cards/standard/message.html',
                              'context': {'card_css_class': 'card django-card',
                                          'alert_css_class': 'alert-warning'}},
@@ -403,6 +492,10 @@ class CardBase:
         self.exportable = exportable
         self.column_search = column_search
         self.border = normalize_card_border(border)
+        # Set by the body-building methods whose markup needs cards.css -- add_tiles so far.
+        # `border` asks for the stylesheet too, and is kept separate because it is a caller's
+        # option rather than something a method turns on.
+        self.requires_card_css = False
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
@@ -1669,6 +1762,54 @@ class CardBase:
             elif isinstance(arg, (list, tuple)):
                 self.add_row(*arg)
 
+    def add_tiles(self, tiles, empty_message=None, width=None):
+        """Render the card's body as a grid of small tiles, one per object.
+
+        The tile equivalent of add_entry/add_rows: where those draw label/value rows, this
+        draws a wrapping row of small bordered cards, each with a heading, an optional
+        subheading, a few meta lines, an optional image, an optional badge and an edit
+        pencil. It is the shape `add_link_gallery_card` renders for links, for any object::
+
+            card = self.add_card('colours', title='Colours & Finishes')
+            card.add_tiles(
+                [Tile(key=f'colour_finish_{cf.pk}',
+                      heading=cf.colour.name,
+                      subheading=cf.finish.name,
+                      meta=[cf.price_display,
+                            ('none in stock', 'text-danger') if not cf.stock else f'{cf.stock} in stock'],
+                      edit_url=cf.modal_url,
+                      badge='Default' if cf.is_default else None)
+                 for cf in colour_finishes],
+                empty_message='No colours or finishes yet. Use Add above to add one.',
+                width='150px',
+            )
+
+        Everything a tile shows is escaped except `Tile.heading_html` -- see :class:`Tile`.
+
+        The card renders through the `tiles` template, which this sets: a template_name given
+        to add_card() is replaced, because the tiles are body content that only this template
+        draws. Called more than once, it adds to the grid rather than replacing it.
+
+        Args:
+            tiles (list): :class:`Tile` objects, or dicts of the same fields.
+            empty_message (str, optional): Shown in place of the grid when there are no tiles.
+                Nothing is drawn without one.
+            width (str, optional): The width of one tile, as a CSS length. Defaults to the
+                stylesheet's 150px. Worth setting for a tile holding something that must not
+                wrap -- a two-part measurement, say.
+
+        Returns:
+            CardBase: The card, so the call can be chained onto add_card().
+        """
+        self.extra_card_info.setdefault('tiles', []).extend(Tile.build(tile) for tile in tiles)
+        if empty_message is not None:
+            self.extra_card_info['tiles_empty_message'] = empty_message
+        if width is not None:
+            self.extra_card_info['tiles_width'] = width
+        self.template_name = 'tiles'
+        self.requires_card_css = True
+        return self
+
     def get_export_data(self):
         data = []
         for row in self.rows:
@@ -1721,7 +1862,7 @@ class CardBase:
             context['card_css_class'] = f"{context.get('card_css_class', '')} {border_class}".strip()
 
         html = render_to_string(template, context)
-        if self.border:
+        if self.border or self.requires_card_css:
             html = card_css_once(self.request) + html
         return mark_safe(html)
 

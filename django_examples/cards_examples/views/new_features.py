@@ -5,7 +5,9 @@ from cards_examples.views.base import MainMenu
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from cards.standard import CardMixin
+from django.utils.html import format_html
+
+from cards.standard import CardMixin, Tile
 from django_menus.menu import MenuItem
 
 
@@ -844,3 +846,103 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
         card.add_entry(value='£1,240.00', label='Goods')
         card.add_entry(value='£248.00', label='VAT')
         card.add_entry(value='£1,488.00', label='Total', row_css_class='table-active')
+
+
+class TilesIndex(MainMenu, CardMixin, TemplateView):
+    """add_tiles(): a grid of small tiles for arbitrary objects.
+
+    The four cards are the cases the API has to cover, in the order they are worth reading:
+    a tile with every field, the same tile stripped back to a heading, the two shapes the
+    feature was written for, and the empty state.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        self.add_every_field_card()
+        self.add_minimal_card()
+        self.add_colours_card()
+        self.add_sizes_card()
+        self.add_empty_card()
+
+        self.add_card_group('every_field', div_css_class='col-6 float-left')
+        self.add_card_group('minimal', div_css_class='col-6 float-right')
+        self.add_card_group('colours', div_css_class='col-12', div_css='clear:both')
+        self.add_card_group('sizes', div_css_class='col-12')
+        self.add_card_group('empty_tiles', div_css_class='col-12')
+
+    def add_every_field_card(self):
+        #language=JS
+        edit_script = 'alert("Editing")'
+        card = self.add_card('every_field', title='Every field')
+        card.add_tiles([
+            Tile(key='every_field_1',
+                 heading='Brass',
+                 subheading='Satin',
+                 meta=['£3.00', ('none in stock', 'text-danger'), ('2 items', 'text-muted')],
+                 image_url='https://placehold.co/64x64/b5a642/ffffff?text=Satin',
+                 badge='Default',
+                 edit_url=f'javascript:{edit_script}',
+                 tooltip='Brass / Satin',
+                 css_class='example-tile'),
+        ])
+
+    def add_minimal_card(self):
+        # The same tile with everything optional taken off: no subheading, meta, image, badge,
+        # pencil or tooltip. Each part is drawn only when it was given, so the tile shrinks to
+        # its heading rather than leaving empty rows behind.
+        card = self.add_card('minimal', title='Heading only')
+        card.add_tiles([Tile(key='minimal_1', heading='Brass')])
+
+    def add_colours_card(self):
+        """The fitting page's colours and finishes: a heading that is markup.
+
+        A colour's name is written on the colour itself, so the heading is a span carrying an
+        inline background -- built here with format_html, which escapes the name while leaving
+        the span alone. The last tile's name is `Brass <script>alert(1)</script>` to make the
+        point visible in the rendered page: it arrives as text either way, through heading_html
+        because format_html escaped it, and through heading because the template does.
+        """
+        #language=JS
+        edit_script = 'alert("Editing")'
+        colours = [('Brass', '#b5a642', '#000', 'Satin', '£3.00', 0, True),
+                   ('Chrome', '#c0c0c0', '#000', 'Polished', '£2.40', 14, False),
+                   ('Black', '#1c1c1c', '#fff', 'Matt', '£1.95', 6, False),
+                   ('Brass <script>alert(1)</script>', '#b5a642', '#000', 'Antique', '£4.10', 2, False)]
+        tiles = []
+        for index, (name, background, text, finish, price, stock, is_default) in enumerate(colours):
+            stock_line = (f'{stock} in stock', '') if stock else ('none in stock', 'text-danger')
+            tiles.append(Tile(
+                key=f'colour_finish_{index}',
+                # The app's own colour_name_block: the name written on the paint. format_html
+                # escapes the name, so only the span this line builds is markup.
+                heading_html=format_html(
+                    '<span style="background:{};color:{};padding:4px 6px;border-radius:3px">{}</span>',
+                    background, text, name),
+                subheading=finish,
+                meta=[price, stock_line],
+                badge='Default' if is_default else None,
+                edit_url=f'javascript:{edit_script}',
+                tooltip=f'{name} / {finish}'))
+        card = self.add_card('colours', title='Colours & Finishes (heading_html)')
+        card.add_tiles(tiles,
+                       empty_message='No colours or finishes yet. Use Add above to add one.',
+                       width='150px')
+
+    def add_sizes_card(self):
+        # The door blank page's sizes. A size is a two-part measurement that must not wrap, which
+        # is what `width` is for: at the default 150px `838 mm x 1981 mm` breaks across two lines.
+        sizes = [('838 mm × 1981 mm', '£18.50', 12, 'DB-838-1981'),
+                 ('762 mm × 1981 mm', '£17.20', 0, 'DB-762-1981'),
+                 ('926 mm × 2040 mm', '£24.95', 3, 'DB-926-2040')]
+        tiles = [Tile(key=f'size_{code}',
+                      heading=size,
+                      meta=[price,
+                            (f'{stock} in stock', '') if stock else ('none in stock', 'text-danger'),
+                            (code, 'text-muted')])
+                 for size, price, stock, code in sizes]
+        card = self.add_card('sizes', title='Sizes (wider tile, plain heading)')
+        card.add_tiles(tiles, empty_message='No sizes yet.', width='190px')
+
+    def add_empty_card(self):
+        card = self.add_card('empty_tiles', title='Empty')
+        card.add_tiles([], empty_message='No tiles yet. Use Add above to add one.')

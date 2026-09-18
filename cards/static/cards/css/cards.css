@@ -161,3 +161,117 @@
 .django-card--thin-border > .card-header > .d-flex {
     min-height: calc(1.305rem + 2px);
 }
+
+/* Tiles (add_tiles()).
+ *
+ * A wrapping row of small bordered cards, one per object. The numbers and the idiom are
+ * image_gallery's own tiles -- 8px gap and padding, #dee2e6 on #f8f9fa, .8 hover opacity, an
+ * 18px pencil on rgba(255,255,255,.85) -- so a page carrying both reads as one family.
+ *
+ * Tile width is per card rather than fixed here: a tile holding a two-part measurement
+ * (838 mm x 1981 mm) must not wrap, and one holding a colour name need not be as wide. The
+ * template sets the custom property from add_tiles(width=...) on the container.
+ */
+
+.django-card__tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+}
+
+.django-card__tiles-empty {
+    flex: 1 1 100%;
+    margin: 0;
+    padding: 16px;
+    text-align: center;
+}
+
+.django-card__tile {
+    position: relative;
+    width: var(--django-card-tile-width, 150px);
+    padding: 8px;
+    border: 1px solid var(--django-card-border-color, #dee2e6);
+    border-radius: 4px;
+    background: var(--django-card-tile-bg, #f8f9fa);
+    text-align: center;
+    transition: opacity .2s;
+}
+
+.django-card__tile:hover {
+    opacity: .8;
+}
+
+/* The heading is the line the eye picks a tile by; the subheading qualifies it, so it is
+ * smaller and quieter. `word-break` on both because a tile is narrow and the text is the
+ * caller's -- a long unbroken name should widen the line count, not the tile. A heading
+ * passed as `heading_html` brings its own span and only takes the sizing from here. */
+.django-card__tile-heading {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.django-card__tile-subheading {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--django-card-tile-subheading-color, #495057);
+    word-break: break-word;
+}
+
+/* Figures: tabular numerals so prices and stock counts line up down a column of tiles. */
+.django-card__tile-meta {
+    margin-top: 4px;
+    color: var(--django-card-tile-meta-color, #6c757d);
+    font-size: .75rem;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.django-card__tile-image {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 6px auto 0;
+    border: 1px solid var(--django-card-border-color, #dee2e6);
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+/* Last in the tile, under the figures, so the eye reads heading -> figures -> flag. */
+.django-card__tile-badge {
+    margin-top: 4px;
+}
+
+/* Always shown, not revealed on hover: the pencil is what says a tile can be edited at all.
+ * image_gallery fades its own in on hover and that was found to hide the affordance. */
+.django-card__tile-edit {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, .85);
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    color: #495057;
+    line-height: 1;
+    text-decoration: none;
+    z-index: 2;
+}
+
+.django-card__tile-edit:hover {
+    background: #fff;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+.django-card__tile-edit i {
+    font-size: 12px;
+    line-height: 1;
+}
