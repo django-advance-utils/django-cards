@@ -411,7 +411,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
             $td.addClass('treegrid-editing');
 
             if (editInfo.type === 'select') {
-                var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                var $sel = $('<select class="treegrid-select form-control form-control-sm form-select form-select-sm">');
                 var opts = editInfo.options || [];
                 for (var o = 0; o < opts.length; o++) {
                     var optVal = typeof opts[o] === 'object' ? opts[o].value : opts[o];
@@ -443,7 +443,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
 
             if (editInfo.type === 'checkbox') {
                 var checked = (val === true || val === 'true' || val === 'Yes' || val === 1);
-                var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                var $sel = $('<select class="treegrid-select form-control form-control-sm form-select form-select-sm">');
                 $sel.append($('<option>').val('true').text('Yes'));
                 $sel.append($('<option>').val('false').text('No'));
                 $sel.val(checked ? 'true' : 'false');
@@ -672,7 +672,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
                 if (editInfo.edit_icon && !disabled) $td.append('<i class="fas fa-pencil-alt treegrid-edit-icon"></i>');
             } else if (!READ_ONLY && editInfo && editInfo.type === 'select' && editInfo.inline && !disabled) {
                 if (!$td.find('select').length) {
-                    var $sel = $('<select class="treegrid-select form-control form-control-sm">');
+                    var $sel = $('<select class="treegrid-select form-control form-control-sm form-select form-select-sm">');
                     var opts = editInfo.options || [];
                     for (var o = 0; o < opts.length; o++) {
                         var optVal = typeof opts[o] === 'object' ? opts[o].value : opts[o];
@@ -974,7 +974,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
                 var $cb = $('<input type="checkbox">').val(v).prop('checked', !hidden.hasOwnProperty(v)).attr('data-field', f.field);
                 $label.append($cb);
                 $label.append($('<span class="treegrid-jsf-label">').text(v || '(blank)'));
-                $label.append($('<span class="badge badge-secondary ml-1">').text(counts[v]));
+                $label.append($('<span class="badge badge-secondary bg-secondary ml-1 ms-1">').text(counts[v]));
                 $content.append($label);
             }
         }
@@ -1962,7 +1962,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     menuHtml += '<div class="dropdown-divider"></div>';
                 } else {
                     menuHtml += '<a class="dropdown-item treegrid-ctx-item" data-action="' + item.name + '" href="#">';
-                    if (item.icon) menuHtml += '<i class="' + item.icon + ' mr-2"></i>';
+                    if (item.icon) menuHtml += '<i class="' + item.icon + ' mr-2 me-2"></i>';
                     menuHtml += item.label + '</a>';
                 }
             }
@@ -1977,7 +1977,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     $ctxMenu.append('<div class="dropdown-divider"></div>');
                 } else {
                     $ctxMenu.append('<a class="dropdown-item treegrid-ctx-item" data-action="' + item.name + '" href="#">' +
-                        (item.icon ? '<i class="' + item.icon + ' mr-2"></i>' : '') + item.label + '</a>');
+                        (item.icon ? '<i class="' + item.icon + ' mr-2 me-2"></i>' : '') + item.label + '</a>');
                 }
             }
         }

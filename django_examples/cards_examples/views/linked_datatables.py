@@ -48,7 +48,7 @@ class LinkedDatatablesExample(MainMenu, CardMixin, TemplateView):
         return self.command_response('message', text='Add Person clicked')
 
     def setup_cards(self):
-        self.add_card_group('company_drilldown', div_css_class='col-12 float-right')
+        self.add_card_group('company_drilldown', div_css_class='col-12 float-right float-end')
 
     def setup_table_ld_categories(self, table, details_object):
         table.ajax_data = True
@@ -82,7 +82,7 @@ class LinkedDatatablesPaymentExample(MainMenu, CardMixin, TemplateView):
         )
 
     def setup_cards(self):
-        self.add_card_group('payment_drilldown', div_css_class='col-12 float-right')
+        self.add_card_group('payment_drilldown', div_css_class='col-12 float-right float-end')
 
     def setup_table_ld_pay_categories(self, table, details_object):
         table.ajax_data = True
@@ -123,7 +123,7 @@ class LinkedDatatablesFourLevelExample(MainMenu, CardMixin, TemplateView):
         )
 
     def setup_cards(self):
-        self.add_card_group('four_level', div_css_class='col-12 float-right')
+        self.add_card_group('four_level', div_css_class='col-12 float-right float-end')
 
     def setup_table_ld4_categories(self, table, details_object):
         table.ajax_data = True

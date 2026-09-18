@@ -1,20 +1,20 @@
 {% load datatable_tags %}
 
     {% if show_pivot_table %}
-            <div class="{% if pivot_filter_class %}{{ pivot_filter_class }}{% else %}col-12 col-sm-6 col-md-5 col-lg-4 col-xl-2 float-left{% endif %}">
+            <div class="{% if pivot_filter_class %}{{ pivot_filter_class }}{% else %}col-12 col-sm-6 col-md-5 col-lg-4 col-xl-2 float-left float-start{% endif %}">
                 <div class="jms-card">
                     {% filter_control card.extra_card_info.datatable %}
                 </div>
             </div>
     {% endif %}
-    <div class="{{ card_css_class }}{% if show_pivot_table %} {% if pivot_table_class %}{{ pivot_table_class }}{% else %}col-12 col-sm-6 col-md-7 col-lg-8 col-xl-10 float-left{% endif %}{% endif %}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
+    <div class="{{ card_css_class }}{% if show_pivot_table %} {% if pivot_table_class %}{{ pivot_table_class }}{% else %}col-12 col-sm-6 col-md-7 col-lg-8 col-xl-10 float-left float-start{% endif %}{% endif %}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
         <div class="card-header {{ card.header_css_class }}">
             <div class="d-flex align-items-center">
-                <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+                <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
                 {% include 'cards/standard/_reload_button.html' %}
                 {% if card.enable_collapse %}
-            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-bs-target="#{{ card.code }}_body" data-toggle="collapse" data-bs-toggle="collapse">
                 <i class="expandicon"></i>
             </div>
             {% endif %}
@@ -29,7 +29,7 @@
                     <div class="p-2">{% no_of_results card.extra_card_info.datatable %}</div>
                     <div class="p-2">{% no_of_rows card.extra_card_info.datatable %}</div>
                     <div class="p-2">{% clear_table card.extra_card_info.datatable %}</div>
-                    <div class="ml-auto p-2">{% table_search card.extra_card_info.datatable %}</div>
+                    <div class="ml-auto ms-auto p-2">{% table_search card.extra_card_info.datatable %}</div>
                 </div>
             {% endif %}
             {{ card.extra_card_info.datatable.render|safe }}

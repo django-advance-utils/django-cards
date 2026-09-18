@@ -3,11 +3,11 @@
     {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
-            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
             {% include 'cards/standard/_reload_button.html' %}
             {% if card.enable_collapse %}
-            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-bs-target="#{{ card.code }}_body" data-toggle="collapse" data-bs-toggle="collapse">
                 <i class="expandicon"></i>
             </div>
             {% endif %}
@@ -61,7 +61,7 @@
                             </button>
                         {% endfor %}
                         {% if card.extra_card_info.treegrid_show_select_count %}
-                        <span id="{{ card.code }}_select_count" class="ml-2 text-muted small"></span>
+                        <span id="{{ card.code }}_select_count" class="ml-2 ms-2 text-muted small"></span>
                         {% endif %}
                     {% else %}
                         {% for btn in card.extra_card_info.treegrid_toolbar_after %}
@@ -95,7 +95,7 @@
                     <i class="fas fa-filter"></i> Filter
                 </button>
                 <button type="button" id="{{ card.code }}_filter_clear" class="btn btn-sm btn-outline-secondary">Clear</button>
-                <span id="{{ card.code }}_matches" class="ml-2 text-muted small"></span>
+                <span id="{{ card.code }}_matches" class="ml-2 ms-2 text-muted small"></span>
             </div>
             {% endif %}
         </div>
@@ -110,7 +110,7 @@
                     <span>{{ f.title }}</span>
                     <span>
                         <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
-                        <a href="#" class="treegrid-jsf-deselect-field text-muted ml-1" data-field="{{ f.field }}">None</a>
+                        <a href="#" class="treegrid-jsf-deselect-field text-muted ml-1 ms-1" data-field="{{ f.field }}">None</a>
                     </span>
                 </div>
                 <div class="treegrid-js-filter-content"></div>
@@ -169,7 +169,7 @@
                         <th>
                             {% if col.filter != False and col.type != 'actions' %}
                             {% if col.filter_options == True %}
-                            <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
+                            <select class="treegrid-col-filter form-control form-control-sm form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
                                 <option value=""></option>
                             </select>
                             {% elif col.filter_options == 'html' %}
@@ -181,7 +181,7 @@
                                 <div class="treegrid-html-filter-menu"></div>
                             </div>
                             {% elif col.filter_options %}
-                            <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
+                            <select class="treegrid-col-filter form-control form-control-sm form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
                                 {% for opt in col.filter_options %}
                                 {% if opt.label %}<option value="{{ opt.value }}">{{ opt.label }}</option>
@@ -189,7 +189,7 @@
                                 {% endfor %}
                             </select>
                             {% elif col.type == 'boolean' %}
-                            <select class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}">
+                            <select class="treegrid-col-filter form-control form-control-sm form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}">
                                 <option value=""></option>
                                 <option value="true">Yes</option>
                                 <option value="false">No</option>
@@ -212,23 +212,23 @@
             <div id="{{ card.code }}_info" class="text-muted small"></div>
             {% if card.extra_card_info.treegrid_pagination %}
             <div id="{{ card.code }}_pagination" class="d-none align-items-center">
-                <button type="button" id="{{ card.code }}_prev_page" class="btn btn-sm btn-outline-secondary mr-1" disabled>
+                <button type="button" id="{{ card.code }}_prev_page" class="btn btn-sm btn-outline-secondary mr-1 me-1" disabled>
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <span id="{{ card.code }}_page_info" class="text-muted small mx-1"></span>
                 <input type="number" id="{{ card.code }}_page_jump" class="form-control form-control-sm mx-1"
                        style="width:60px" min="1" placeholder="Go…">
-                <button type="button" id="{{ card.code }}_page_jump_btn" class="btn btn-sm btn-outline-secondary mr-1">
+                <button type="button" id="{{ card.code }}_page_jump_btn" class="btn btn-sm btn-outline-secondary mr-1 me-1">
                     <i class="fas fa-arrow-right"></i>
                 </button>
-                <button type="button" id="{{ card.code }}_next_page" class="btn btn-sm btn-outline-secondary ml-1">
+                <button type="button" id="{{ card.code }}_next_page" class="btn btn-sm btn-outline-secondary ml-1 ms-1">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
             {% endif %}
             {% if card.extra_card_info.treegrid_save_mode == 'batch' %}
             <div>
-                <span id="{{ card.code }}_changes" class="text-muted small mr-2"></span>
+                <span id="{{ card.code }}_changes" class="text-muted small mr-2 me-2"></span>
                 <button type="button" id="{{ card.code }}_save_btn" class="btn btn-sm btn-primary" disabled>
                     <i class="fas fa-save"></i> Save
                 </button>

@@ -25,8 +25,8 @@ class CardListMixin(CardListBaseMixin):
         list_template_name (str): Template used for rendering the list card.
         model (Django Model): Model used to fetch list entries.
     """
-    list_class = 'col-sm-5 col-md-4 col-lg-3 float-left'
-    details_class = 'col-sm-7 col-md-8 col-lg-9 float-left'
+    list_class = 'col-sm-5 col-md-4 col-lg-3 float-left float-start'
+    details_class = 'col-sm-7 col-md-8 col-lg-9 float-left float-start'
     list_css_style = ''
     details_css_style = ''
 

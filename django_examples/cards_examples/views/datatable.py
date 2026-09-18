@@ -17,7 +17,7 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
         self.add_companies_card()
 
     def setup_cards(self):
-        self.add_card_group('companies', div_css_class='col-12 float-right')
+        self.add_card_group('companies', div_css_class='col-12 float-right float-end')
 
     def add_companies_card(self):
         self.add_card('companies',
@@ -28,8 +28,8 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
                                           'show_pivot_table': True,
                                           'top': '<h5 style="padding-left: 10px">This is top</h5>',
                                           'bottom': '<h5 style="padding-left: 10px">This is bottom</h5>'
-                                          # 'pivot_filter_class': 'col-4 float-left',
-                                          # 'pivot_table_class': 'col-8 col-4 float-left'
+                                          # 'pivot_filter_class': 'col-4 float-left float-start',
+                                          # 'pivot_table_class': 'col-8 col-4 float-left float-start'
                                           },
                       collapsed=False)
 
@@ -57,7 +57,7 @@ class DatatableOrderExample(MainMenu, CardMixin, TemplateView):
         self.add_status_card()
 
     def setup_cards(self):
-        self.add_card_group('statuses', div_css_class='col-12 float-right')
+        self.add_card_group('statuses', div_css_class='col-12 float-right float-end')
 
     def add_status_card(self):
         self.add_card('statuses',

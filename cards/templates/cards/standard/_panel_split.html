@@ -81,7 +81,7 @@ Expects 'split' context variable with: direction, resizable, children[]
                             <li class="nav-item">
                                 <a class="nav-link{% if tab.active %} active{% endif %}"
                                    id="panel_tab_{{ child.name }}_{{ tab.name }}_link"
-                                   data-toggle="tab"
+                                   data-toggle="tab" data-bs-toggle="tab"
                                    href="#panel_tab_{{ child.name }}_{{ tab.name }}"
                                    role="tab"
                                    {% if tab.menu %}data-tab-menu="panel_tabmenu_{{ child.name }}_{{ tab.name }}"{% endif %}>{% if tab.icon %}<i class="{{ tab.icon }}"></i> {% endif %}{{ tab.title }}</a>

@@ -40,6 +40,63 @@ django-cards requires:
 - [django-menus](https://github.com/django-advance-utils/django-menus)
 - [django-datatables](https://github.com/django-advance-utils/django-datatables) (for datatable card types)
 
+## Bootstrap 4 and Bootstrap 5
+
+Cards render for both, from one set of templates. Rather than switch on a version setting,
+every class and data attribute Bootstrap renamed is emitted in both spellings at once:
+
+```html
+<h5 class="mr-auto me-auto">
+<div data-toggle="collapse" data-bs-toggle="collapse"
+     data-target="#card_body" data-bs-target="#card_body">
+```
+
+An unrecognised class or data attribute is inert, so each version picks up the half it
+understands and ignores the other. Nothing is configured and nothing needs to be.
+
+**What this means when you pass your own classes.** Anywhere cards takes a CSS class from you
+-- `div_css_class`, `css_class`, `table_td_css_class`, `badge`, a column's `css_class`, the
+`list_class` / `details_class` on `CardList` -- the string is passed through untouched. If you
+want it to work on both versions, write both names, as the examples here do:
+
+```python
+self.add_card_group('profile', 'stats', div_css_class='col-6 float-left float-start')
+card.add_entry('total', css_class='text-right text-end')
+card.add_entry('status', badge='badge-success bg-success')
+```
+
+The renames worth knowing: `float-left`/`float-right` → `float-start`/`float-end`,
+`text-left`/`text-right` → `text-start`/`text-end`, `ml-*`/`mr-*` → `ms-*`/`me-*`,
+`pl-*`/`pr-*` → `ps-*`/`pe-*`, `font-weight-bold` → `fw-bold`, `badge-*` → `bg-*`,
+`badge-pill` → `rounded-pill`, `btn-block` → `w-100`.
+
+One difference is not a rename and cannot be dualled. Bootstrap 4 gave `col-*` a fixed 15px of
+padding; Bootstrap 5 takes it from a `--bs-gutter-x` variable that `.row` sets. Card groups are
+emitted at the top level rather than inside a `.row`, so a `col-*` group that had gutters under
+4 sits flush under 5. Add your own spacing -- `px-2`, or wrap the groups in a `.row` -- if you
+want them back.
+
+**jQuery is required, and under Bootstrap 5 the order matters.** ajax-helpers already loads
+it, so this is normally free -- but Bootstrap 5 dropped jQuery as a dependency and only
+registers its jQuery plugin interface if jQuery is already on the page when it loads. Several
+cards go through that interface: tooltips and popovers, the image gallery's lightbox, and the
+accordion's expand/collapse handlers. Load jQuery before `bootstrap.bundle.js`.
+
+**The rest of the stack is not there yet.** django-menus, django-modals, django-datatables and
+crispy's `bootstrap4` template pack all still emit Bootstrap 4 markup only. Your cards will be
+correct under Bootstrap 5; the menus inside their headers, the modals around them and the
+datatables in them will not be until those libraries get the same treatment.
+
+To see the difference, the example app serves either version, and the nav bar carries a toggle
+that flips between them on the page you are looking at -- no restart:
+
+```bash
+python manage.py runserver          # starts on Bootstrap 4
+```
+
+`?bootstrap=5` on any URL does the same thing and sticks for the session.
+`CARDS_EXAMPLE_BOOTSTRAP=5` in the environment sets where a fresh session starts.
+
 ## Quick Start
 
 ### 1. Create a view
@@ -380,7 +437,7 @@ passed through `extra_card_context`, which covers the rest of a compact detail-b
 | `card_css_style` | Inline style on the card itself, e.g. `width:fit-content` |
 | `card_body_css_style` | Inline style on the body, e.g. `max-height:600px;overflow:auto` to scroll a long card in place |
 | `table_css_class` | The table's classes, e.g. `table table-sm mb-1` |
-| `table_td_css_class` | The value cell's classes, e.g. `text-right` |
+| `table_td_css_class` | The value cell's classes, e.g. `text-right text-end` |
 
 `add_entry(row_css_class=...)` puts a class on the row itself — in the table template
 that is the `<tr>`, so a line can be highlighted with `row_css_class='table-warning'`.
@@ -393,7 +450,7 @@ card = self.add_card('po_details', title='Purchase Order Details',
                      template_name='table', border='thin',
                      hidden_if_blank_or_none=True,
                      extra_card_context={'table_css_class': 'table table-sm mb-1',
-                                         'table_td_css_class': 'text-right',
+                                         'table_td_css_class': 'text-right text-end',
                                          'card_body_css_style': 'max-height:600px;overflow:auto'})
 card.add_entry(value='GBP', label='Currency')
 card.add_entry(value='3 lines overdue', label='Status', row_css_class='table-warning')
@@ -427,8 +484,8 @@ def setup_cards(self):
     self.add_card('notes',   title='Notes', details_object=self.object)
 
     # Two-column layout
-    self.add_card_group('profile', 'stats', div_css_class='col-6 float-left')
-    self.add_card_group('notes', div_css_class='col-6 float-right')
+    self.add_card_group('profile', 'stats', div_css_class='col-6 float-left float-start')
+    self.add_card_group('notes', div_css_class='col-6 float-right float-end')
 ```
 
 `add_card_group()` parameters:
@@ -456,8 +513,8 @@ def setup_cards(self):
     child2.add_entry(value='World', label='Target')
 
     layout = self.add_layout_card()
-    layout.add_child_card_group(child1, div_css_class='col-6 float-left')
-    layout.add_child_card_group(child2, div_css_class='col-6 float-left')
+    layout.add_child_card_group(child1, div_css_class='col-6 float-left float-start')
+    layout.add_child_card_group(child2, div_css_class='col-6 float-left float-start')
 
     self.add_card_group(layout, div_css_class='col-12')
 ```
@@ -468,8 +525,8 @@ Use `CARD_TYPE_CARD_GROUP` instead for a layout card **with** a header and menu:
 from cards.base import CARD_TYPE_CARD_GROUP
 
 card = self.add_card('overview', title='Overview', group_type=CARD_TYPE_CARD_GROUP, menu=my_menu)
-card.add_child_card_group(child1, div_css_class='col-6 float-left')
-card.add_child_card_group(child2, div_css_class='col-6 float-left')
+card.add_child_card_group(child1, div_css_class='col-6 float-left float-start')
+card.add_child_card_group(child2, div_css_class='col-6 float-left float-start')
 ```
 
 ---
@@ -580,8 +637,8 @@ Key class attributes:
 |---|---|---|
 | `model` | `None` | Django model for list entries |
 | `list_title` | `''` | Heading for the list panel |
-| `list_class` | `'col-sm-5 col-md-4 col-lg-3 float-left'` | CSS class for list panel |
-| `details_class` | `'col-sm-7 col-md-8 col-lg-9 float-left'` | CSS class for details panel |
+| `list_class` | `'col-sm-5 col-md-4 col-lg-3 float-left float-start'` | CSS class for list panel |
+| `details_class` | `'col-sm-7 col-md-8 col-lg-9 float-left float-start'` | CSS class for details panel |
 
 Key methods to override:
 
@@ -820,9 +877,9 @@ class ProductDetailView(CardMixin, DetailView):
         gallery = self.add_link_gallery_card(links, card_name='links', title='Links')
 
         # Layout: details on the left, gallery on the right
-        self.add_card_group('details', div_css_class='col-6 float-left')
+        self.add_card_group('details', div_css_class='col-6 float-left float-start')
         right_cards = [gallery] if gallery else []
-        self.add_card_group(*right_cards, div_css_class='col-6 float-right')
+        self.add_card_group(*right_cards, div_css_class='col-6 float-right float-end')
 ```
 
 ---
@@ -1266,8 +1323,8 @@ class DashboardView(CardMixin, TemplateView):
         detail_card.add_entry(field='company_category__name', label='Category')
 
         # Layout: accordion col-4 left, details col-8 right
-        self.add_card_group('nav_accordion', div_css_class='col-4 float-left')
-        self.add_card_group('details', div_css_class='col-8 float-left')
+        self.add_card_group('nav_accordion', div_css_class='col-4 float-left float-start')
+        self.add_card_group('details', div_css_class='col-8 float-left float-start')
 ```
 
 ---
@@ -1711,7 +1768,7 @@ Include styling keys in `node.data` to colour individual cells or entire rows:
         # Per-cell: field__bg, field__color, field__class
         'amount__bg': '#d4edda',
         'amount__color': '#28a745',
-        'amount__class': 'font-weight-bold',
+        'amount__class': 'font-weight-bold fw-bold',
         # Per-row: _row_bg, _row_color, _row_class
         '_row_bg': '#fff3cd',
         '_row_class': 'my-group-row',
@@ -2212,8 +2269,8 @@ class IframeView(CardMixin, TemplateView):
             iframe_height='500px',
         )
 
-        self.add_card_group('docs', div_css_class='col-6 float-left')
-        self.add_card_group('scene', div_css_class='col-6 float-left')
+        self.add_card_group('docs', div_css_class='col-6 float-left float-start')
+        self.add_card_group('scene', div_css_class='col-6 float-left float-start')
 ```
 
 ### `add_iframe_card()` Parameters

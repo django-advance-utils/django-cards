@@ -1094,7 +1094,7 @@ class CardBase:
         """
 
         if html_barge is None:
-            html_barge = '<span class="small badge badge-pill badge-primary"> %1% </span> '
+            html_barge = '<span class="small badge badge-pill badge-primary rounded-pill bg-primary"> %1% </span> '
 
         if query_filter is None:
             results = query.all()
@@ -1243,7 +1243,7 @@ class CardBase:
             if is_default and placeholder:
                 if isinstance(placeholder, str):
                     value = placeholder
-                entry_css_class = ((entry_css_class or '') + ' text-muted fst-italic').strip()
+                entry_css_class = ((entry_css_class or '') + ' text-muted font-italic fst-italic').strip()
 
             if boolean_icon and not is_default and isinstance(value, bool):
                 if value:
@@ -1345,7 +1345,7 @@ class CardBase:
                 value = re.sub(r'(?<!["\'/=])(\b[\w.+-]+@[\w-]+\.[\w.-]+\b)', r'<a href="mailto:\1">\1</a>', value)
 
             if badge is True:
-                badge = 'bg-secondary'
+                badge = 'badge-secondary bg-secondary'
 
             if progress_bar is True:
                 progress_bar = 'bg-primary'
@@ -1905,14 +1905,14 @@ class CardBase:
 
             layout_card.add_child_card_group(
                 child_1_card,
-                div_css_class='col-6 float-left',
+                div_css_class='col-6 float-left float-start',
                 div_inner_css='border-style: solid; border-color: red',
                 override_card_context={'item_css': 'color: blue'}
             )
 
             layout_card.add_child_card_group(
                 child_2_card,
-                div_css_class='col-6 float-left'
+                div_css_class='col-6 float-left float-start'
             )
         """
         if self.group_type not in [CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT]:
