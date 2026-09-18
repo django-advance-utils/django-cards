@@ -22,6 +22,17 @@ class CardPostError(Exception):
         return self.value
 
 
+def _derived_show_header(title, kwargs):
+    """Whether a card that derives `show_header` rather than being told it should draw a header.
+
+    `add_iframe_card` and `add_treegrid_card` take it off the title, and their templates draw the
+    header only when there is something to put in it. A card given a menu but no title has
+    something to put in it: the menu renders inside the header and nowhere else, so deriving from
+    the title alone would drop it from the page without saying so.
+    """
+    return title is not None or kwargs.get('menu') is not None
+
+
 class CardMixin:
     """
     CardMixin provides reusable support for managing, rendering, and interacting with cards within a Django view.
@@ -577,7 +588,8 @@ class CardMixin:
 
         Args:
             card_name (str, optional): Unique card identifier.
-            title (str, optional): Card header title. If None, no card header is shown.
+            title (str, optional): Card header title. If None, no card header is shown
+                unless `show_header` says otherwise.
             panels (list): List of panel config dicts, each with:
                 - card (CardBase): A card instance to render as the panel body.
                 - title (str): Panel header text.
@@ -612,6 +624,9 @@ class CardMixin:
         """
         if panels is None:
             panels = []
+        # Derived from the title alone, unlike the iframe and treegrid cards: the accordion
+        # template draws its header on `show_header` by itself, so a menu is not a reason for one.
+        show_header = kwargs.pop('show_header', title is not None)
         return self.add_card(
             card_name=card_name,
             title=title,
@@ -620,7 +635,7 @@ class CardMixin:
             multi_open=multi_open,
             full_height=full_height,
             min_height=min_height,
-            show_header=title is not None,
+            show_header=show_header,
             **kwargs
         )
 
@@ -635,7 +650,8 @@ class CardMixin:
 
         Args:
             card_name (str, optional): Unique card identifier.
-            title (str, optional): Card header title. If None, no header is shown.
+            title (str, optional): Card header title. If None, no header is shown, unless the
+                card has a menu to put in one or `show_header` says otherwise.
             iframe_url (str, optional): URL to load in the iframe.
             iframe_srcdoc (str, optional): Inline HTML content for the iframe.
             iframe_height (str, optional): CSS height of the iframe. Defaults to '400px'.
@@ -663,6 +679,7 @@ class CardMixin:
                 iframe_height='500px',
             )
         """
+        show_header = kwargs.pop('show_header', _derived_show_header(title, kwargs))
         return self.add_card(
             card_name=card_name,
             title=title,
@@ -671,7 +688,7 @@ class CardMixin:
             iframe_srcdoc=iframe_srcdoc,
             iframe_height=iframe_height,
             iframe_sandbox=iframe_sandbox,
-            show_header=title is not None,
+            show_header=show_header,
             **kwargs,
         )
 
@@ -714,7 +731,8 @@ class CardMixin:
 
         Args:
             card_name (str, optional): Unique card identifier.
-            title (str, optional): Card header title.
+            title (str, optional): Card header title. If None, no header is shown, unless the
+                card has a menu to put in one or `show_header` says otherwise.
             treegrid_data_url (str): URL that returns JSON tree data. Must support
                 a `parent` query parameter for lazy loading child nodes.
             treegrid_columns (list): Column definitions. Each is a dict with:
@@ -793,6 +811,7 @@ class CardMixin:
             treegrid_icon_map = {}
         if treegrid_current_node and static_data:
             self._mark_current_node_ancestors(static_data, treegrid_current_node)
+        show_header = kwargs.pop('show_header', _derived_show_header(title, kwargs))
         return self.add_card(
             card_name=card_name,
             title=title,
@@ -841,7 +860,7 @@ class CardMixin:
             treegrid_nowrap=treegrid_nowrap,
             treegrid_current_node=treegrid_current_node,
             treegrid_min_width=treegrid_min_width,
-            show_header=title is not None,
+            show_header=show_header,
             **kwargs,
         )
 
