@@ -1,5 +1,5 @@
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
-    {% if show_header and card.title or card.menu %}
+    {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
             <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
@@ -7,7 +7,8 @@
             {% include 'cards/standard/_reload_button.html' %}
         </div>
     </div>
-    {% endif %}
+    {% endif %}{% endif %}
+    {{ card.tab_menu.render }}
     <div class="{{ card_body_css_class }}">
         <iframe {% if card.extra_card_info.iframe_url %}src="{{ card.extra_card_info.iframe_url }}"{% endif %}
                 {% if card.extra_card_info.iframe_srcdoc %}srcdoc="{{ card.extra_card_info.iframe_srcdoc }}"{% endif %}

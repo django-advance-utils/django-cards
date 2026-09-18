@@ -1,6 +1,6 @@
 {% load i18n django_cards_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
-    {% if show_header and card.title or card.menu %}
+    {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
             <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
@@ -13,7 +13,7 @@
             {% endif %}
         </div>
     </div>
-    {% endif %}
+    {% endif %}{% endif %}
     <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card.extra_card_info.treegrid_borderless %} style="padding: 0 !important;" {% endif %}>
         {{ card.tab_menu.render }}
         {% if card.extra_card_info.treegrid_toolbar or card.extra_card_info.treegrid_toolbar_end or card.extra_card_info.treegrid_show_search or card.extra_card_info.treegrid_show_expand_buttons or card.extra_card_info.treegrid_checkbox %}
