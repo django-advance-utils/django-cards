@@ -7,8 +7,10 @@ Three templates guarded it with ``{% if show_header and card.title or card.menu 
 parentheses.
 
 Templates come in two shapes and are asserted separately. ``html``, ``iframe`` and ``treegrid``
-ask for a header only when there is something to put in it; ``default`` and ``accordion`` draw one
-whenever ``show_header`` is set. Both must honour ``show_header`` being off.
+ask for a header only when there is something to put in it; ``default``, ``accordion`` and ``table``
+draw one whenever ``show_header`` is set. Both must honour ``show_header`` being off. (``message``
+is the third shape -- a title is the only thing that earns it a header -- and has its own module,
+``test_show_header_message_table``.)
 
 Rendered through ``render_to_string`` with a stand-in card, as ``test_tab_menu_rendered`` is: the
 property belongs to the templates, and building each for real wants a treegrid or an iframe url
@@ -21,7 +23,7 @@ from django.utils.safestring import mark_safe
 #: Templates whose header needs both the switch and something to show.
 NEEDS_CONTENT = ['html', 'iframe', 'treegrid']
 #: Templates whose header follows the switch alone.
-SWITCH_ONLY = ['default', 'accordion']
+SWITCH_ONLY = ['default', 'accordion', 'table']
 #: The opening tag, not the bare class: several of these templates mention `card-header` in a
 #: `<style>` block, which matched a looser check whether or not a header was drawn.
 HEADER = '<div class="card-header'
