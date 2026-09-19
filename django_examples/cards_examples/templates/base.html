@@ -21,7 +21,10 @@
 </head>
 <body>
  <nav class="navbar navbar-expand-lg bg-dark navbar-dark active-bar">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbarSupportedContent" data-bs-target="#navbarSupportedContent"
+        {# The example app's own chrome, spelled for whichever version this page serves -- the
+           cards themselves come from the matching django-cards template pack. #}
+        <button class="navbar-toggler" type="button"
+                {% if bootstrap_version == '5' %}data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"{% else %}data-toggle="collapse" data-target="#navbarSupportedContent"{% endif %}
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -31,7 +34,7 @@
         </div>
         <div class="text-light d-flex align-items-center">
             {# Which Bootstrap this page is on, and a click to see it on the other one. #}
-            <a href="{{ bootstrap_toggle_url }}" class="btn btn-sm btn-outline-light mr-3 me-3"
+            <a href="{{ bootstrap_toggle_url }}" class="btn btn-sm btn-outline-light {% if bootstrap_version == '5' %}me-3{% else %}mr-3{% endif %}"
                title="Currently Bootstrap {{ bootstrap_version }} -- switch to {{ bootstrap_other_version }}">
                 BS{{ bootstrap_version }} &rarr; BS{{ bootstrap_other_version }}
             </a>

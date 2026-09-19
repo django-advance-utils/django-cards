@@ -5,6 +5,7 @@ from html_classes.html import HtmlElement, HtmlDiv
 
 from cards.standard import CardMixin
 from cards_examples.models import Person
+from cards_examples.bootstrap import col
 
 
 class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
@@ -12,10 +13,10 @@ class RowStyleExampleIndex(MainMenu, CardMixin, TemplateView):
 
     def setup_cards(self):
         no_db_card = self.add_row_style_no_db()
-        self.add_card_group(no_db_card, div_css_class='col-6 float-left float-start')
+        self.add_card_group(no_db_card, div_css_class=col('col-6', self.request))
 
         db_card = self.add_row_style_with_db()
-        self.add_card_group(db_card, div_css_class='col-6 float-right float-end')
+        self.add_card_group(db_card, div_css_class=col('col-6', self.request, 'right'))
 
     def add_row_style_no_db(self):
         card = self.add_card(title='Row Style Examples no DB')

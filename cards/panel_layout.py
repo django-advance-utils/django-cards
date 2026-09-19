@@ -520,6 +520,10 @@ class PanelLayout:
                                         'show_header': False},
             'linked_tables_json': mark_safe(json.dumps(self.linked_tables)) if self.linked_tables else None,
             'persist': self.persist,
+            # The split template is a Bootstrap pack template, and a pack is resolved per
+            # request for a project whose pack setting is a callable. Without this, a panel
+            # layout would draw its splits from the default pack on a page rendering the other.
+            'request': getattr(self.view, 'request', None),
         }
         return context
 

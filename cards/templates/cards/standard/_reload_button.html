@@ -1,1 +1,1 @@
-{% if card.ajax_reload %}<button class="btn btn-sm btn-link p-0 ml-2 ms-2" onclick="reload_card('{{ card.code }}')" title="Reload"><i class="fas fa-sync-alt"></i></button>{% endif %}
+{% load django_cards_tags %}{% pack_source 'standard/_reload_button.html' %}

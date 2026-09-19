@@ -18,6 +18,7 @@ from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
+from cards.packs import pack_class
 from cards.render_scope import get_render_scope
 
 
@@ -1094,7 +1095,10 @@ class CardBase:
         """
 
         if html_barge is None:
-            html_barge = '<span class="small badge badge-pill badge-primary rounded-pill bg-primary"> %1% </span> '
+            # Spelled for this request's Bootstrap pack: the pill and the colour are named
+            # differently in 4 and 5, and this is markup built in Python rather than in a
+            # pack template. See cards.packs.
+            html_barge = f'<span class="small {pack_class("m2m_badge", self.request)}"> %1% </span> '
 
         if query_filter is None:
             results = query.all()
@@ -1345,7 +1349,10 @@ class CardBase:
                 value = re.sub(r'(?<!["\'/=])(\b[\w.+-]+@[\w-]+\.[\w.-]+\b)', r'<a href="mailto:\1">\1</a>', value)
 
             if badge is True:
-                badge = 'badge-secondary bg-secondary'
+                # The colour half of `class="badge ..."`, which the pack spells its own way:
+                # Bootstrap 5's text-bg- picks a contrasting foreground where 4's badge-
+                # carried one of its own.
+                badge = pack_class('entry_badge', self.request)
 
             if progress_bar is True:
                 progress_bar = 'bg-primary'
@@ -1905,14 +1912,14 @@ class CardBase:
 
             layout_card.add_child_card_group(
                 child_1_card,
-                div_css_class='col-6 float-left float-start',
+                div_css_class='col-6 float-left',
                 div_inner_css='border-style: solid; border-color: red',
                 override_card_context={'item_css': 'color: blue'}
             )
 
             layout_card.add_child_card_group(
                 child_2_card,
-                div_css_class='col-6 float-left float-start'
+                div_css_class='col-6 float-left'
             )
         """
         if self.group_type not in [CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT]:

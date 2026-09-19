@@ -5,6 +5,7 @@ from django_menus.menu import MenuItem, HtmlMenu, AjaxButtonMenuItem
 
 from cards.base import CARD_TYPE_DATATABLE
 from cards.standard import CardMixin
+from cards_examples.bootstrap import col
 
 
 class ExampleIndex(MainMenu, CardMixin, TemplateView):
@@ -84,16 +85,16 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
         self.add_card_group('welcome', 'split', 'table_multiple_columns',
                             'other', 'person', 'multi_fields_example', collapsed_card,
-                            div_css_class='col-6 float-left float-start', )
+                            div_css_class=col('col-6', self.request), )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
-                            div_css_class='col-6 float-right float-end', error_if_not_found=False)
+                            div_css_class=col('col-6', self.request, 'right'), error_if_not_found=False)
         self.add_card_group('html_string',
                             'html_file',
                             'empty_list_message',
                             'card_with_no_header',
                             'menu_items_example',
                             'warning_message',
-                            div_css_class='col-12 float-right float-end')
+                            div_css_class=col('col-12', self.request, 'right'))
 
     def add_welcome_card(self):
         menu = [MenuItem('cards_examples:hello_modal', menu_display='Hello Modal')]

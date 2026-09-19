@@ -4,6 +4,7 @@ from django_menus.menu import MenuItem
 
 from cards.base import CARD_TYPE_CARD_GROUP
 from cards.standard import CardMixin
+from cards_examples.bootstrap import col
 
 
 class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
@@ -21,7 +22,7 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group(simple_card,
                             complex_card,
                             none_child_card,
-                            layout_card, div_css_class='col-12 float-left float-start')
+                            layout_card, div_css_class=col('col-12', self.request))
 
     def setup_simple_example(self):
         child_1_card = self.add_card(template_name='table_body')
@@ -35,10 +36,10 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
 
         card = self.add_card(title='Simple Example', group_type=CARD_TYPE_CARD_GROUP)
         card.add_child_card_group(child_1_card,
-                                  div_css_class='col-6 float-left float-start',
+                                  div_css_class=col('col-6', self.request),
                                   div_inner_css='border-style: solid;border-color: red')
         card.add_child_card_group(child_2_card,
-                                  div_css_class='col-6 float-left float-start',
+                                  div_css_class=col('col-6', self.request),
                                   div_inner_css='border-style: solid;background-color: #9a59b5;'
                                                 'border-color: #9a59b5; color: white')
         return card
@@ -58,11 +59,11 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
         card = self.add_card('complex', title='Complex Example', group_type=CARD_TYPE_CARD_GROUP,
                              menu=main_menu)
         card.add_child_card_group(child_1_card,
-                                  div_css_class='col-6 float-left float-start',
+                                  div_css_class=col('col-6', self.request),
                                   div_inner_css='border-style: solid;border-color: red',
                                   override_card_context={'item_css': 'color: blue'})
         card.add_child_card_group(child_2_card,
-                                  div_css_class='col-6 float-left float-start',
+                                  div_css_class=col('col-6', self.request),
                                   div_inner_css='border-style: solid;border-color: #9a59b5')
         return card
 
@@ -79,11 +80,11 @@ class ChildCardExampleIndex(MainMenu, CardMixin, TemplateView):
 
         layout_card = self.add_layout_card()
         layout_card.add_child_card_group(child_1_card,
-                                  div_css_class='col-6 float-left float-start',
+                                  div_css_class=col('col-6', self.request),
                                   div_inner_css='border-style: solid;border-color: red',
                                   override_card_context={'item_css': 'color: blue'})
         layout_card.add_child_card_group(child_2_card,
-                                  div_css_class='col-6 float-left float-start')
+                                  div_css_class=col('col-6', self.request))
 
         return layout_card
 

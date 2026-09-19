@@ -465,6 +465,8 @@ var PanelLayout = (function() {
     // ---- tab menu switching ----
 
     function _initTabMenus(layout) {
+        // Both spellings: the tab links are django-menus' markup, not this library's, so they
+        // carry whichever Bootstrap that library is rendering for.
         var tabLinks = layout.querySelectorAll('.panel-region__tabs a[data-toggle="tab"], .panel-region__tabs a[data-bs-toggle="tab"]');
         for (var i = 0; i < tabLinks.length; i++) {
             tabLinks[i].addEventListener('click', function() {

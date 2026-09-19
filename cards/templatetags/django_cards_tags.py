@@ -1,15 +1,41 @@
 import functools
+import json
 
 from django import template
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
+from cards.packs import pack_classes, pack_template, template_pack
 from cards.render_scope import get_render_scope
 
 register = template.Library()
 
 TREEGRID_SHARED_ASSETS_MARK = '_treegrid_shared_assets_rendered'
+
+
+@register.simple_tag(takes_context=True)
+def pack_source(context, name):
+    """Render the Bootstrap pack's copy of a template, in this template's own context.
+
+    Every file under cards/standard/ that carries Bootstrap markup is one of these, and the
+    markup itself lives in cards/bootstrap4/ and cards/bootstrap5/. The flat path stays the
+    name projects use -- in an {% include %}, in a CardBase.templates subclass, or as the
+    path they override -- and this picks the version behind it. See cards.packs.
+    """
+    return mark_safe(pack_template(name, context.get('request')).render(context.flatten()))
+
+
+@register.simple_tag(takes_context=True)
+def pack_name(context):
+    """The pack this request renders with, for handing to JavaScript."""
+    return template_pack(context.get('request'))
+
+
+@register.simple_tag(takes_context=True)
+def pack_classes_json(context):
+    """The pack's class strings as a JSON object, for a script that builds its own markup."""
+    return mark_safe(json.dumps(pack_classes(context.get('request'))))
 
 
 @register.simple_tag

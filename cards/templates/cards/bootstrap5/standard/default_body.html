@@ -1,0 +1,52 @@
+
+{{ card.tab_menu.render }}
+<div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body"{% if card_body_css_style %} style="{{ card_body_css_style }}"{% endif %}>
+    <div class="list-group">
+        {% for row in card.rows %}
+
+            {% if row.type == 'html' %}<div class="{{ item_css_class }}">{{ row.html|safe }}</div>{% else %}
+            {% if row.type == 'multiple' %}<div class="{{ item_css_class }}"><div class="row">{% endif %}
+            {% for entry in row.entries %}
+                {% if entry.row_style_html %}{{ entry.row_style_html|safe }}{% else %}
+                {% if entry.separator %}<hr class="my-1">{% endif %}
+                {% if entry.entry_css_class %}<div class="{{ entry.entry_css_class }}">{% endif %}
+                {% if entry.link %}<a class="{{ item_css_class }} cards-list-group-item" href="{{ entry.link }}" style="{{ item_css }}">{% elif row.type != 'multiple' %}<div class="{{ item_css_class }}" style="{{ item_css }}">{% endif %}
+                    {% if entry.label %}
+                        <div class="d-flex"><label class="me-auto">{{ entry.label|safe }}</label>{{ entry.menu.render }}</div>
+                        {% if entry.progress_bar %}
+                            <div class="progress" style="height:20px"><div class="progress-bar {{ entry.progress_bar }}" style="width:{{ entry.html }}%">{{ entry.html }}%</div></div>
+                        {% elif entry.image %}
+                            <img src="{{ entry.html }}" style="height:{{ entry.image }};object-fit:cover" alt="">
+                        {% elif entry.rating %}
+                            <h4 class="list-group-item-heading {{ entry.css_class }}">{% for i in entry.rating_range %}<i class="{% if forloop.counter <= entry.html %}fas{% else %}far{% endif %} fa-star text-warning"></i>{% endfor %}</h4>
+                        {% elif entry.multiple_lines %}
+                            {% for x in entry.html %}
+                                <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.popover %} tabindex="0" data-bs-toggle="popover" data-bs-trigger="focus" title="{{ entry.popover.title }}" data-bs-content="{{ entry.popover.content }}"{% elif entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.status_dot %}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ entry.status_dot }};margin-right:6px"></span>{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{{ x|safe }}{% if entry.badge %}</span>{% endif %}{% if entry.value_link %}</a>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ x|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>
+                            {% endfor %}
+                        {% else %}
+                            <h4 class="list-group-item-heading {{ entry.css_class }}"{% if entry.popover %} tabindex="0" data-bs-toggle="popover" data-bs-trigger="focus" title="{{ entry.popover.title }}" data-bs-content="{{ entry.popover.content }}"{% elif entry.tooltip %} data-bs-toggle="tooltip" title="{{ entry.tooltip }}"{% endif %}>{% if entry.status_dot %}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ entry.status_dot }};margin-right:6px"></span>{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.value_link %}<a href="{{ entry.value_link }}">{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{% if entry.old_value %}<del class="text-danger">{{ entry.old_value }}</del> <i class="fas fa-arrow-right text-muted" style="font-size:0.7em"></i> <span class="text-success">{{ entry.html|safe }}</span>{% else %}{{ entry.html|safe }}{% endif %}{% if entry.badge %}</span>{% endif %}{% if entry.value_link %}</a>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>
+                        {% endif %}
+                        {% if entry.help_text %}<small class="text-muted d-block">{{ entry.help_text }}</small>{% endif %}
+                    {% elif entry.menu %}
+                        <div class="d-flex"><h4 class="list-group-item-heading {{ entry.css_class }} me-auto">{% if entry.status_dot %}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ entry.status_dot }};margin-right:6px"></span>{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{% if entry.old_value %}<del class="text-danger">{{ entry.old_value }}</del> <i class="fas fa-arrow-right text-muted" style="font-size:0.7em"></i> <span class="text-success">{{ entry.html|safe }}</span>{% else %}{{ entry.html|safe }}{% endif %}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}</h4>{{ entry.menu.render }}</div>
+                        {% if entry.help_text %}<small class="text-muted d-block">{{ entry.help_text }}</small>{% endif %}
+                    {% else %}
+                        {% if entry.progress_bar %}
+                            <div class="progress" style="height:20px"><div class="progress-bar {{ entry.progress_bar }}" style="width:{{ entry.html }}%">{{ entry.html }}%</div></div>
+                        {% elif entry.image %}
+                            <img src="{{ entry.html }}" style="height:{{ entry.image }};object-fit:cover" alt="">
+                        {% elif entry.rating %}
+                            {% for i in entry.rating_range %}<i class="{% if forloop.counter <= entry.html %}fas{% else %}far{% endif %} fa-star text-warning"></i>{% endfor %}
+                        {% else %}
+                            {% if entry.status_dot %}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ entry.status_dot }};margin-right:6px"></span>{% endif %}{% if entry.icon %}<i class="{{ entry.icon }}"></i> {% endif %}{% if entry.prefix %}{{ entry.prefix }}{% endif %}{% if entry.badge %}<span class="badge {{ entry.badge }}">{% endif %}{% if entry.old_value %}<del class="text-danger">{{ entry.old_value }}</del> <i class="fas fa-arrow-right text-muted" style="font-size:0.7em"></i> <span class="text-success">{{ entry.html|safe }}</span>{% else %}{{ entry.html|safe }}{% endif %}{% if entry.badge %}</span>{% endif %}{% if entry.suffix %}{{ entry.suffix }}{% endif %}{% if entry.copy_to_clipboard %} <button class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('{{ entry.html|escapejs }}')"><i class="fas fa-copy"></i></button>{% endif %}
+                        {% endif %}
+                        {% if entry.help_text %}<small class="text-muted d-block">{{ entry.help_text }}</small>{% endif %}
+                    {% endif %}
+            {% if entry.link %}</a>{% elif row.type != 'multiple' %}</div>{% endif %}
+             {% if entry.entry_css_class %}</div>{% endif %}{% endif %}
+            {% endfor %}
+            {% if row.type == 'multiple' %}</div></div>{% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>

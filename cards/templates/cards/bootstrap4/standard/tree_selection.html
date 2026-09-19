@@ -1,0 +1,61 @@
+<script>
+    function load_details(entry_id) {
+        var active = document.querySelectorAll('.cards-list-group-item.active');
+        for (var i = 0; i < active.length; i++) {
+            active[i].classList.remove('active');
+        }
+        var item = document.getElementById('list_' + entry_id);
+        if (item) item.classList.add('active');
+        ajax_helpers.post_json({'data': {'button': '{{ details_button_action_name }}', 'entry_id': entry_id}});
+    }
+</script>
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+        </div>
+    </div>
+    {{ card.tab_menu.render }}
+
+    <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
+        <div id="{{ card.code }}_tree"></div>
+        {% include 'cards/standard/_cards_on_ready.html' %}
+        <script>
+            {# jsTree still requires jQuery; this is the only remaining $ usage for CardTree. #}
+            $('#{{ card.code }}_tree').jstree({
+                'core': {
+                    'data': {{ data|safe }},
+                    'themes': {{ tree_themes|safe }}
+                }{% if tree_plugins %}, 'plugins':{{ tree_plugins|safe }}{% endif %}
+            });
+            $('#{{ card.code }}_tree').on("changed.jstree", function (e, data) {
+                if (data.selected.length > 0) {
+                    if (data.node !== undefined) {
+                        {% if show_details_for_parents %}
+                            load_details(data.selected[0])
+                        {% else %}
+                        let has_children = data.node.children.length > 0;
+                        if (!has_children) {
+                            load_details(data.selected[0])
+                        }
+                        {% endif %}
+                    }
+                }
+         });
+        $('#{{ card.code }}_tree').on("ready.jstree", function (e, data) {
+            $('#{{ card.code }}_tree').jstree(true).get_node('{{ selected_id }}', true).children('.jstree-anchor').focus();
+        });
+        window.cards_on_ready(function () { load_details('{{ selected_id }}'); });
+        </script>
+    </div>
+
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+{% endif %}
+
+</div>
+{% include 'cards/standard/_reload_script.html' %}

@@ -1,0 +1,385 @@
+<style>
+    .image-gallery-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+    }
+    .image-gallery-grid .gallery-image-tile {
+        width: 120px;
+        height: 120px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid #dee2e6;
+        background: #f8f9fa;
+        transition: opacity 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        overflow: hidden;
+    }
+    .image-gallery-grid .gallery-image-tile:hover {
+        opacity: 0.8;
+    }
+    .image-gallery-grid .gallery-image-tile,
+    .image-gallery-grid .gallery-link-tile {
+        position: relative;
+    }
+    .image-gallery-grid .gallery-tile-edit-btn {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        width: 18px;
+        height: 18px;
+        background: rgba(255,255,255,0.85);
+        border: 1px solid #ced4da;
+        border-radius: 3px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        color: #495057;
+        line-height: 1;
+        text-decoration: none;
+        z-index: 2;
+        opacity: 0;
+        transition: opacity 0.15s;
+        margin: auto;
+        text-align: center;
+    }
+    .image-gallery-grid .gallery-image-tile:hover .gallery-tile-edit-btn,
+    .image-gallery-grid .gallery-link-tile:hover .gallery-tile-edit-btn {
+        opacity: 1;
+    }
+    .image-gallery-grid .gallery-tile-edit-btn:hover {
+        background: #fff;
+        border-color: #adb5bd;
+        color: #212529;
+    }
+    .image-gallery-grid .gallery-tile-edit-btn i {
+        font-size: 12px !important;
+        line-height: 1;
+        padding: 0;
+        margin: 0 !important;
+    }
+    .image-gallery-grid .gallery-image-tile img {
+        max-width: 118px;
+        max-height: 118px;
+        object-fit: contain;
+    }
+    .image-gallery-grid .gallery-image-tile.has-name img {
+        max-height: 100px;
+    }
+    .image-gallery-grid .gallery-image-tile .gallery-image-name {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        padding: 2px 6px;
+        color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        flex-shrink: 0;
+    }
+    .image-gallery-grid .gallery-link-tile {
+        height: 120px;
+        width: 120px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        text-decoration: none;
+        color: #495057;
+        transition: background 0.2s, border-color 0.2s;
+        padding: 8px;
+        text-align: center;
+    }
+    .image-gallery-grid .gallery-link-tile:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+    }
+    .image-gallery-grid .gallery-link-tile i {
+        font-size: 2.5rem;
+        margin-bottom: 6px;
+    }
+    .image-gallery-grid .gallery-link-tile .gallery-link-name {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        max-height: 2.4em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+    }
+    .image-gallery-lightbox .modal-body {
+        text-align: center;
+        padding: 0;
+        position: relative;
+    }
+    .image-gallery-lightbox .modal-body img {
+        max-width: 100%;
+        max-height: 80vh;
+        object-fit: contain;
+    }
+    .image-gallery-lightbox .gallery-caption {
+        padding: 8px;
+        text-align: center;
+        color: #666;
+    }
+    .image-gallery-lightbox .gallery-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.4);
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        z-index: 1;
+    }
+    .image-gallery-lightbox .gallery-nav:hover {
+        background: rgba(0,0,0,0.6);
+    }
+    .image-gallery-lightbox .gallery-nav-prev { left: 0; }
+    .image-gallery-lightbox .gallery-nav-next { right: 0; }
+
+</style>
+<div class="{{ card_css_class }}" id="{{ card.code }}" data-title="" {% if card_css_style %}style="{{ card_css_style }}"{% endif %}>
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+            {% if card.enable_collapse %}
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
+                <i class="expandicon"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {{ card.tab_menu.render }}
+    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card_body_css_style %}style="{{ card_body_css_style }}"{% endif %}>
+        <div class="image-gallery-grid">
+            {% for link in links %}
+                {% if link.type == 'image' %}
+                <div class="gallery-image-tile{% if show_image_names and link.name %} has-name{% endif %}" title="{{ link.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ link.image_index }})">
+                    <img src="{{ link.url }}" alt="{{ link.name|default:'Image' }}">
+                    {% if show_image_names and link.name %}<span class="gallery-image-name">{{ link.name }}</span>{% endif %}
+                    {% if link.edit_url %}<a href="{{ link.edit_url }}" class="gallery-tile-edit-btn" onclick="event.stopPropagation()" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                </div>
+                {% elif link.type == 'data_sheet' %}
+                <div class="gallery-link-tile" onclick="openPdfModal_{{ card.code }}('{{ link.url|escapejs }}', '{{ link.name|default:'Data Sheet'|escapejs }}')" title="{{ link.name|default:'Data Sheet' }}">
+                    <i class="fas fa-file-pdf text-danger"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Data Sheet' }}</span>
+                    {% if link.edit_url %}<a href="{{ link.edit_url }}" class="gallery-tile-edit-btn" onclick="event.stopPropagation()" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                </div>
+                {% elif link.type == 'product_page' %}
+                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Product Page' }}">
+                    <i class="fas fa-globe text-primary"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Product Page' }}</span>
+                    {% if link.edit_url %}<a href="{{ link.edit_url }}" class="gallery-tile-edit-btn" onclick="event.stopPropagation()" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                </div>
+                {% else %}
+                <div class="gallery-link-tile" onclick="window.open('{{ link.url|escapejs }}', '_blank')" title="{{ link.name|default:'Link' }}">
+                    <i class="fas fa-link text-secondary"></i>
+                    <span class="gallery-link-name">{{ link.name|default:'Link' }}</span>
+                    {% if link.edit_url %}<a href="{{ link.edit_url }}" class="gallery-tile-edit-btn" onclick="event.stopPropagation()" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                </div>
+                {% endif %}
+            {% empty %}
+                {% for image in images %}
+                <div class="gallery-image-tile" title="{{ image.name|default:'Image' }}" onclick="openGalleryLightbox_{{ card.code }}({{ forloop.counter0 }})">
+                    <img src="{{ image.url }}" alt="{{ image.name|default:'Image' }}">
+                    {% if show_image_names and image.name %}<span class="gallery-image-name">{{ image.name }}</span>{% endif %}
+                    {% if image.edit_url %}<a href="{{ image.edit_url }}" class="gallery-tile-edit-btn" onclick="event.stopPropagation()" title="Edit"><i class="fas fa-pen"></i></a>{% endif %}
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox modal -->
+<div class="modal fade image-gallery-lightbox" id="{{ card.code }}_lightbox" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="{{ card.code }}_lightbox_title"></h6>
+                {% include 'cards/standard/_lightbox_close.html' %}
+            </div>
+            <div class="modal-body">
+                <button class="gallery-nav gallery-nav-prev" id="{{ card.code }}_nav_prev" onclick="galleryNav_{{ card.code }}(-1)" style="display:none"><i class="fas fa-chevron-left"></i></button>
+                <button class="gallery-nav gallery-nav-next" id="{{ card.code }}_nav_next" onclick="galleryNav_{{ card.code }}(1)" style="display:none"><i class="fas fa-chevron-right"></i></button>
+                <img id="{{ card.code }}_lightbox_img" src="" alt="">
+            </div>
+            <div class="gallery-caption" id="{{ card.code }}_lightbox_caption"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var images = [{% for link in links %}{% if link.type == 'image' %}{"url": "{{ link.url|escapejs }}", "name": "{{ link.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}];
+    {% if not links %}var images = [{% for image in images %}{"url": "{{ image.url|escapejs }}", "name": "{{ image.name|default:'Image'|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}];{% endif %}
+    var currentIndex = 0;
+    var lightbox = document.getElementById('{{ card.code }}_lightbox');
+    var backdrop = null;
+    var lastFocus = null;
+    var hideTimer = null;
+    var priorPadding = null;
+    // Matches Bootstrap's .modal / .modal-backdrop fade in both 4 and 5.
+    var FADE_MS = 300;
+
+    function ensureBackdrop() {
+        if (backdrop) return backdrop;
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade';
+        backdrop.addEventListener('click', hideLightbox);
+        return backdrop;
+    }
+
+    /* Everything in the dialog that can take focus, in document order.
+
+       Rendered ones only: a one-image gallery hides both nav buttons, and a hidden button
+       as the last item would leave Tab from the close button matching neither end of the
+       trap, so focus would walk out of the dialog and Escape -- now bound to the dialog --
+       would no longer reach it. */
+    function focusables() {
+        var all = lightbox.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]),' +
+            ' textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+        var out = [];
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].getClientRects().length) out.push(all[i]);
+        }
+        return out;
+    }
+
+    function showLightbox() {
+        if (!lightbox) return;
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+
+        /* Bootstrap's modal took focus, held it and gave it back; this has to do the same
+           or the dialog opens with focus still on the thumbnail underneath it, and Tab
+           walks the page behind the backdrop. */
+        lastFocus = document.activeElement;
+
+        /* ...and it padded the body by the scrollbar's width before hiding the overflow,
+           so the page does not jump sideways as the scrollbar goes. A gallery card inside
+           a django-modals modal has no scrollbar to lose, and measures 0 here. */
+        var pad = window.innerWidth - document.documentElement.clientWidth;
+        if (pad > 0) {
+            if (priorPadding === null) priorPadding = document.body.style.paddingRight;
+            document.body.style.paddingRight = pad + 'px';
+        }
+
+        document.body.classList.add('modal-open');
+        document.body.appendChild(ensureBackdrop());
+        lightbox.style.display = 'block';
+        lightbox.removeAttribute('aria-hidden');
+        lightbox.setAttribute('aria-modal', 'true');
+
+        /* Read a layout property to force the frame the transition starts from -- without
+           it the browser coalesces display and .show into one style change and there is
+           nothing to animate. */
+        void lightbox.offsetWidth;
+        lightbox.classList.add('show');
+        backdrop.classList.add('show');
+        lightbox.focus();
+    }
+
+    function hideLightbox() {
+        if (!lightbox || !lightbox.classList.contains('show')) return;
+        lightbox.classList.remove('show');
+        if (backdrop) backdrop.classList.remove('show');
+        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        lastFocus = null;
+
+        lightbox.setAttribute('aria-hidden', 'true');
+        lightbox.removeAttribute('aria-modal');
+
+        /* Let the fade finish before the element leaves the page. A timer rather than
+           transitionend: the latter never fires when a theme has transitions off, and the
+           dialog would then stay on screen for good. */
+        hideTimer = setTimeout(function() {
+            hideTimer = null;
+            lightbox.style.display = 'none';
+            if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            // The gallery card can itself be rendered inside a django-modals modal.
+            // 'show' is already cleared above, so the lightbox excludes itself here;
+            // only drop modal-open once no other modal is still on screen.
+            if (!document.querySelector('.modal.show')) {
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = priorPadding || '';
+                priorPadding = null;
+            }
+        }, FADE_MS);
+    }
+
+    function show(idx) {
+        currentIndex = idx;
+        var img = images[idx];
+        document.getElementById('{{ card.code }}_lightbox_img').src = img.url;
+        document.getElementById('{{ card.code }}_lightbox_title').textContent = img.name;
+        document.getElementById('{{ card.code }}_lightbox_caption').textContent = img.name;
+        var prevBtn = document.getElementById('{{ card.code }}_nav_prev');
+        var nextBtn = document.getElementById('{{ card.code }}_nav_next');
+        if (prevBtn && nextBtn) {
+            prevBtn.style.display = images.length > 1 ? '' : 'none';
+            nextBtn.style.display = images.length > 1 ? '' : 'none';
+        }
+    }
+
+    if (lightbox) {
+        /* The gallery shows and hides the lightbox itself rather than through Bootstrap's
+           modal plugin, so the close button is bound here. Bootstrap binds the dismiss
+           attribute too, but its handler hides a modal it never showed and returns
+           immediately, so the lightbox still closes exactly once. */
+        var closeBtns = lightbox.querySelectorAll('[data-dismiss="modal"]');
+        for (var i = 0; i < closeBtns.length; i++) {
+            closeBtns[i].addEventListener('click', hideLightbox);
+        }
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) hideLightbox();
+        });
+        /* On the dialog rather than on document: it is where focus now is, so the key
+           still arrives, and the listener goes with the element when the card is
+           re-rendered over ajax instead of piling up one per render. */
+        lightbox.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { hideLightbox(); return; }
+            if (e.key !== 'Tab') return;
+            var items = focusables();
+            if (!items.length) { e.preventDefault(); return; }
+            var first = items[0];
+            var last = items[items.length - 1];
+            if (e.shiftKey && (document.activeElement === first || document.activeElement === lightbox)) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+    }
+
+    window['openGalleryLightbox_{{ card.code }}'] = function(idx) {
+        show(idx);
+        showLightbox();
+    };
+
+    window['galleryNav_{{ card.code }}'] = function(dir) {
+        var newIdx = (currentIndex + dir + images.length) % images.length;
+        show(newIdx);
+    };
+
+    window['openPdfModal_{{ card.code }}'] = function(url, title) {
+        window.open(url, '_blank');
+    };
+})();
+</script>
+{% include 'cards/standard/_reload_script.html' %}

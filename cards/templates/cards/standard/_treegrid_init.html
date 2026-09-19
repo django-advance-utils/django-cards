@@ -1,4 +1,4 @@
-{% comment %}
+{% load django_cards_tags %}{% comment %}
     A treegrid card's own half: the values that differ between cards, and the one call
     that builds this card's grid. The behaviour it calls into is emitted once per page by
     _treegrid_shared.html.
@@ -35,7 +35,13 @@
         form_field: '{{ card.extra_card_info.treegrid_form_field|escapejs }}',
         row_click: '{{ card.extra_card_info.treegrid_row_click|escapejs }}',
         default_selected: {{ card.extra_card_info.treegrid_default_selected_json|safe }},
-        auto_hide_expand: {{ card.extra_card_info.treegrid_auto_hide_expand_buttons|yesno:"true,false" }}
+        auto_hide_expand: {{ card.extra_card_info.treegrid_auto_hide_expand_buttons|yesno:"true,false" }},
+        {# The shared script builds a few pieces of markup itself -- the column filter #}
+        {# selects, the count beside a filter value, a context menu icon -- and Bootstrap #}
+        {# renamed the classes for all three. The shared half is emitted once per process #}
+        {# and cannot name a version, so this card hands its pack's spelling down. #}
+        pack: '{% pack_name %}',
+        pack_classes: {% pack_classes_json %}
     };
     {# The shared half is normally already above this card; a card rendered ahead of it queues instead. #}
     if (window._treegridInit) {
