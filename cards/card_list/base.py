@@ -5,6 +5,7 @@ from django.template.loader import render_to_string
 from django_datatables.reorder_datatable import reorder
 
 from cards.base import CARD_TYPE_STANDARD, CardBase, CARD_TYPE_HTML
+from cards.packs import pack_class
 
 
 class CardListBaseMixin:
@@ -26,8 +27,36 @@ class CardListBaseMixin:
         menu_display (str): Used for display hints on how to show menu (unused by default).
         card_cls (class): The class used to instantiate new card objects.
     """
-    list_class = 'col-sm-5 col-md-4 col-lg-3 float-left float-start'
-    details_class = 'col-sm-7 col-md-8 col-lg-9 float-left float-start'
+    @property
+    def list_class(self):
+        """The list column's layout, floated the way this request's Bootstrap pack spells it.
+
+        A property rather than a plain string because Bootstrap 5 renamed the float utility
+        and the pack is resolved per request. Every way of replacing it still works: a class
+        attribute on a subclass shadows this outright, and an assignment -- including the one
+        ``as_view(list_class=...)`` makes -- goes through the setter below.
+        """
+        if self._list_class is not None:
+            return self._list_class
+        return f'col-sm-5 col-md-4 col-lg-3 {pack_class("column_float", getattr(self, "request", None))}'
+
+    @list_class.setter
+    def list_class(self, value):
+        self._list_class = value
+
+    @property
+    def details_class(self):
+        """The details column's layout; see list_class."""
+        if self._details_class is not None:
+            return self._details_class
+        return f'col-sm-7 col-md-8 col-lg-9 {pack_class("column_float", getattr(self, "request", None))}'
+
+    @details_class.setter
+    def details_class(self, value):
+        self._details_class = value
+
+    _list_class = None
+    _details_class = None
 
     model = None
     datatable_model = None

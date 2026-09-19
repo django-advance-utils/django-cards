@@ -330,10 +330,24 @@ var PanelLayout = (function() {
     // ---- datatable adjust ----
 
     function _adjustDatatables(layout) {
-        if (typeof $ !== 'undefined' && $.fn.dataTable) {
-            $(layout).find('table.dataTable').each(function() {
-                $(this).DataTable().columns.adjust();
+        // DataTables itself may still require jQuery, but we only touch its API here.
+        if (typeof django_datatables === 'undefined' || !django_datatables.DataTables) {
+            if (typeof window.jQuery === 'undefined' || !window.jQuery.fn || !window.jQuery.fn.dataTable) return;
+            var $tables = window.jQuery(layout).find('table.dataTable');
+            $tables.each(function() {
+                window.jQuery(this).DataTable().columns.adjust();
             });
+            return;
+        }
+        var tables = layout.querySelectorAll('table.dataTable');
+        for (var i = 0; i < tables.length; i++) {
+            var tableId = tables[i].id;
+            var dt = tableId && django_datatables.DataTables[tableId];
+            if (dt && dt.table && dt.table.api) {
+                dt.table.api().columns.adjust();
+            } else if (typeof window.jQuery !== 'undefined' && window.jQuery.fn && window.jQuery.fn.dataTable) {
+                window.jQuery(tables[i]).DataTable().columns.adjust();
+            }
         }
     }
 
@@ -451,6 +465,8 @@ var PanelLayout = (function() {
     // ---- tab menu switching ----
 
     function _initTabMenus(layout) {
+        // Both spellings: the tab links are django-menus' markup, not this library's, so they
+        // carry whichever Bootstrap that library is rendering for.
         var tabLinks = layout.querySelectorAll('.panel-region__tabs a[data-toggle="tab"], .panel-region__tabs a[data-bs-toggle="tab"]');
         for (var i = 0; i < tabLinks.length; i++) {
             tabLinks[i].addEventListener('click', function() {

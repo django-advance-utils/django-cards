@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 
 from cards.base import CARD_TYPE_DATATABLE, CARD_TYPE_ACCORDION
 from cards.standard import CardMixin
+from cards_examples.bootstrap import col
 
 
 class AccordionExample(MainMenu, CardMixin, TemplateView):
@@ -46,7 +47,7 @@ class AccordionExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('example_accordion', div_css_class='col-12 float-right float-end')
+        self.add_card_group('example_accordion', div_css_class=col('col-12', self.request, 'right'))
 
 
 class AccordionAjaxExample(MainMenu, CardMixin, TemplateView):
@@ -89,7 +90,7 @@ class AccordionAjaxExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('ajax_accordion', div_css_class='col-12 float-right float-end')
+        self.add_card_group('ajax_accordion', div_css_class=col('col-12', self.request, 'right'))
 
 
 class AccordionMultiExample(MainMenu, CardMixin, TemplateView):
@@ -120,7 +121,7 @@ class AccordionMultiExample(MainMenu, CardMixin, TemplateView):
             ]
         )
 
-        self.add_card_group('multi_accordion', div_css_class='col-12 float-right float-end')
+        self.add_card_group('multi_accordion', div_css_class=col('col-12', self.request, 'right'))
 
 
 class AccordionLayoutExample(MainMenu, CardMixin, TemplateView):
@@ -171,5 +172,5 @@ class AccordionLayoutExample(MainMenu, CardMixin, TemplateView):
         detail_card.add_entry(label='Employees', value=250, number_format=True)
 
         # Layout: accordion col-4, details col-8
-        self.add_card_group('layout_accordion', div_css_class='col-4 float-left float-start')
-        self.add_card_group('right_details', div_css_class='col-8 float-left float-start')
+        self.add_card_group('layout_accordion', div_css_class=col('col-4', self.request))
+        self.add_card_group('right_details', div_css_class=col('col-8', self.request))

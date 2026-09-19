@@ -8,6 +8,7 @@ from ajax_helpers.utils import toast_commands
 from cards.standard import CardMixin
 from cards_examples.models import Company, CompanyCategory, Person, Payment
 from cards_examples.views.base import MainMenu
+from cards_examples.bootstrap import col
 
 
 # ---------------------------------------------------------------------------
@@ -1692,6 +1693,8 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
     """
     template_name = 'cards_examples/cards.html'
 
+    # A class-level constant, so there is no request here to resolve a pack with: the one
+    # Bootstrap name in it carries both spellings. A project on one version writes that one.
     USAGE_COLUMNS = [
         {'title': 'Usage', 'field': 'usage', 'width': '20%'},
         {'title': 'Name', 'field': 'title', 'width': '40%'},
@@ -1744,8 +1747,8 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
                  'button_class': 'btn-primary', 'needs_selection': 2},
             ],
         )
-        self.add_card_group('usages', div_css_class='col-7 float-left float-start')
-        self.add_card_group('products', div_css_class='col-5 float-left float-start')
+        self.add_card_group('usages', div_css_class=col('col-7', self.request))
+        self.add_card_group('products', div_css_class=col('col-5', self.request))
 
     @staticmethod
     def _usage_data():
@@ -2071,8 +2074,8 @@ class TreegridDualExample(MainMenu, CardMixin, TemplateView):
             },
         )
 
-        self.add_card_group('left_tree', div_css_class='col-6 float-left float-start')
-        self.add_card_group('right_tree', div_css_class='col-6 float-left float-start')
+        self.add_card_group('left_tree', div_css_class=col('col-6', self.request))
+        self.add_card_group('right_tree', div_css_class=col('col-6', self.request))
 
     def get_treegrid_left_tree_data(self, parent=None):
         return _treegrid_compact_data_nodes(parent)

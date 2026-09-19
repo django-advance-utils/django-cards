@@ -1,0 +1,257 @@
+{% load i18n django_cards_tags %}
+<div class="{{ card_css_class }}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
+    {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+            {% if card.enable_collapse %}
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-bs-target="#{{ card.code }}_body" data-bs-toggle="collapse">
+                <i class="expandicon"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}{% endif %}
+    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body" {% if card.extra_card_info.treegrid_borderless %} style="padding: 0 !important;" {% endif %}>
+        {{ card.tab_menu.render }}
+        {% if card.extra_card_info.treegrid_toolbar or card.extra_card_info.treegrid_toolbar_end or card.extra_card_info.treegrid_show_search or card.extra_card_info.treegrid_show_expand_buttons or card.extra_card_info.treegrid_checkbox %}
+            <div class="d-flex justify-content-between align-items-center px-2 py-2 treegrid-toolbar">
+                <div>
+                    {% for btn in card.extra_card_info.treegrid_toolbar %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary treegrid-toolbar-btn"
+                                data-action="{{ btn.name }}" data-card="{{ card.code }}"{% if btn.needs_selection %} data-needs-selection="{{ btn.needs_selection }}" disabled{% endif %}>
+                            {% if btn.icon %}<i class="{{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+                        </button>
+                    {% endfor %}
+                    {% if card.extra_card_info.treegrid_checkbox %}
+                        {% if card.extra_card_info.treegrid_show_select_buttons %}
+                        {% if card.extra_card_info.treegrid_pagination %}
+                            <button type="button" id="{{ card.code }}_select_all_pages" class="btn btn-sm btn-outline-secondary">
+                                <i class="far fa-check-square"></i> Select All
+                            </button>
+                            <button type="button" id="{{ card.code }}_deselect_all_pages" class="btn btn-sm btn-outline-secondary">
+                                <i class="far fa-square"></i> Deselect All
+                            </button>
+                            <button type="button" id="{{ card.code }}_select_page" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-check-square"></i> Select Page
+                            </button>
+                            <button type="button" id="{{ card.code }}_deselect_page" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-minus-square"></i> Deselect Page
+                            </button>
+                        {% else %}
+                            <button type="button" id="{{ card.code }}_select_all" class="btn btn-sm btn-outline-secondary">
+                                <i class="far fa-check-square"></i> Select All
+                            </button>
+                            <button type="button" id="{{ card.code }}_deselect_all" class="btn btn-sm btn-outline-secondary">
+                                <i class="far fa-square"></i> Deselect All
+                            </button>
+                        {% endif %}
+                        {% endif %}
+                        {% if not card.extra_card_info.treegrid_form_field and card.extra_card_info.treegrid_show_submit_button %}
+                        <button type="button" id="{{ card.code }}_get_selected" class="btn btn-sm btn-primary">
+                            <i class="fas fa-check"></i> {{ card.extra_card_info.treegrid_submit_label }}
+                        </button>
+                        {% endif %}
+                        {% for btn in card.extra_card_info.treegrid_toolbar_after %}
+                            <button type="button" class="btn btn-sm {% if btn.button_class %} {{ btn.button_class }} {% else %} btn-outline-secondary {% endif %} treegrid-toolbar-btn"
+                                    data-action="{{ btn.name }}" data-card="{{ card.code }}"{% if btn.needs_selection %} data-needs-selection="{{ btn.needs_selection }}" disabled{% endif %}>
+                                {% if btn.icon %}<i class="{{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+                            </button>
+                        {% endfor %}
+                        {% if card.extra_card_info.treegrid_show_select_count %}
+                        <span id="{{ card.code }}_select_count" class="ms-2 text-muted small"></span>
+                        {% endif %}
+                    {% else %}
+                        {% for btn in card.extra_card_info.treegrid_toolbar_after %}
+                            <button type="button" class="btn btn-sm {% if btn.button_class %} {{ btn.button_class }} {% else %} btn-outline-secondary {% endif %} treegrid-toolbar-btn"
+                                    data-action="{{ btn.name }}" data-card="{{ card.code }}"{% if btn.needs_selection %} data-needs-selection="{{ btn.needs_selection }}" disabled{% endif %}>
+                                {% if btn.icon %}<i class="{{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+                            </button>
+                        {% endfor %}
+                    {% endif %}
+                    {% if card.extra_card_info.treegrid_show_expand_buttons %}
+                        <button type="button" id="{{ card.code }}_expand_all" class="btn btn-sm btn-outline-secondary">
+                            <i class="far fa-plus-square"></i> Expand All
+                        </button>
+                        <button type="button" id="{{ card.code }}_collapse_all" class="btn btn-sm btn-outline-secondary">
+                            <i class="far fa-minus-square"></i> Collapse All
+                        </button>
+                    {% endif %}
+                    {# Last in the row, after everything the card renders itself. #}
+                    {% for btn in card.extra_card_info.treegrid_toolbar_end %}
+                        <button type="button" class="btn btn-sm {% if btn.button_class %} {{ btn.button_class }} {% else %} btn-outline-secondary {% endif %} treegrid-toolbar-btn"
+                                data-action="{{ btn.name }}" data-card="{{ card.code }}"{% if btn.needs_selection %} data-needs-selection="{{ btn.needs_selection }}" disabled{% endif %}>
+                            {% if btn.icon %}<i class="{{ btn.icon }}"></i> {% endif %}{{ btn.label }}
+                        </button>
+                    {% endfor %}
+                </div>
+            {% if card.extra_card_info.treegrid_show_search %}
+            <div>
+                <input type="text" id="{{ card.code }}_filter_input" class="form-control form-control-sm d-inline-block"
+                       style="width:200px" placeholder="Search...">
+                <button type="button" id="{{ card.code }}_filter_btn" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <button type="button" id="{{ card.code }}_filter_clear" class="btn btn-sm btn-outline-secondary">Clear</button>
+                <span id="{{ card.code }}_matches" class="ms-2 text-muted small"></span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if card.extra_card_info.treegrid_js_filters %}
+        <div class="d-flex">
+        <div class="treegrid-js-filter-panel" id="{{ card.code }}_js_filter_panel">
+            {% for f in card.extra_card_info.treegrid_js_filters %}
+            <div class="treegrid-js-filter-block" data-field="{{ f.field }}">
+                <div class="treegrid-js-filter-header">
+                    <span>{{ f.title }}</span>
+                    <span>
+                        <a href="#" class="treegrid-jsf-clear-field text-muted" data-field="{{ f.field }}">All</a>
+                        <a href="#" class="treegrid-jsf-deselect-field text-muted ms-1" data-field="{{ f.field }}">None</a>
+                    </span>
+                </div>
+                <div class="treegrid-js-filter-content"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="flex-grow-1" style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }}; min-width:0;">
+        {% else %}
+        <div style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }};">
+        {% endif %}
+        <table id="{{ card.code }}_table"
+               class="display compact smalltext table-sm table w-100{% if card.extra_card_info.treegrid_sortable %} treegrid-sortable{% endif %}{% if card.extra_card_info.treegrid_nowrap %} treegrid-nowrap{% endif %}"
+               style="min-width:{{ card.extra_card_info.treegrid_min_width }}">
+                <colgroup>
+                    {% if card.extra_card_info.treegrid_sortable %}<col style="width:28px">{% endif %}
+                    {% if card.extra_card_info.treegrid_drag_drop %}<col style="width:28px">{% endif %}
+                    {% if card.extra_card_info.treegrid_checkbox %}<col style="width:30px">{% endif %}
+                    {% for col in card.extra_card_info.treegrid_columns %}
+                    <col{% if col.width %} style="width:{{ col.width }}"{% endif %}>
+                    {% endfor %}
+                </colgroup>
+                <thead>
+                    {% if card.extra_card_info.treegrid_header_rows %}
+                        {% for row in card.extra_card_info.treegrid_header_rows %}
+                    <tr>
+                            {% for cell in row %}
+                        <th{% if cell.colspan %} colspan="{{ cell.colspan }}"{% endif %}{% if cell.rowspan %} rowspan="{{ cell.rowspan }}"{% endif %}{% if cell.css_class %} class="{{ cell.css_class }}"{% endif %}>{{ cell.title }}</th>
+                            {% endfor %}
+                    </tr>
+                        {% endfor %}
+                    <tr class="treegrid-hidden-header">
+                        {% if card.extra_card_info.treegrid_sortable %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_drag_drop %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
+                        {% for col in card.extra_card_info.treegrid_columns %}
+                        <th>{{ col.title }}</th>
+                        {% endfor %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        {% if card.extra_card_info.treegrid_sortable %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_drag_drop %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
+                        {% for col in card.extra_card_info.treegrid_columns %}
+                        {# A column's own classes, so a heading is aligned over the cells it heads. #}
+                        <th{% if col.header_css_class %} class="{{ col.header_css_class }}"{% elif col.css_class %} class="{{ col.css_class }}"{% endif %}>{{ col.title }}</th>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                    {% if card.extra_card_info.treegrid_show_column_filters or card.column_search %}
+                    <tr class="treegrid-column-filters">
+                        {% if card.extra_card_info.treegrid_sortable %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_drag_drop %}<th></th>{% endif %}
+                        {% if card.extra_card_info.treegrid_checkbox %}<th></th>{% endif %}
+                        {% for col in card.extra_card_info.treegrid_columns %}
+                        <th>
+                            {% if col.filter != False and col.type != 'actions' %}
+                            {% if col.filter_options == True %}
+                            <select class="treegrid-col-filter form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
+                                <option value=""></option>
+                            </select>
+                            {% elif col.filter_options == 'html' %}
+                            <div class="treegrid-html-filter" data-col-idx="{{ forloop.counter0 }}" data-auto-options="true">
+                                <button type="button" class="treegrid-html-filter-toggle form-control form-control-sm">
+                                    <span class="treegrid-html-filter-label">&nbsp;</span>
+                                </button>
+                                <input type="hidden" class="treegrid-col-filter" data-col-idx="{{ forloop.counter0 }}" value="">
+                                <div class="treegrid-html-filter-menu"></div>
+                            </div>
+                            {% elif col.filter_options %}
+                            <select class="treegrid-col-filter form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}">
+                                <option value=""></option>
+                                {% for opt in col.filter_options %}
+                                {% if opt.label %}<option value="{{ opt.value }}">{{ opt.label }}</option>
+                                {% else %}<option value="{{ opt }}">{{ opt }}</option>{% endif %}
+                                {% endfor %}
+                            </select>
+                            {% elif col.type == 'boolean' %}
+                            <select class="treegrid-col-filter form-select form-select-sm" data-col-idx="{{ forloop.counter0 }}">
+                                <option value=""></option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                            {% else %}
+                            <input type="text" class="treegrid-col-filter form-control form-control-sm" data-col-idx="{{ forloop.counter0 }}" placeholder="">
+                            {% endif %}
+                            {% endif %}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        {% if card.extra_card_info.treegrid_js_filters %}</div>{% endif %}
+        {% if not card.extra_card_info.treegrid_borderless %}
+        <div class="d-flex justify-content-between align-items-center px-2 py-2">
+            <div id="{{ card.code }}_info" class="text-muted small"></div>
+            {% if card.extra_card_info.treegrid_pagination %}
+            <div id="{{ card.code }}_pagination" class="d-none align-items-center">
+                <button type="button" id="{{ card.code }}_prev_page" class="btn btn-sm btn-outline-secondary me-1" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="{{ card.code }}_page_info" class="text-muted small mx-1"></span>
+                <input type="number" id="{{ card.code }}_page_jump" class="form-control form-control-sm mx-1"
+                       style="width:60px" min="1" placeholder="Go…">
+                <button type="button" id="{{ card.code }}_page_jump_btn" class="btn btn-sm btn-outline-secondary me-1">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <button type="button" id="{{ card.code }}_next_page" class="btn btn-sm btn-outline-secondary ms-1">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+            {% if card.extra_card_info.treegrid_save_mode == 'batch' %}
+            <div>
+                <span id="{{ card.code }}_changes" class="text-muted small me-2"></span>
+                <button type="button" id="{{ card.code }}_save_btn" class="btn btn-sm btn-primary" disabled>
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button type="button" id="{{ card.code }}_discard_btn" class="btn btn-sm btn-outline-secondary" disabled>
+                    Discard
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+</div>
+
+{% if card.extra_card_info.treegrid_context_menu_html %}
+{{ card.extra_card_info.treegrid_context_menu_html }}
+{% endif %}
+
+{# The stylesheet and behaviour are the same for every grid, so they land once per page. #}
+{% treegrid_shared_assets %}
+{% include 'cards/standard/_treegrid_init.html' %}
+{% include 'cards/standard/_reload_script.html' %}

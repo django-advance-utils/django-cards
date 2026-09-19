@@ -15,7 +15,9 @@
     // it is not there, so the rest of the page still runs.
     if (typeof window.jQuery === 'undefined') return;
     var $ = window.jQuery;
-    // Cards emit both the 4 and the 5 spelling; a project's own markup may carry either.
+    // Both spellings on purpose, although a card now emits only its pack's: this runs over
+    // the whole page, and the project's own markup -- or a library on a different pack --
+    // may carry either. It is a selector, so the one that matches nothing costs nothing.
     $(function () {
         $('[data-toggle="tooltip"],[data-bs-toggle="tooltip"]').tooltip({container: 'body'});
         $('[data-toggle="popover"],[data-bs-toggle="popover"]').popover({container: 'body'});

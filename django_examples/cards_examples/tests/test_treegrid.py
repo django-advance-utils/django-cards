@@ -676,9 +676,10 @@ class TestTreegridToolbarSlots(TreegridViewTestMixin, TestCase):
     def test_column_class_on_header(self):
         """css_class reaches the header verbatim.
 
-        The example passes both Bootstrap spellings ('text-right text-end'), which is what
-        a project on either version wants; the point of the test is that whatever string is
-        given is the string that lands, so it is asserted whole.
+        The example passes both Bootstrap spellings ('text-right text-end') because it names
+        them in a class-level constant, where there is no request to resolve a template pack
+        with; the point of the test is that whatever string is given is the string that
+        lands, so it is asserted whole.
         """
         self.assertIn('<th class="text-right text-end">Qty</th>', self.markup)
         self.assertIn('<th class="text-center">Stock</th>', self.markup)

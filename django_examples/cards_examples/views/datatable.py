@@ -6,6 +6,7 @@ from django_datatables.columns import ColumnBase
 
 from cards.base import CARD_TYPE_DATATABLE, CARD_TYPE_ORDERED_DATATABLE
 from cards.standard import CardMixin
+from cards_examples.bootstrap import col
 
 
 class DatatableExample(MainMenu, CardMixin, TemplateView):
@@ -17,7 +18,7 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
         self.add_companies_card()
 
     def setup_cards(self):
-        self.add_card_group('companies', div_css_class='col-12 float-right float-end')
+        self.add_card_group('companies', div_css_class=col('col-12', self.request, 'right'))
 
     def add_companies_card(self):
         self.add_card('companies',
@@ -28,8 +29,8 @@ class DatatableExample(MainMenu, CardMixin, TemplateView):
                                           'show_pivot_table': True,
                                           'top': '<h5 style="padding-left: 10px">This is top</h5>',
                                           'bottom': '<h5 style="padding-left: 10px">This is bottom</h5>'
-                                          # 'pivot_filter_class': 'col-4 float-left float-start',
-                                          # 'pivot_table_class': 'col-8 col-4 float-left float-start'
+                                          # 'pivot_filter_class': col('col-4', self.request),
+                                          # 'pivot_table_class': col('col-8 col-4', self.request)
                                           },
                       collapsed=False)
 
@@ -57,7 +58,7 @@ class DatatableOrderExample(MainMenu, CardMixin, TemplateView):
         self.add_status_card()
 
     def setup_cards(self):
-        self.add_card_group('statuses', div_css_class='col-12 float-right float-end')
+        self.add_card_group('statuses', div_css_class=col('col-12', self.request, 'right'))
 
     def add_status_card(self):
         self.add_card('statuses',
