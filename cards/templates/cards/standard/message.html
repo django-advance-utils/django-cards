@@ -1,7 +1,7 @@
 {% load datatable_tags %}
 
     <div class="{{ card_css_class }}" id="{{ card.code }}" data-title="">
-        {% if card.title %}
+        {% if show_header %}{% if card.title %}
             <div class="card-header {{ card.header_css_class }}">
                 <div class="d-flex align-items-center">
                     <h5 class="mr-auto me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title|safe }}</h5>
@@ -15,7 +15,7 @@
                     {% endif %}
                 </div>
             </div>
-        {% endif %}
+        {% endif %}{% endif %}
         {{ card.tab_menu.render }}
         <div class="card-body jms-list {{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
             <div class="alert {{ alert_css_class }} mb-0 small">{{ message|safe }}</div>
