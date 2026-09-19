@@ -13,6 +13,19 @@
 var PanelLinkedTables = (function() {
     'use strict';
 
+    function formEncode(data) {
+        var parts = [];
+        for (var key in data) {
+            if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key] == null ? '' : data[key]));
+        }
+        return parts.join('&');
+    }
+
+    // The auto-select poll for each layout on the page, so a re-init can stop the one the
+    // previous render started.
+    var polls = {};
+
     function init(layoutId, tableConfigs) {
         var layout = document.getElementById(layoutId);
         if (!layout) return;
@@ -68,33 +81,41 @@ var PanelLinkedTables = (function() {
             var url = tableEl ? (tableEl.getAttribute('data-url') || window.location.pathname) : window.location.pathname;
             var csrf = ajax_helpers.getCookie('csrftoken');
 
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-CSRFToken': csrf
+                },
+                body: formEncode({
                     csrfmiddlewaretoken: csrf,
                     table_id: config.table_id,
                     datatable_data: true,
                     linked_filter_field: filterField,
                     linked_filter_value: filterValue
-                },
-                success: function(response) {
-                    dt.table.api().clear();
-                    if (response.data && response.data.length > 0) {
-                        dt.table.api().rows.add(response.data);
-                    }
-                    dt.table.api().draw();
-
-                    // Auto-select first row if not the last table
-                    if (index < tableConfigs.length - 1 && response.data && response.data.length > 0) {
-                        setTimeout(function() {
-                            var firstRow = document.querySelector('#' + config.table_id + ' tbody tr');
-                            if (firstRow) {
-                                selectRow(index, firstRow);
-                            }
-                        }, 50);
-                    }
+                }),
+                credentials: 'same-origin'
+            }).then(function(response) {
+                if (!response.ok) throw new Error('request failed');
+                return response.json();
+            }).then(function(response) {
+                dt.table.api().clear();
+                if (response.data && response.data.length > 0) {
+                    dt.table.api().rows.add(response.data);
                 }
+                dt.table.api().draw();
+
+                // Auto-select first row if not the last table
+                if (index < tableConfigs.length - 1 && response.data && response.data.length > 0) {
+                    setTimeout(function() {
+                        var firstRow = document.querySelector('#' + config.table_id + ' tbody tr');
+                        if (firstRow) {
+                            selectRow(index, firstRow);
+                        }
+                    }, 50);
+                }
+            }).catch(function() {
+                // Keep UI usable if a linked load fails.
             });
         }
 
@@ -118,8 +139,11 @@ var PanelLinkedTables = (function() {
             }
 
             // Highlight
-            $('#' + config.table_id + ' tbody tr').removeClass('linked-datatable-row-selected');
-            $(row).addClass('linked-datatable-row-selected');
+            var selected = document.querySelectorAll('#' + config.table_id + ' tbody tr.linked-datatable-row-selected');
+            for (var s = 0; s < selected.length; s++) {
+                selected[s].classList.remove('linked-datatable-row-selected');
+            }
+            row.classList.add('linked-datatable-row-selected');
             config.selectedId = rowId;
 
             // Load detail card
@@ -135,14 +159,18 @@ var PanelLinkedTables = (function() {
         }
 
         // Bind click handlers using delegated events on the layout container
-        for (var k = 0; k < tableConfigs.length; k++) {
-            (function(idx) {
-                var config = tableConfigs[idx];
-                $(layout).on('click', '#' + config.table_id + ' tbody tr', function() {
-                    selectRow(idx, this, true);
-                });
-            })(k);
-        }
+        layout.addEventListener('click', function(e) {
+            var row = e.target.closest('tbody tr');
+            if (!row || !layout.contains(row)) return;
+            var table = row.closest('table');
+            if (!table || !table.id) return;
+            for (var idx = 0; idx < tableConfigs.length; idx++) {
+                if (tableConfigs[idx].table_id === table.id) {
+                    selectRow(idx, row, true);
+                    break;
+                }
+            }
+        });
 
         // Auto-select first row of first table
         function autoSelectFirst() {
@@ -159,12 +187,26 @@ var PanelLinkedTables = (function() {
         }
 
         if (tableConfigs.length > 0) {
+            // Cancel the poll left running by a previous init of this layout before doing
+            // anything else, or it would auto-select the new tables as well and load the
+            // detail twice. Above the autoSelectFirst() below on purpose: an init that
+            // finds rows already there returns without starting a poll of its own, and
+            // would otherwise never reach this.
+            // Keyed on the layout id rather than held on the element: a re-render replaces
+            // the element, so the outgoing timer has to be findable without it.
+            if (polls[layoutId]) {
+                clearInterval(polls[layoutId]);
+                polls[layoutId] = null;
+            }
             if (!autoSelectFirst()) {
-                $('#' + tableConfigs[0].table_id).on('draw.dt', function handler() {
-                    if (autoSelectFirst()) {
-                        $('#' + tableConfigs[0].table_id).off('draw.dt', handler);
+                var tries = 0;
+                var timer = setInterval(function() {
+                    tries += 1;
+                    if (autoSelectFirst() || tries > 100) {
+                        clearInterval(timer);
                     }
-                });
+                }, 50);
+                polls[layoutId] = timer;
             }
         }
     }
