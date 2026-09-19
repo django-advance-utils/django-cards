@@ -9,6 +9,7 @@ from django.utils.html import format_html
 
 from cards.standard import CardMixin, Tile
 from django_menus.menu import MenuItem
+from cards_examples.bootstrap import col
 
 
 class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
@@ -37,11 +38,11 @@ class NewFeaturesIndex(MainMenu, CardMixin, TemplateView):
         self.add_rating_card()
 
         self.add_card_group('tooltip', 'value_link',
-                            div_css_class='col-6 float-left float-start',
+                            div_css_class=col('col-6', self.request),
                             div_id='left-column',
                             group_title='Tooltip & Link Examples')
         self.add_card_group('css_class_method', 'company_features',
-                            div_css_class='col-6 float-right float-end',
+                            div_css_class=col('col-6', self.request, 'right'),
                             div_id='right-column',
                             group_title='CSS & Company Examples',
                             script='console.log("New features examples loaded");')
@@ -308,11 +309,11 @@ class NewFeaturesTableIndex(MainMenu, CardMixin, TemplateView):
         self.add_table_new_features_2_card()
 
         self.add_card_group('table_tooltip',
-                            div_css_class='col-6 float-left float-start',
+                            div_css_class=col('col-6', self.request),
                             div_id='table-left',
                             group_title='Table Tooltip & Link')
         self.add_card_group('table_value_link',
-                            div_css_class='col-6 float-right float-end',
+                            div_css_class=col('col-6', self.request, 'right'),
                             div_id='table-right')
         self.add_card_group('table_badge_icon', 'table_copy_truncate',
                             div_css_class='col-12')
@@ -429,10 +430,10 @@ class NewFeatures2Index(MainMenu, CardMixin, TemplateView):
         self.add_exportable_card()
 
         self.add_card_group('auto_link', 'show_if',
-                            div_css_class='col-6 float-left float-start',
+                            div_css_class=col('col-6', self.request),
                             group_title='Auto Link & Show If')
         self.add_card_group('sparkline', 'old_value',
-                            div_css_class='col-6 float-right float-end',
+                            div_css_class=col('col-6', self.request, 'right'),
                             group_title='Sparkline & Old Value')
         self.add_card_group('searchable', 'exportable',
                             div_css_class='col-12',
@@ -538,8 +539,8 @@ class ImageGalleryIndex(MainMenu, CardMixin, TemplateView):
         self.add_mixed_links_gallery()
         self.add_empty_gallery()
 
-        self.add_card_group('image_only', div_css_class='col-6 float-left float-start')
-        self.add_card_group('mixed_links', div_css_class='col-6 float-right float-end')
+        self.add_card_group('image_only', div_css_class=col('col-6', self.request))
+        self.add_card_group('mixed_links', div_css_class=col('col-6', self.request, 'right'))
         self.add_card_group('empty_gallery', div_css_class='col-12', div_css='clear:both')
 
     def add_image_only_gallery(self):
@@ -615,7 +616,7 @@ class TooltipTestIndex(MainMenu, CardMixin, TemplateView):
         self.add_value_link_card()
 
         self.add_card_group('tooltip', 'value_link',
-                            div_css_class='col-6 float-left float-start')
+                            div_css_class=col('col-6', self.request))
 
     def add_tooltip_card(self):
         card = self.add_card('tooltip', title='Tooltip Examples')
@@ -658,13 +659,13 @@ class CardBordersIndex(MainMenu, CardMixin, TemplateView):
         self.add_thin_standard_card()
 
         self.add_card_group('po_actions',
-                            div_css_class='col-2 float-left float-start')
+                            div_css_class=col('col-2', self.request))
         self.add_card_group('po_details',
-                            div_css_class='col-4 float-left float-start')
+                            div_css_class=col('col-4', self.request))
         self.add_card_group('icon_actions',
-                            div_css_class='col-2 float-left float-start')
+                            div_css_class=col('col-2', self.request))
         self.add_card_group('delivery',
-                            div_css_class='col-4 float-left float-start')
+                            div_css_class=col('col-4', self.request))
         self.add_card_group('default_border', 'thin_standard',
                             div_css_class='col-12',
                             div_css='clear:both',
@@ -766,7 +767,9 @@ class PurchaseOrderLayoutIndex(MainMenu, CardMixin, TemplateView):
     """
     template_name = 'cards_examples/cards.html'
 
-    # The compact table treatment every card on this page shares.
+    # The compact table treatment every card on this page shares. A class-level constant, so
+    # there is no request here to resolve a pack with and the alignment carries both
+    # spellings; a project on one version writes that version's name.
     COMPACT = {'table_css_class': 'table table-sm mb-1',
                'table_td_css_class': 'text-right text-end'}
 
@@ -864,8 +867,8 @@ class TilesIndex(MainMenu, CardMixin, TemplateView):
         self.add_sizes_card()
         self.add_empty_card()
 
-        self.add_card_group('every_field', div_css_class='col-6 float-left float-start')
-        self.add_card_group('minimal', div_css_class='col-6 float-right float-end')
+        self.add_card_group('every_field', div_css_class=col('col-6', self.request))
+        self.add_card_group('minimal', div_css_class=col('col-6', self.request, 'right'))
         self.add_card_group('colours', div_css_class='col-12', div_css='clear:both')
         self.add_card_group('sizes', div_css_class='col-12')
         self.add_card_group('empty_tiles', div_css_class='col-12')

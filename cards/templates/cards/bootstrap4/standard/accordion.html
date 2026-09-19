@@ -1,0 +1,274 @@
+<div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
+    {% if show_header %}
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+        </div>
+    </div>
+    {% endif %}
+    {{ card.tab_menu.render }}
+    <div class="{{ card_body_css_class }}" id="{{ card.code }}_body" style="padding: 0;{% if card.extra_card_info.full_height %} flex: 1; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
+        <div class="accordion" id="{{ card.code }}_accordion"{% if card.extra_card_info.full_height %} style="display: flex; flex-direction: column; flex: 1; overflow: hidden;"{% endif %}>
+            {% for panel in card.extra_card_info.initialized_panels %}
+            <div class="card mb-0 {{ card.code }}-panel-wrap{% if panel.expanded %} panel-expanded{% endif %}" style="border-radius: 0; border-left: 0; border-right: 0;{% if card.extra_card_info.full_height %} flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;{% endif %}">
+                <div class="card-header p-0 {{ panel.header_css_class }}" id="{{ panel.id }}_header" style="flex-shrink: 0;">
+                    <button class="btn btn-link btn-block text-left d-flex align-items-center py-2 px-3{% if not panel.expanded %} collapsed{% endif %}"
+                            type="button"
+                            data-cards-collapse-target="#{{ panel.id }}_collapse"
+                            aria-expanded="{{ panel.expanded|yesno:'true,false' }}"
+                            aria-controls="{{ panel.id }}_collapse">
+                        {% if panel.icon %}<i class="{{ panel.icon }} mr-2"></i>{% endif %}
+                        <span>{{ panel.title }}</span>
+                        <i class="fas fa-chevron-down ml-auto accordion-chevron"></i>
+                    </button>
+                </div>
+                <div id="{{ panel.id }}_collapse"
+                     class="collapse{% if panel.expanded %} show{% endif %}"
+                     aria-labelledby="{{ panel.id }}_header"
+                     {% if card.extra_card_info.full_height %}style="overflow-y: auto; flex: 1;"{% endif %}>
+                    <div class="card-body p-0" id="{{ panel.id }}_content">
+                        {% if panel.ajax_load and not panel.expanded %}
+                            <div class="text-center text-muted py-3" id="{{ panel.id }}_placeholder">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        {% elif panel.card %}
+                            {{ panel.card.render }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    #{{ card.code }}_accordion .btn-link { text-decoration: none; color: inherit; }
+    #{{ card.code }}_accordion .btn-link:hover { filter: brightness(0.9); }
+    #{{ card.code }}_accordion .accordion-chevron { transition: transform 0.2s; }
+    #{{ card.code }}_accordion .btn-link.collapsed .accordion-chevron { transform: rotate(-90deg); }
+    #{{ card.code }}_accordion .card-body .card.django-card { border: none; }
+    #{{ card.code }}_accordion .card-body .card.django-card .card-header { display: none; }
+
+    /* The open/close slide. Bootstrap's collapse plugin drew this before the accordion
+       drove itself; `.show` still says whether a panel is open, and this only says it is
+       on its way, so the height can animate while a closing panel is already "closed". */
+    #{{ card.code }}_accordion .collapse.cards-collapsing {
+        display: block !important;
+        overflow: hidden;
+        transition: height 0.35s ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #{{ card.code }}_accordion .collapse.cards-collapsing { transition: none; }
+    }
+    {% if card.extra_card_info.full_height %}
+    #{{ card.code }}_card {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .{{ card.code }}-panel-wrap.panel-expanded {
+        flex: 1 !important;
+        overflow: hidden !important;
+    }
+    #{{ card.code }}_accordion .collapse {
+        transition: none !important;
+    }
+    #{{ card.code }}_accordion .collapsing {
+        transition: none !important;
+        height: auto !important;
+        display: block;
+    }
+    {% endif %}
+</style>
+
+<script>
+(function() {
+    var accordion = document.getElementById('{{ card.code }}_accordion');
+    if (!accordion) return;
+    var multiOpen = {{ card.extra_card_info.multi_open|yesno:"true,false" }};
+    var fullHeight = {{ card.extra_card_info.full_height|yesno:"true,false" }};
+    var panelWrapClass = '{{ card.code }}-panel-wrap';
+    var ajaxPanels = {};
+    {% for panel in card.extra_card_info.initialized_panels %}
+    {% if panel.ajax_load %}
+    ajaxPanels['{{ panel.id }}'] = {{ panel.expanded|yesno:"true,false" }};
+    {% endif %}
+    {% endfor %}
+
+    function closestPanelWrap(el) {
+        while (el && el !== accordion) {
+            if (el.classList && el.classList.contains(panelWrapClass)) return el;
+            el = el.parentNode;
+        }
+        return null;
+    }
+
+    function isExpanded(collapseEl) {
+        return collapseEl.classList.contains('show');
+    }
+
+    // Matches the CSS transition above.
+    var SLIDE_MS = 350;
+    // In full-height mode the panel is sized by flex, not by its own height, and the style
+    // block above already turns transitions off there.
+    var slide = !fullHeight;
+
+    function endSlide(collapseEl) {
+        if (collapseEl.cardsSlideTimer) {
+            clearTimeout(collapseEl.cardsSlideTimer);
+            collapseEl.cardsSlideTimer = null;
+        }
+        collapseEl.classList.remove('cards-collapsing');
+        collapseEl.style.height = '';
+    }
+
+    function setExpanded(collapseEl, expanded) {
+        var btn = accordion.querySelector('[data-cards-collapse-target="#' + collapseEl.id + '"]');
+        var wrap = closestPanelWrap(collapseEl);
+
+        // `.show` and the chevron move now, whatever the height does afterwards, so a
+        // second click mid-slide reads the state the user just asked for rather than the
+        // one still animating.
+        if (expanded) {
+            collapseEl.classList.add('show');
+            if (btn) {
+                btn.classList.remove('collapsed');
+                btn.setAttribute('aria-expanded', 'true');
+            }
+            if (fullHeight && wrap) wrap.classList.add('panel-expanded');
+        } else {
+            collapseEl.classList.remove('show');
+            if (btn) {
+                btn.classList.add('collapsed');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+            if (fullHeight && wrap) wrap.classList.remove('panel-expanded');
+        }
+
+        if (!slide) return;
+
+        endSlide(collapseEl);
+        // cards-collapsing first, and only then measure. Its display:block is what makes
+        // the panel measurable on the way *out*: `.show` has already gone by this point,
+        // so without it the element is display:none, scrollHeight reads 0, and the panel
+        // snaps shut instead of sliding.
+        collapseEl.classList.add('cards-collapsing');
+        var natural = collapseEl.scrollHeight;
+        var from = expanded ? 0 : natural;
+        var target = expanded ? natural : 0;
+        collapseEl.style.height = from + 'px';
+        // Read a layout property so the browser has a frame to animate from.
+        void collapseEl.offsetHeight;
+        collapseEl.style.height = target + 'px';
+        collapseEl.cardsSlideTimer = setTimeout(function() {
+            collapseEl.cardsSlideTimer = null;
+            collapseEl.classList.remove('cards-collapsing');
+            collapseEl.style.height = '';
+        }, SLIDE_MS);
+    }
+
+    // Only this accordion's own panel bodies -- a direct .collapse child of a
+    // direct panel-wrap child. A descendant query would also match the body of
+    // any card rendered inside a panel with enable_collapse=True, and the
+    // panels of a nested accordion.
+    function ownCollapses() {
+        var out = [];
+        for (var i = 0; i < accordion.children.length; i++) {
+            var wrap = accordion.children[i];
+            if (!wrap.classList || !wrap.classList.contains(panelWrapClass)) continue;
+            for (var j = 0; j < wrap.children.length; j++) {
+                if (wrap.children[j].classList && wrap.children[j].classList.contains('collapse')) {
+                    out.push(wrap.children[j]);
+                }
+            }
+        }
+        return out;
+    }
+
+    function openCount() {
+        var open = 0, own = ownCollapses();
+        for (var i = 0; i < own.length; i++) {
+            if (own[i].classList.contains('show')) open += 1;
+        }
+        return open;
+    }
+
+    function loadAjaxPanel(panelId) {
+        if (!(panelId in ajaxPanels) || ajaxPanels[panelId]) return;
+        ajaxPanels[panelId] = true;
+        ajax_helpers.post_json({data: {
+            button: 'accordion_load',
+            accordion: '{{ card.code }}',
+            panel_id: panelId
+        }});
+    }
+
+    accordion.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-cards-collapse-target]');
+        if (!btn || !accordion.contains(btn)) return;
+        e.preventDefault();
+        var targetSel = btn.getAttribute('data-cards-collapse-target');
+        var collapseEl = document.querySelector(targetSel);
+        if (!collapseEl) return;
+        // Ignore collapse toggles inside panel content, including the buttons
+        // of a nested accordion, whose clicks bubble up to this listener.
+        if (ownCollapses().indexOf(collapseEl) === -1) return;
+
+        if (isExpanded(collapseEl)) {
+            if (!multiOpen && openCount() <= 1) return;
+            setExpanded(collapseEl, false);
+            return;
+        }
+
+        if (!multiOpen) {
+            var own = ownCollapses();
+            for (var i = 0; i < own.length; i++) {
+                if (own[i].classList.contains('show')) setExpanded(own[i], false);
+            }
+        }
+        setExpanded(collapseEl, true);
+        loadAjaxPanel(collapseEl.id.replace(/_collapse$/, ''));
+    });
+
+    {% if card.extra_card_info.full_height %}
+    (function() {
+        var cardEl = document.getElementById('{{ card.code }}_card');
+        var minHeight = parseInt('{{ card.extra_card_info.min_height }}', 10) || 300;
+
+        function setCardHeight() {
+            cardEl.style.height = '';
+            var rect = cardEl.getBoundingClientRect();
+            var height = window.innerHeight - rect.top;
+            if (height < minHeight) height = minHeight;
+            cardEl.style.height = height + 'px';
+        }
+        setCardHeight();
+        // A card re-rendered over ajax runs this script again, and the listener from the
+        // previous render would stay bound to a detached element for the life of the page.
+        var resizeKey = '_cardsAccordionResize_{{ card.code }}';
+        if (window[resizeKey]) window.removeEventListener('resize', window[resizeKey]);
+        window[resizeKey] = setCardHeight;
+        window.addEventListener('resize', setCardHeight);
+    })();
+    {% endif %}
+
+    {% for panel in card.extra_card_info.initialized_panels %}
+    {% if panel.ajax_load and panel.expanded %}
+    ajax_helpers.post_json({data: {
+        button: 'accordion_load',
+        accordion: '{{ card.code }}',
+        panel_id: '{{ panel.id }}'
+    }});
+    {% endif %}
+    {% endfor %}
+})();
+</script>
+{% include 'cards/standard/_reload_script.html' %}

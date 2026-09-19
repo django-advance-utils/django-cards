@@ -1,0 +1,37 @@
+
+    <div class="{{ card_css_class }}" id="{{ card.code }}" data-title=""{% if card_css_style %} style="{{ card_css_style }}"{% endif %}>
+        <div class="card-header {{ card.header_css_class }}">
+            <div class="d-flex align-items-center">
+                <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+                {{ card.menu.render }}
+                {% include 'cards/standard/_search_input.html' %}
+                {% include 'cards/standard/_export_button.html' %}
+                {% include 'cards/standard/_reload_button.html' %}
+                {% if card.enable_collapse %}
+                    <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}"
+                         data-target="#{{ card.code }}_body" data-toggle="collapse">
+                        <i class="expandicon"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    {% include 'cards/standard/table_body.html' %}
+
+        {% if card.footer %}
+            <div class="card-footer">
+                <small style="text-align: left">{{ card.footer|safe }}</small>
+            </div>
+        {% endif %}
+        {% if card.created_modified_dates %}
+            <div class="card-footer">
+                <small style="text-align: left">Date created: {{ card.created_modified_dates.0 }}<br>Date
+                    modified: {{ card.created_modified_dates.1 }}
+                </small>
+            </div>
+        {% endif %}
+    </div>
+    {% include 'cards/standard/_reload_script.html' %}
+    {% include 'cards/standard/_search_script.html' %}
+    {% include 'cards/standard/_export_script.html' %}
+    {% include 'cards/standard/_column_search_script.html' %}

@@ -160,7 +160,7 @@ class CardMixin:
             self.add_card_group(
                 'welcome', 'split', 'table_multiple_columns',
                 'other', 'person', 'multi_fields_example', collapsed_card,
-                div_css_class='col-6 float-left float-start',
+                div_css_class='col-6 float-left',
             )
 
             # Attach a script to a card group
@@ -311,14 +311,14 @@ class CardMixin:
 
             layout_card.add_child_card_group(
                 child_1_card,
-                div_css_class='col-6 float-left float-start',
+                div_css_class='col-6 float-left',
                 div_inner_css='border-style: solid;border-color: red',
                 override_card_context={'item_css': 'color: blue'}
             )
 
             layout_card.add_child_card_group(
                 child_2_card,
-                div_css_class='col-6 float-left float-start'
+                div_css_class='col-6 float-left'
             )
 
             return layout_card

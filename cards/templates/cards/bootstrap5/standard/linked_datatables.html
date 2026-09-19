@@ -1,0 +1,315 @@
+{% load datatable_tags %}
+<div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% include 'cards/standard/_reload_button.html' %}
+            {% if card.enable_collapse %}
+            <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-bs-target="#{{ card.code }}_body" data-bs-toggle="collapse">
+                <i class="expandicon"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {{ card.tab_menu.render }}
+    <div class="{{ card_body_css_class }}{% if card.enable_collapse %} collapse{% if not card.collapsed %} show{% endif %}{% endif %}" id="{{ card.code }}_body">
+        <div class="d-flex linked-datatables-container" style="gap: 8px;">
+            {% for dt in card.extra_card_info.initialized_tables %}
+            <div class="flex-fill linked-datatable-panel {{ dt.css_class }}"
+                 id="{{ dt.id }}_panel"
+                 data-table-id="{{ dt.id }}"
+                 data-index="{{ dt.index }}"
+                 {% if dt.linked_field %}data-linked-field="{{ dt.linked_field }}"{% endif %}
+                 {% if dt.row_link %}data-row-link="{{ dt.row_link }}"{% endif %}
+                 style="min-width: 0; overflow: auto;">
+                <div class="d-flex align-items-center px-2 pt-2 mb-1">
+                    <h6 class="fw-bold me-auto mb-0">{{ dt.title }}</h6>
+                    {% if dt.menu %}{{ dt.menu.render }}{% endif %}
+                </div>
+                <div class="px-2 pb-1 linked-datatable-status text-muted small" id="{{ dt.id }}_status">&nbsp;</div>
+                {{ dt.table.render|safe }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+</div>
+
+{% include 'cards/standard/_cards_on_ready.html' %}
+<script>
+window.cards_on_ready(function() {
+    var cardId = '{{ card.code }}';
+    var cardEl = document.getElementById(cardId + '_card');
+    if (!cardEl) return;
+    var panels = cardEl.querySelectorAll('.linked-datatable-panel');
+    var tableConfigs = [];
+
+    for (var p = 0; p < panels.length; p++) {
+        tableConfigs.push({
+            tableId: panels[p].getAttribute('data-table-id'),
+            index: parseInt(panels[p].getAttribute('data-index'), 10),
+            linkedField: panels[p].getAttribute('data-linked-field') || null,
+            rowLink: panels[p].getAttribute('data-row-link') || null,
+            selectedId: null
+        });
+    }
+
+    var autoSelect = {{ auto_select_first|default:"true" }};
+
+    // Style for selected rows
+    var style = document.createElement('style');
+    style.textContent = '.linked-datatable-row-selected { background-color: #d4edfa !important; } .linked-dt-arrow { color: #ccc; width: 30px !important; padding: 4px !important; } .linked-datatable-row-selected .linked-dt-arrow { color: #007bff; }';
+    document.head.appendChild(style);
+
+    function setStatus(tableId, text) {
+        var el = document.getElementById(tableId + '_status');
+        if (el) el.textContent = text;
+    }
+
+    function clearRowSelection(tableId) {
+        var rows = document.querySelectorAll('#' + tableId + ' tbody tr.linked-datatable-row-selected');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].classList.remove('linked-datatable-row-selected');
+        }
+    }
+
+    function clearDownstreamTables(fromIndex) {
+        for (var i = fromIndex + 1; i < tableConfigs.length; i++) {
+            var config = tableConfigs[i];
+            config.selectedId = null;
+            var dt = django_datatables.DataTables[config.tableId];
+            if (dt) {
+                dt.table.api().clear().draw();
+            }
+            setStatus(config.tableId, 'Select a row above to load data');
+            clearRowSelection(config.tableId);
+        }
+    }
+
+    function formEncode(data) {
+        var parts = [];
+        for (var key in data) {
+            if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key] == null ? '' : data[key]));
+        }
+        return parts.join('&');
+    }
+
+    function loadTable(index, filterField, filterValue) {
+        var config = tableConfigs[index];
+        var dt = django_datatables.DataTables[config.tableId];
+        if (!dt) return;
+
+        var tableEl = document.getElementById(config.tableId);
+        var url = (tableEl && tableEl.getAttribute('data-url')) || window.location.pathname;
+        var csrf = ajax_helpers.getCookie('csrftoken');
+
+        setStatus(config.tableId, 'Loading...');
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-CSRFToken': csrf
+            },
+            body: formEncode({
+                csrfmiddlewaretoken: csrf,
+                table_id: config.tableId,
+                datatable_data: true,
+                linked_filter_field: filterField,
+                linked_filter_value: filterValue
+            }),
+            credentials: 'same-origin'
+        }).then(function(response) {
+            if (!response.ok) throw new Error('request failed');
+            return response.json();
+        }).then(function(response) {
+            dt.table.api().clear();
+            if (response.data && response.data.length > 0) {
+                dt.table.api().rows.add(response.data);
+                setStatus(config.tableId, response.data.length + ' rows');
+            } else {
+                setStatus(config.tableId, 'No results');
+            }
+            dt.table.api().draw();
+
+            // Auto-select first row in the loaded table (skip the last table)
+            if (autoSelect && index < tableConfigs.length - 1 && response.data && response.data.length > 0) {
+                var firstRow = document.querySelector('#' + config.tableId + ' tbody tr');
+                if (firstRow) {
+                    selectRow(index, config.tableId, firstRow);
+                }
+            }
+        }).catch(function() {
+            setStatus(config.tableId, 'Error loading data');
+        });
+    }
+
+    // Track which panel is focused for keyboard navigation
+    var activePanelIndex = 0;
+
+    function selectRow(panelIndex, tableId, row, toggle, userClick) {
+        var dt = django_datatables.DataTables[tableId];
+        if (!dt) return;
+
+        var rowData = dt.table.api().row(row).data();
+        if (!rowData) return;
+
+        var rowId = rowData[0];
+
+        // Toggle selection if clicking same row
+        if (toggle && tableConfigs[panelIndex].selectedId === rowId) {
+            tableConfigs[panelIndex].selectedId = null;
+            row.classList.remove('linked-datatable-row-selected');
+            clearDownstreamTables(panelIndex);
+            return;
+        }
+
+        // Highlight selected row
+        clearRowSelection(tableId);
+        row.classList.add('linked-datatable-row-selected');
+        tableConfigs[panelIndex].selectedId = rowId;
+
+        // Clear and load downstream tables
+        clearDownstreamTables(panelIndex);
+
+        // Navigate if this table has a row_link (only on real click)
+        if (userClick && tableConfigs[panelIndex].rowLink) {
+            var url = tableConfigs[panelIndex].rowLink.replace('999999', rowId);
+            window.location.href = url;
+            return;
+        }
+
+        // Load the next table if it exists and has a linked_field
+        var nextIndex = panelIndex + 1;
+        if (nextIndex < tableConfigs.length && tableConfigs[nextIndex].linkedField) {
+            loadTable(nextIndex, tableConfigs[nextIndex].linkedField, rowId);
+        }
+    }
+
+    function setActivePanel(index) {
+        activePanelIndex = index;
+    }
+
+    for (var k = 0; k < panels.length; k++) {
+        (function(panel) {
+            var panelIndex = parseInt(panel.getAttribute('data-index'), 10);
+            var tableId = panel.getAttribute('data-table-id');
+
+            // Set initial status for tables that need a selection
+            if (panelIndex > 0 && tableConfigs[panelIndex].linkedField) {
+                setStatus(tableId, 'Select a row in the previous table');
+            }
+
+            var panelEl = document.getElementById(tableId + '_panel');
+            if (panelEl) {
+                panelEl.addEventListener('click', function() {
+                    setActivePanel(panelIndex);
+                });
+            }
+        })(panels[k]);
+    }
+
+    // DataTables creates the <tbody> itself, from its own $(document).ready
+    // handler, so it does not exist yet when this runs. Delegate from the card
+    // element -- which is always present -- rather than binding to the tbody.
+    cardEl.addEventListener('click', function(e) {
+        var row = e.target.closest('tbody tr');
+        if (!row || !cardEl.contains(row)) return;
+        var table = row.closest('table');
+        if (!table || !table.id) return;
+        for (var t = 0; t < tableConfigs.length; t++) {
+            if (tableConfigs[t].tableId === table.id) {
+                setActivePanel(t);
+                selectRow(t, table.id, row, true, true);
+                break;
+            }
+        }
+    });
+
+    // Keyboard navigation
+    cardEl.setAttribute('tabindex', '0');
+    cardEl.style.outline = 'none';
+    cardEl.addEventListener('keydown', function(e) {
+        var key = e.keyCode || e.which;
+        // Up=38, Down=40, Left=37, Right=39
+        if (key < 37 || key > 40) return;
+        e.preventDefault();
+
+        var config = tableConfigs[activePanelIndex];
+        var tableId = config.tableId;
+        var dt = django_datatables.DataTables[tableId];
+        if (!dt) return;
+
+        if (key === 38 || key === 40) {
+            // Up / Down - move selection within current table
+            var rows = document.querySelectorAll('#' + tableId + ' tbody tr');
+            if (rows.length === 0) return;
+
+            var selectedRow = document.querySelector('#' + tableId + ' tbody tr.linked-datatable-row-selected');
+            var currentIdx = -1;
+            if (selectedRow) {
+                for (var r = 0; r < rows.length; r++) {
+                    if (rows[r] === selectedRow) { currentIdx = r; break; }
+                }
+            }
+            var newIdx;
+
+            if (key === 38) {
+                newIdx = currentIdx > 0 ? currentIdx - 1 : 0;
+            } else {
+                newIdx = currentIdx < rows.length - 1 ? currentIdx + 1 : rows.length - 1;
+            }
+
+            if (newIdx !== currentIdx) {
+                selectRow(activePanelIndex, tableId, rows[newIdx], false);
+                rows[newIdx].scrollIntoView({block: 'nearest'});
+            }
+        } else if (key === 39) {
+            // Right - move focus to next panel
+            if (activePanelIndex < tableConfigs.length - 1) {
+                setActivePanel(activePanelIndex + 1);
+            }
+        } else if (key === 37) {
+            // Left - move focus to previous panel
+            if (activePanelIndex > 0) {
+                setActivePanel(activePanelIndex - 1);
+            }
+        }
+    });
+
+    // Auto-select first row of the first table once data loads.
+    // DataTables still needs jQuery elsewhere, but we poll the django_datatables
+    // registry so this card script itself does not call $.
+    if (autoSelect && tableConfigs.length > 0) {
+        var firstTableId = tableConfigs[0].tableId;
+        var tries = 0;
+        // Cancel the poll left running by a previous render of this card, or it would
+        // auto-select the new table as well and load the downstream one twice.
+        var pollKey = '_cardsLinkedPoll_' + cardId;
+        if (window[pollKey]) clearInterval(window[pollKey]);
+        var timer = setInterval(function() {
+            var dt = django_datatables.DataTables[firstTableId];
+            tries += 1;
+            if (dt && dt.table.api().rows().count() > 0) {
+                clearInterval(timer);
+                var firstRow = document.querySelector('#' + firstTableId + ' tbody tr');
+                if (firstRow) {
+                    selectRow(0, firstTableId, firstRow, false);
+                    setActivePanel(0);
+                    cardEl.focus();
+                }
+            } else if (tries > 100) {
+                clearInterval(timer);
+            }
+        }, 50);
+        window[pollKey] = timer;
+    }
+});
+</script>
+{% include 'cards/standard/_reload_script.html' %}
