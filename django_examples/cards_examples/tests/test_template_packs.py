@@ -524,3 +524,35 @@ class TestLightboxCloseButton(SimpleTestCase):
                  if 'django-card__modal-close' in _read(pack, name)]
         self.assertEqual(found, [], 'The invented class the dual spelling needed is back:\n'
                          + '\n'.join(found))
+
+
+class TestAccordionRaisesBootstrapCollapseEvents(SimpleTestCase):
+    """The accordion drives itself now, but pages still hang work off Bootstrap's events.
+
+    Up to 1.5 the panels toggled through Bootstrap's collapse plugin, so a page could load a
+    panel's content from ``$('#x_collapse').on('show.bs.collapse', ...)``, or cancel a
+    ``hide.bs.collapse`` to keep a panel open. 1.6.0 moved the accordion to its own click handler
+    and those events stopped, silently: nothing on the page errors, the panels just never load.
+    The script has to raise all four itself, through jQuery for ``.on()`` listeners (which a
+    native event of that name never reaches) and natively for ``addEventListener`` ones.
+    """
+
+    def test_every_collapse_event_is_raised(self):
+        for pack in PACKS:
+            script = _read(pack, 'standard/accordion.html')
+            for name in ('show', 'shown', 'hide', 'hidden'):
+                self.assertRegex(script, rf"emit\(collapseEl, [^)]*'{name}'",
+                                 f'{pack} accordion never raises {name}.bs.collapse')
+
+    def test_both_jquery_and_native_listeners_are_reached(self):
+        for pack in PACKS:
+            script = _read(pack, 'standard/accordion.html')
+            self.assertIn("name + '.bs.collapse'", script)
+            self.assertIn('window.jQuery(collapseEl).trigger(', script, pack)
+            self.assertIn('collapseEl.dispatchEvent(', script, pack)
+
+    def test_a_cancelled_show_or_hide_is_honoured(self):
+        for pack in PACKS:
+            script = _read(pack, 'standard/accordion.html')
+            self.assertIn("if (emit(collapseEl, expanded ? 'show' : 'hide')) return false;", script, pack)
+            self.assertIn('if (!setExpanded(collapseEl, true)) return;', script, pack)

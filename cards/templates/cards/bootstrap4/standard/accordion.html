@@ -130,7 +130,29 @@
         collapseEl.style.height = '';
     }
 
+    // The accordion drives itself rather than through Bootstrap's collapse plugin, but pages
+    // written against 1.5 listen for the plugin's events -- `show.bs.collapse` to load a
+    // panel's content, preventDefault on `hide.bs.collapse` to keep one open. Raise the same
+    // four events on the panel's .collapse element, cancellable as Bootstrap's are. Both
+    // dispatches are needed, as in Bootstrap 5's own EventHandler.trigger: jQuery binds
+    // `.on('show.bs.collapse')` as a namespaced `show` event, which a native event named
+    // 'show.bs.collapse' never reaches, and native listeners never see jQuery's.
+    function emit(collapseEl, name) {
+        var type = name + '.bs.collapse';
+        var prevented = false;
+        if (window.jQuery) {
+            var jqEvent = window.jQuery.Event(type);
+            window.jQuery(collapseEl).trigger(jqEvent);
+            prevented = jqEvent.isDefaultPrevented();
+        }
+        var evt = new CustomEvent(type, {bubbles: true, cancelable: true});
+        collapseEl.dispatchEvent(evt);
+        return prevented || evt.defaultPrevented;
+    }
+
+    // Returns false when a show/hide listener cancelled the change.
     function setExpanded(collapseEl, expanded) {
+        if (emit(collapseEl, expanded ? 'show' : 'hide')) return false;
         var btn = accordion.querySelector('[data-cards-collapse-target="#' + collapseEl.id + '"]');
         var wrap = closestPanelWrap(collapseEl);
 
@@ -153,8 +175,13 @@
             if (fullHeight && wrap) wrap.classList.remove('panel-expanded');
         }
 
-        if (!slide) return;
+        if (!slide) {
+            emit(collapseEl, expanded ? 'shown' : 'hidden');
+            return true;
+        }
 
+        // A click mid-slide cancels this timer, and with it the pending shown/hidden: the
+        // panel never finished getting there, and the reversal raises its own.
         endSlide(collapseEl);
         // cards-collapsing first, and only then measure. Its display:block is what makes
         // the panel measurable on the way *out*: `.show` has already gone by this point,
@@ -172,7 +199,9 @@
             collapseEl.cardsSlideTimer = null;
             collapseEl.classList.remove('cards-collapsing');
             collapseEl.style.height = '';
+            emit(collapseEl, expanded ? 'shown' : 'hidden');
         }, SLIDE_MS);
+        return true;
     }
 
     // Only this accordion's own panel bodies -- a direct .collapse child of a
@@ -228,13 +257,15 @@
             return;
         }
 
+        // Bootstrap asks the opening panel first and closes the others only once it may; a
+        // panel whose hide is cancelled stays open alongside it.
+        if (!setExpanded(collapseEl, true)) return;
         if (!multiOpen) {
             var own = ownCollapses();
             for (var i = 0; i < own.length; i++) {
-                if (own[i].classList.contains('show')) setExpanded(own[i], false);
+                if (own[i] !== collapseEl && own[i].classList.contains('show')) setExpanded(own[i], false);
             }
         }
-        setExpanded(collapseEl, true);
         loadAjaxPanel(collapseEl.id.replace(/_collapse$/, ''));
     });
 
