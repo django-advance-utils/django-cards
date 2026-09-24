@@ -114,8 +114,8 @@ want them back.
 **jQuery is required, and under Bootstrap 5 the order matters.** ajax-helpers already loads
 it, so this is normally free -- but Bootstrap 5 dropped jQuery as a dependency and only
 registers its jQuery plugin interface if jQuery is already on the page when it loads. Several
-cards go through that interface: tooltips and popovers, the image gallery's lightbox, and the
-accordion's expand/collapse handlers. Load jQuery before `bootstrap.bundle.js`.
+cards go through that interface: tooltips and popovers, and the image gallery's lightbox.
+Load jQuery before `bootstrap.bundle.js`.
 
 **The rest of the stack is not all there yet.** django-menus has the same mechanism, under
 its own `DJANGO_MENUS_TEMPLATE_PACK` -- set both to the same version. django-modals,
@@ -1268,6 +1268,21 @@ self.add_accordion_card(
 ```
 
 AJAX-loaded panels show a spinner placeholder until the content is fetched. Content is only loaded once — subsequent expand/collapse toggles use the cached content.
+
+### Events
+
+The accordion toggles its panels itself rather than through Bootstrap's collapse plugin, but it
+raises the plugin's events on each panel's `#<panel id>_collapse` element, so page code written
+against Bootstrap still works: `show.bs.collapse` and `hide.bs.collapse` before a panel moves,
+`shown.bs.collapse` and `hidden.bs.collapse` once it has. They bubble, and reach both jQuery
+`.on()` and native `addEventListener` listeners. Calling `preventDefault()` on `show` or `hide`
+cancels the change:
+
+```javascript
+$('#my_accordion_accordion').on('show.bs.collapse', function(e) {
+    // e.target is the panel's .collapse element
+});
+```
 
 ### Full Height
 
