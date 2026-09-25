@@ -204,6 +204,40 @@ from cards.base import (CARD_TYPE_STANDARD, CARD_TYPE_DATATABLE, CARD_TYPE_HTML,
 
 ---
 
+## Values are text: escaping
+
+A row's value and label are escaped when the card is drawn, the way `{{ }}` escapes a
+template variable, unless they are marked safe. That covers a `value` passed in, a field read
+off `details_object` (`add_rows('name')`), each line of a list value, the `default` shown
+for an empty value and the entry name of a `CardList`, so stored text reaches the page as
+text whoever typed it:
+
+```python
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+card.add_rows('name')                                    # escaped
+card.add_entry(label='Swatch', value=format_html(       # markup, with the colour escaped in it
+    '<i class="fa fa-square" style="color: #{}"></i>', colour.hex_code))
+card.add_entry(label=mark_safe('Width &times; Height'), value=size)
+```
+
+Markup has to be marked safe where it is made -- `mark_safe` on a literal, `format_html`
+around data, a rendered template or menu, an html_classes element. Joining safe strings with
+an f-string, `+` or `%` gives back a plain `str`, which is then escaped; build the join with
+`format_html` instead.
+
+Some parameters *are* markup, and are used as they are: `html_override`, a row style's html,
+`merge_string` and the many-to-many `html_barge`. What the card puts into them -- the value
+for `%1%`, a row style's `{placeholders}` (and anything looked up on them, `{value[v1]}`), each
+badge's text, each merged part -- is escaped the same way. Keep data out of the markup itself:
+put it in the value or a placeholder rather than writing it into the string.
+`add_html_entry`, `add_html_string_entry` and HTML cards take markup, as before.
+
+**Upgrading to 1.7.** Up to 1.6 every value and label was printed with `|safe`. A value that
+was markup in a plain `str` -- an icon, a `&thinsp;` in a price, a `<sup>` in a label -- now
+shows its tags; mark it safe where it is made.
+
 ## Entry Parameters Reference
 
 The `add_entry()` method accepts 30+ parameters to control how each row is displayed.
@@ -343,7 +377,7 @@ card.add_entry(value=1500, label='Revenue', old_value=1200, number_format=True, 
 | `separator` | bool | `False` | Render an `<hr>` separator before this entry |
 | `entry_css_class` | str | `None` | CSS class for the value element |
 | `css_class` | str | `None` | CSS class for the row container |
-| `html_override` | str | `None` | Custom HTML — use `%1%` as value placeholder |
+| `html_override` | str | `None` | Custom HTML — use `%1%` as value placeholder. The HTML is used as it is; the value is escaped unless marked safe |
 | `value_method` | callable | `None` | Transform the value before rendering |
 | `value_type` | str | `None` | Rendering hint (`'currency'`, `'boolean'`, `'m2m'`, etc.) |
 
@@ -354,7 +388,7 @@ These can be passed via `**kwargs`:
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `merge` | bool | — | Join list values into a single string |
-| `merge_string` | str | `' '` | Separator when merging list values |
+| `merge_string` | str | `' '` | Separator when merging list values. Markup; the parts are escaped unless marked safe |
 | `m2m_field` | str | — | Attribute name on M2M related objects to display |
 | `query_filter` | dict | — | Filter for M2M querysets |
 
@@ -619,6 +653,10 @@ card.add_row_style('header_style', html=HtmlDiv([
 
 card.add_entry(value='Custom layout', label='Title', row_style='header_style')
 ```
+
+The style is markup and is used as it is; whatever fills `{label}`, `{value}` and any other
+placeholder is escaped unless it is marked safe. Put data in a placeholder, never into the
+style's own string.
 
 Set a default style for all subsequent entries:
 

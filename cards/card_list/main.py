@@ -1,8 +1,7 @@
 from ajax_helpers.mixins import AjaxHelpers
-from django.utils.safestring import mark_safe
 from django_menus.menu import MenuMixin
 
-from cards.base import CARD_TYPE_HTML
+from cards.base import CARD_TYPE_HTML, escape_value
 from cards.card_list.base import CardListBaseMixin
 from cards.standard import CardMixin
 
@@ -165,11 +164,16 @@ class CardListMixin(CardListBaseMixin):
 
         Args:
             pk (int or str): The primary key or unique ID for the entry.
-            name (str): The display name of the entry. Will be marked safe for HTML.
+            name (str): The display name of the entry. Escaped unless it is marked safe, so a name
+                that is markup -- a swatch, a badge -- has to be marked safe where it is made.
             colour (str, optional): Optional badge or label colour to display alongside the entry.
             row_class (str, optional): Optional CSS class for styling the row.
         """
-        self.list_entries.append({'pk': pk, 'name': mark_safe(name),
+        if callable(name):
+            # A method handed over uncalled used to work: mark_safe wraps a callable, and the
+            # template called it. Escaping would print the method's repr, so it is called here.
+            name = name()
+        self.list_entries.append({'pk': pk, 'name': escape_value(name),
                                   'colour': colour, 'class': row_class if row_class else ''})
 
     def get_list_entry_name(self, entry_object):

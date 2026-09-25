@@ -1,7 +1,8 @@
+import _string
 import datetime
 import json
 import re
-from collections import defaultdict
+import string
 from dataclasses import dataclass, field
 
 from ajax_helpers.html_include import pip_version
@@ -9,6 +10,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
@@ -35,6 +37,64 @@ def json_for_script(value):
             .replace('<', '\\u003c')
             .replace('>', '\\u003e')
             .replace('&', '\\u0026'))
+
+
+def escape_value(value):
+    """`value` as ``{{ value }}`` prints it: escaped, unless it is marked safe.
+
+    A row's value and label are text unless they say otherwise. Markup handed to a card has
+    to be marked safe where it is made -- ``mark_safe``, ``format_html``, a rendered template
+    or menu -- and everything else is escaped, both where the templates print a row and
+    where the card builds markup around a value itself (``html_override``, a row style, the
+    many-to-many badges, a merged row). Anything that is not a string is ``str()``'d first,
+    as the template engine does, so an object whose ``__str__`` returns safe markup (an
+    html_classes element) is still markup.
+    """
+    if not isinstance(value, str):
+        value = str(value)
+    return conditional_escape(value)
+
+
+class _RowStyleFormatter(string.Formatter):
+    """Fills a row style's placeholders, each one as ``{{ }}`` would print it.
+
+    A row style is the caller's markup with ``{value}``, ``{label}`` and the like in it. The
+    markup is trusted; what fills it is escaped unless it is marked safe, and so is anything
+    looked up on it -- ``{value[v1]}`` on a dict value, ``{value.name}`` on an object. A
+    placeholder nothing fills reads as empty.
+
+    An attribute whose name starts with an underscore is never looked up, and reads as empty
+    too. The style is a format string, so text written into it -- rather than put in a
+    placeholder -- is handed the format mini-language, and ``{label.__init__.__globals__}``
+    walks from a value to module globals and on to settings.
+    """
+
+    def get_value(self, key, args, kwargs):
+        return kwargs.get(key, '')
+
+    def get_field(self, field_name, args, kwargs):
+        first, rest = _string.formatter_field_name_split(field_name)
+        obj = self.get_value(first, args, kwargs)
+        for is_attribute, key in rest:
+            if is_attribute:
+                if key.startswith('_'):
+                    return '', first
+                obj = getattr(obj, key)
+            else:
+                obj = obj[key]
+        return obj, first
+
+    def format_field(self, value, format_spec):
+        if not format_spec:
+            return escape_value(value)
+        # A spec pads or cuts, so it goes on the text before that is escaped -- after, it
+        # could cut an entity in half -- and on markup as it stands.
+        text = value if isinstance(value, str) else str(value)
+        formatted = format(text, format_spec)
+        return mark_safe(formatted) if hasattr(text, '__html__') else escape_value(formatted)
+
+
+_row_style_formatter = _RowStyleFormatter()
 
 
 class ScrollableTabMenu:
@@ -675,7 +735,7 @@ class CardBase:
             card.add_entry(label='Confirmed', value=False, value_type='boolean')
             """
         if value:
-            entry = self._add_entry_internal(value='<i class="fas fa-check" style="color:green;"></i>',
+            entry = self._add_entry_internal(value=mark_safe('<i class="fas fa-check" style="color:green;"></i>'),
                                              label=label,
                                              hidden=hidden,
                                              html_override=html_override,
@@ -687,7 +747,7 @@ class CardBase:
                                              row_style=row_style,
                                              **kwargs)
         else:
-            entry = self._add_entry_internal(value='<i class="fas fa-times" style="color:red;"></i>',
+            entry = self._add_entry_internal(value=mark_safe('<i class="fas fa-times" style="color:red;"></i>'),
                                              label=label,
                                              hidden=hidden,
                                              html_override=html_override,
@@ -815,10 +875,17 @@ class CardBase:
         Entries can be simple strings, resolved fields from an object, or complex structures using a named
         `row_style` with HTML elements for fine-grained layout.
 
+        A value and a label are text: they are escaped when the row is drawn, whether they were
+        passed in or read off `details_object`, unless they are marked safe (``mark_safe``,
+        ``format_html``, a rendered template). Markup meant to show as markup has to be marked
+        safe where it is made. `html_override`, a row style and `merge_string` are markup, and
+        the value put into them is escaped the same way.
+
         Args:
             value (any, optional): The value to display. Can be a string, number, dict (for `row_style`), or None.
+                Escaped unless it is marked safe, and so is a value read from `field`.
             field (str, optional): Field name to auto-fetch value from `details_object` if `value` is not provided.
-            label (str, optional): Label to display alongside the value.
+            label (str, optional): Label to display alongside the value. Escaped unless it is marked safe.
             entry_css_class (str, optional): CSS class for the value span/div.
             css_class (str, optional): CSS class for the value heading (standard template).
             row_css_class (str, optional): CSS class for the row itself. In the table template
@@ -829,7 +896,8 @@ class CardBase:
             hidden (bool, optional): If True, the entry is not shown.
             hidden_if_blank_or_none (bool, optional): If True, hides the entry if the value is blank or None.
             hidden_if_zero (bool, optional): If True, hides the entry if the value is 0.
-            html_override (str or HtmlElement, optional): Custom HTML content that overrides the entire value cell.
+            html_override (str, optional): Markup drawn in place of the value, with `%1%` standing for the
+                value. The markup is used as it is; the value put into it is escaped unless it is marked safe.
             value_method (str or callable, optional): A method or method name to compute the value dynamically.
             value_type (str, optional): Optional rendering hint (e.g., 'currency', 'boolean', etc.).
             default_if (callable, optional): A function to conditionally apply the default.
@@ -943,6 +1011,10 @@ class CardBase:
 
         A row style allows you to fully control the HTML layout of an entry by using placeholders such as
         `{label}`, `{value}`, or custom keys (e.g., `{test}`, `{value[v1]}`) that can be substituted at render time.
+
+        The style is markup and is used as it is, so it must not have data written into it: put the data in a
+        placeholder instead. What fills a placeholder is escaped unless it is marked safe, and so is anything
+        looked up on it (`{value[v1]}`).
 
         Args:
             name (str): The name of the style, used to reference this layout in `add_entry(row_style=...)`.
@@ -1071,7 +1143,9 @@ class CardBase:
             m2m_field (str, optional): Name of an attribute or method on each related object to display. If not set,
                                        the related object is stringified.
             html_barge (str, optional): HTML snippet for wrapping each item (default is a Bootstrap badge).
-                                        Use `%1%` as a placeholder for the rendered value.
+                                        Use `%1%` as a placeholder for the rendered value. The
+                                        snippet is markup; the value put in it is escaped unless
+                                        it is marked safe.
             default (str, optional): Fallback text if the relation is empty. Defaults to `'N/A'`.
             html_override (str, optional): Full HTML override for the entire value cell.
             entry_css_class (str, optional): CSS class for the value cell.
@@ -1108,13 +1182,14 @@ class CardBase:
         for result in results:
             if m2m_field is None:
                 value = result
-                html += html_barge.replace('%1%', str(value))
+                html += html_barge.replace('%1%', escape_value(value))
             else:
                 if hasattr(result, m2m_field):
                     value = getattr(result, m2m_field)
                     if callable(value):
                         value = value()
-                    html += html_barge.replace('%1%', str(value))
+                    html += html_barge.replace('%1%', escape_value(value))
+        html = mark_safe(html)
 
         return self._add_entry_internal(label=label,
                                         value=html,
@@ -1162,6 +1237,7 @@ class CardBase:
             hidden_if_blank_or_none (bool, optional): If True, hides the entry when value is None or empty.
             hidden_if_zero (bool, optional): If True, hides the entry when value is 0.
             html_override (str, optional): Template HTML to use instead of the value. Use `%1%` as placeholder.
+                The value put in it is escaped unless it is marked safe.
             value_method (callable, optional): Function to transform the value before rendering.
             value_type (str, optional): Optional rendering hint (e.g., 'boolean', 'currency', 'm2m').
             entry_css_class (str, optional): CSS class for the value cell.
@@ -1275,14 +1351,15 @@ class CardBase:
                             f'width="{bar_w * 0.8}" height="{(v - min_v) / rng * h}" fill="currentColor"/>'
                             for i, v in enumerate(nums)
                         )
-                        value = f'<svg width="{w}" height="{h}" style="vertical-align:middle">{bars}</svg>'
+                        value = mark_safe(f'<svg width="{w}" height="{h}" style="vertical-align:middle">{bars}</svg>')
                     else:
                         points = ' '.join(
                             f'{i * w / (len(nums) - 1)},{h - (v - min_v) / rng * h}'
                             for i, v in enumerate(nums)
                         )
-                        value = (f'<svg width="{w}" height="{h}" style="vertical-align:middle">'
-                                 f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>')
+                        value = mark_safe(
+                            f'<svg width="{w}" height="{h}" style="vertical-align:middle">'
+                            f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>')
 
             multiple_parts = isinstance(value, (list, tuple))
 
@@ -1301,16 +1378,18 @@ class CardBase:
                                                           is_default, **kwargs) for v in value]
                 else:
                     value = self.get_value_from_type(value, value_type, field_type, is_default, **kwargs)
+            # html_override and merge_string are the caller's markup, and the value put into
+            # them is escaped unless it is marked safe -- the result is markup either way.
             if html_override is not None:
                 if multiple_parts:
-                    value = [html_override.replace('%1%', str(v)) for v in value]
+                    value = [mark_safe(html_override.replace('%1%', escape_value(v))) for v in value]
                 else:
-                    value = html_override.replace('%1%', str(value))
+                    value = mark_safe(html_override.replace('%1%', escape_value(value)))
 
             if multiple_parts and kwargs.get('merge', False):
                 merge_string = kwargs.get('merge_string', ' ')
                 multiple_parts = False
-                value = merge_string.join(['' if x is None else str(x) for x in value])
+                value = mark_safe(merge_string.join(['' if x is None else escape_value(x) for x in value]))
 
             if menu is not None and isinstance(menu, (list, tuple)):
                 menu = HtmlMenu(self.request, self.button_menu_type).add_items(*menu)
@@ -1328,7 +1407,9 @@ class CardBase:
                               **kwargs}
                 if menu is not None:
                     value_dict['menu'] = menu.render()
-                row_style_html = html_row_style.format_map(defaultdict(lambda: '', value_dict))
+                # The style is the caller's markup; what fills it is escaped unless it is
+                # marked safe, as {{ }} would print it. See _RowStyleFormatter.
+                row_style_html = mark_safe(_row_style_formatter.vformat(html_row_style, (), value_dict))
 
             if css_class_method is not None:
                 css_class = css_class_method(value)
@@ -1345,8 +1426,11 @@ class CardBase:
                 value = value[:truncate] + '\u2026'
 
             if auto_link and isinstance(value, str):
+                # Escaped first, so that the only markup in the result is the links.
+                value = escape_value(value)
                 value = re.sub(r'(https?://\S+)', r'<a href="\1" target="_blank">\1</a>', value)
                 value = re.sub(r'(?<!["\'/=])(\b[\w.+-]+@[\w-]+\.[\w.-]+\b)', r'<a href="mailto:\1">\1</a>', value)
+                value = mark_safe(value)
 
             if badge is True:
                 # The colour half of `class="badge ..."`, which the pack spells its own way:
