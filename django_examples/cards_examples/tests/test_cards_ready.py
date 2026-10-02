@@ -102,3 +102,16 @@ class TestCardsReady(TestCase):
         view = _PlainView()
         view.request = RequestFactory().get('/')
         self.assertIn('Plain', view.get_context_data()['card_groups']['main'])
+
+    def test_a_handler_of_your_own_gets_it_from_build_cards(self):
+        self.view.build_cards()
+        self.assertEqual(self.view.calls, ['setup_datatable_cards', 'setup_cards', 'cards_ready'])
+        self.assertEqual(self.view.cards['late'].title, 'Ready')
+
+    def test_rebuild_cards_starts_from_nothing_and_runs_it_again(self):
+        self.view.build_cards()
+        self.view.cards['stale'] = self.view.cards['late']
+        self.view.rebuild_cards()
+        self.assertNotIn('stale', self.view.cards)
+        self.assertEqual(self.view.calls, ['setup_datatable_cards', 'setup_cards', 'cards_ready'] * 2)
+        self.assertEqual(self.view.cards['late'].title, 'Ready')

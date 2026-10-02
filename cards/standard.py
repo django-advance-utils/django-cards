@@ -428,9 +428,7 @@ class CardMixin:
         Returns:
             dict: Context dictionary containing rendered cards and grouped card blocks.
         """
-        self.setup_datatable_cards()
-        self.setup_cards()
-        self.cards_ready()
+        self.build_cards()
         super_context = getattr(super(), 'get_context_data')
         if super_context and callable(super_context):
             context = super_context(**kwargs)
@@ -483,14 +481,45 @@ class CardMixin:
         Hook method called once every card exists, before any of them is rendered.
 
         Runs after `setup_datatable_cards()` and `setup_cards()` have returned -- each one's
-        whole chain, every subclass override included -- wherever the view builds all its cards
-        to render them: `get_context_data()`, `button_reload_card()` and
-        `button_accordion_load()`. Override it to adjust cards as a whole, such as a card a
-        subclass builds only after its own `super().setup_cards()` call returns, which a
-        `setup_cards()` override further up the chain never sees. Does nothing by default.
+        whole chain, every subclass override included -- from `build_cards()`, which is how
+        every path that builds all the view's cards to render them builds them:
+        `get_context_data()`, `button_reload_card()` and `button_accordion_load()`. Override it
+        to adjust cards as a whole, such as a card a subclass builds only after its own
+        `super().setup_cards()` call returns, which a `setup_cards()` override further up the
+        chain never sees. Does nothing by default.
+
+        It is not run by the paths that build only some of the cards, since there is no "every
+        card" for it to see there: the datatable Ajax handlers (data, sort and row edit) run
+        `setup_datatable_cards()` alone, and `CardList`'s detail handlers build only the detail
+        cards. Configure a datatable's table in `setup_datatable_cards()` or `setup_table_<id>()`,
+        and a detail card where it is built, so the rendered card and its Ajax data agree.
         """
         if hasattr(super(), 'cards_ready'):
             super().cards_ready()
+
+    def build_cards(self):
+        """
+        Build every card the view has, then call `cards_ready()`.
+
+        The one place the setup chain is spelled out, so that every path building all the cards
+        to render them runs the hook. Call this, rather than the three steps, from any handler
+        that builds the cards itself; `rebuild_cards()` first throws away the ones built so far.
+        """
+        self.setup_datatable_cards()
+        self.setup_cards()
+        self.cards_ready()
+
+    def rebuild_cards(self):
+        """
+        Throw away the cards, card groups and tables built so far and build them all again.
+
+        What an Ajax handler does to render one card on a view whose cards were not built for
+        this request, or were built from state that has since changed.
+        """
+        self.cards = {}
+        self.card_groups = {}
+        self.tables = {}
+        self.build_cards()
 
     def add_html_card(self, context_template_name, context=None, is_empty=False, **kwargs):
         """
@@ -1136,12 +1165,7 @@ class CardMixin:
         card_code = kwargs.get('card')
         if not hasattr(self, 'object') and hasattr(self, 'get_object'):
             self.object = self.get_object()
-        self.cards = {}
-        self.card_groups = {}
-        self.tables = {}
-        self.setup_datatable_cards()
-        self.setup_cards()
-        self.cards_ready()
+        self.rebuild_cards()
         card = self.cards.get(card_code)
         if card is not None:
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
@@ -1153,12 +1177,7 @@ class CardMixin:
         panel_id = kwargs.get('panel_id')
         if not hasattr(self, 'object') and hasattr(self, 'get_object'):
             self.object = self.get_object()
-        self.cards = {}
-        self.card_groups = {}
-        self.tables = {}
-        self.setup_datatable_cards()
-        self.setup_cards()
-        self.cards_ready()
+        self.rebuild_cards()
         accordion = self.cards.get(accordion_code)
         if accordion is not None:
             for panel in accordion.extra_card_info.get('initialized_panels', []):
