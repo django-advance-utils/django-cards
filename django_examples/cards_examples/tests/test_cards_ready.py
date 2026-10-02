@@ -1,0 +1,86 @@
+"""The cards_ready() hook: once every card exists, before any of them is rendered.
+
+A subclass that builds a card after its own super().setup_cards() call returns leaves a
+setup_cards() override further up the chain no way to reach that card. cards_ready() runs once
+the whole chain has returned, wherever the view builds all its cards to render them.
+"""
+import json
+
+from ajax_helpers.mixins import AjaxHelpers
+from django.test import RequestFactory, TestCase
+from django.views.generic import TemplateView
+
+from cards.standard import CardMixin
+
+
+class _RetitleOnceReady(CardMixin):
+    """What a base view uses the hook for: reaching a card that a subclass builds late."""
+
+    def cards_ready(self):
+        super().cards_ready()
+        card = self.cards.get('late')
+        if card is not None:
+            card.title = 'Ready'
+
+
+class _LateCardView(_RetitleOnceReady, AjaxHelpers, TemplateView):
+    def __init__(self, *args, **kwargs):
+        self.calls = []
+        super().__init__(*args, **kwargs)
+
+    def setup_datatable_cards(self):
+        self.calls.append('setup_datatable_cards')
+        super().setup_datatable_cards()
+
+    def setup_cards(self):
+        # The base's setup_cards runs here, before the card below exists.
+        super().setup_cards()
+        self.add_card('late', title='Built late')
+        self.add_card_group('late', div_css_class='col-12')
+        self.calls.append('setup_cards')
+
+    def cards_ready(self):
+        self.calls.append('cards_ready')
+        super().cards_ready()
+
+    def render_card_groups(self, card_groups):
+        self.calls.append('render_card_groups')
+        return super().render_card_groups(card_groups)
+
+
+class _PlainView(CardMixin, TemplateView):
+    def setup_cards(self):
+        self.add_card('plain', title='Plain')
+        self.add_card_group('plain', div_css_class='col-12')
+
+
+class TestCardsReady(TestCase):
+    def setUp(self):
+        self.view = _LateCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def test_a_card_built_after_the_setup_chain_is_reached_before_it_renders(self):
+        html = self.view.get_context_data()['card_groups']['main']
+        self.assertIn('Ready', html)
+        self.assertNotIn('Built late', html)
+
+    def test_it_runs_after_every_setup_and_before_anything_renders(self):
+        self.view.get_context_data()
+        self.assertEqual(
+            self.view.calls, ['setup_datatable_cards', 'setup_cards', 'cards_ready', 'render_card_groups']
+        )
+
+    def test_a_card_reload_runs_it_too(self):
+        response = self.view.button_reload_card(card='late')
+        html = next(command['html'] for command in json.loads(response.content) if command.get('html'))
+        self.assertIn('Ready', html)
+        self.assertNotIn('Built late', html)
+
+    def test_an_accordion_load_runs_it_too(self):
+        self.view.button_accordion_load(accordion='none', panel_id='none')
+        self.assertEqual(self.view.calls, ['setup_datatable_cards', 'setup_cards', 'cards_ready'])
+
+    def test_by_default_it_changes_nothing(self):
+        view = _PlainView()
+        view.request = RequestFactory().get('/')
+        self.assertIn('Plain', view.get_context_data()['card_groups']['main'])

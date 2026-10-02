@@ -57,7 +57,8 @@ class CardMixin:
 
     Expected Usage:
     ---------------
-    Views using this mixin typically implement `setup_cards()` and optionally `setup_datatable_cards()` to declare cards.
+    Views using this mixin typically implement `setup_cards()` and optionally `setup_datatable_cards()` to declare cards,
+    and `cards_ready()` to adjust them once they all exist, before any is rendered.
     Cards can then be rendered into templates via `get_context_data()` or returned via AJAX responses.
 
     Example:
@@ -429,6 +430,7 @@ class CardMixin:
         """
         self.setup_datatable_cards()
         self.setup_cards()
+        self.cards_ready()
         super_context = getattr(super(), 'get_context_data')
         if super_context and callable(super_context):
             context = super_context(**kwargs)
@@ -475,6 +477,20 @@ class CardMixin:
         """
         if hasattr(super(), 'setup_datatable_cards'):
             super().setup_datatable_cards()
+
+    def cards_ready(self):
+        """
+        Hook method called once every card exists, before any of them is rendered.
+
+        Runs after `setup_datatable_cards()` and `setup_cards()` have returned -- each one's
+        whole chain, every subclass override included -- wherever the view builds all its cards
+        to render them: `get_context_data()`, `button_reload_card()` and
+        `button_accordion_load()`. Override it to adjust cards as a whole, such as a card a
+        subclass builds only after its own `super().setup_cards()` call returns, which a
+        `setup_cards()` override further up the chain never sees. Does nothing by default.
+        """
+        if hasattr(super(), 'cards_ready'):
+            super().cards_ready()
 
     def add_html_card(self, context_template_name, context=None, is_empty=False, **kwargs):
         """
@@ -1125,6 +1141,7 @@ class CardMixin:
         self.tables = {}
         self.setup_datatable_cards()
         self.setup_cards()
+        self.cards_ready()
         card = self.cards.get(card_code)
         if card is not None:
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
@@ -1141,6 +1158,7 @@ class CardMixin:
         self.tables = {}
         self.setup_datatable_cards()
         self.setup_cards()
+        self.cards_ready()
         accordion = self.cards.get(accordion_code)
         if accordion is not None:
             for panel in accordion.extra_card_info.get('initialized_panels', []):

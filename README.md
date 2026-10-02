@@ -599,6 +599,30 @@ card.add_child_card_group(child1, div_css_class='col-6 float-left')
 card.add_child_card_group(child2, div_css_class='col-6 float-left')
 ```
 
+### Once every card exists: `cards_ready()`
+
+`setup_datatable_cards()` and `setup_cards()` build the cards. `cards_ready()` runs once both have
+returned, before anything is rendered, so a base view can adjust a card that a subclass builds after
+its own `super().setup_cards()` call returns. It runs wherever a view builds all its cards to render
+them: `get_context_data()`, `button_reload_card()` and `button_accordion_load()`. By default it does
+nothing.
+
+```python
+class BaseView(CardMixin, TemplateView):
+    def cards_ready(self):
+        super().cards_ready()
+        card = self.cards.get('summary')
+        if card is not None:
+            card.show_header = False
+
+
+class SummaryView(BaseView):
+    def setup_cards(self):
+        super().setup_cards()  # a BaseView.setup_cards would run here, before the card exists
+        self.add_card('summary', title='Summary')
+        self.add_card_group('summary', div_css_class='col-12')
+```
+
 ---
 
 ## Multi-Entry Rows
