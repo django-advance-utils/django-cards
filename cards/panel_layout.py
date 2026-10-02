@@ -1,6 +1,7 @@
 from ajax_helpers.utils import random_string
 from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
+from django.utils.functional import lazy
+from django.utils.safestring import SafeString, mark_safe
 
 
 class DeferredLayoutHtml:
@@ -12,22 +13,25 @@ class DeferredLayoutHtml:
     instead, and rendering when the layout card's template reads `extra_card_info.html`, puts the
     region cards' render where every other card's is: after the whole setup chain.
 
-    Django treats an object with `__html__` as already safe, with or without the `|safe` filter,
-    and `str()` gives the same markup, so code reading the card's html gets a string either way.
-    The render happens once; a second read returns the same markup.
+    The render happens once; a second read returns the same markup. The card does not hold this
+    object itself but `lazy_layout_html(DeferredLayoutHtml(layout))`, a `SafeString` promise.
     """
 
     def __init__(self, layout):
         self.layout = layout
         self.rendered = None
 
-    def __html__(self):
+    def render(self):
         if self.rendered is None:
             self.rendered = self.layout._render_html()
         return self.rendered
 
-    def __str__(self):
-        return self.__html__()
+
+#: Wraps a `DeferredLayoutHtml` as a `SafeString` promise, the kind a lazy translation string is.
+#: It renders when read, and reads as a string: `str()`, `+`, `len()`, `in`, `==`, the `|safe`
+#: filter and `__html__`, and `JsonResponse` (so `command_response`) through `DjangoJSONEncoder`.
+#: What it is not is an instance of `str`: plain `json.dumps` needs `str()` first.
+lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
 
 
 class PanelTab:
@@ -569,6 +573,6 @@ class PanelLayout:
         return self.view.add_card(
             card_name=self.card_name,
             group_type=CARD_TYPE_PANEL_LAYOUT,
-            html=DeferredLayoutHtml(self),
+            html=lazy_layout_html(DeferredLayoutHtml(self)),
             show_header=False,
         )

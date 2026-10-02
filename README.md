@@ -609,7 +609,10 @@ that builds all the view's cards to render them builds them: `get_context_data()
 should call `build_cards()` too, or `rebuild_cards()` to throw away the ones built so far first,
 rather than the setup methods directly. By default the hook does nothing. A panel layout renders its
 regions' cards when the layout's card is rendered, not when `layout.render()` is called, so the hook
-reaches those cards too.
+reaches those cards too. The layout card's `extra_card_info['html']` is therefore a lazy string, of
+the kind a lazy translation is: it renders when read, and concatenates, compares, measures and goes
+through `JsonResponse` (so `command_response()`) as a string, but it is not an instance of `str`,
+and plain `json.dumps` needs `str()` first.
 
 It does not run on the paths that build only some of the cards, since there is no "every card" for
 it to see there: the datatable Ajax handlers (data, sort and row edit) run `setup_datatable_cards()`
