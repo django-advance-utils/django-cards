@@ -605,7 +605,8 @@ card.add_child_card_group(child2, div_css_class='col-6 float-left')
 returned, before anything is rendered, so a base view can adjust a card that a subclass builds after
 its own `super().setup_cards()` call returns. It runs wherever a view builds all its cards to render
 them: `get_context_data()`, `button_reload_card()` and `button_accordion_load()`. By default it does
-nothing.
+nothing. A panel layout renders its regions' cards when the layout's card is rendered, not when
+`layout.render()` is called, so the hook reaches those cards too.
 
 ```python
 class BaseView(CardMixin, TemplateView):

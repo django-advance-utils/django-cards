@@ -54,6 +54,17 @@ class _PlainView(CardMixin, TemplateView):
         self.add_card_group('plain', div_css_class='col-12')
 
 
+class _PanelRegionCardView(_RetitleOnceReady, TemplateView):
+    """The card the base retitles sits in a panel layout region, and layout.render() runs in setup_cards()."""
+
+    def setup_cards(self):
+        super().setup_cards()
+        layout = self.add_panel_layout()
+        region = layout.root.add_region('main')
+        region.add_card(self.add_card('late', title='Built late'))
+        self.add_card_group(layout.render(), div_css_class='col-12')
+
+
 class TestCardsReady(TestCase):
     def setUp(self):
         self.view = _LateCardView()
@@ -61,6 +72,13 @@ class TestCardsReady(TestCase):
 
     def test_a_card_built_after_the_setup_chain_is_reached_before_it_renders(self):
         html = self.view.get_context_data()['card_groups']['main']
+        self.assertIn('Ready', html)
+        self.assertNotIn('Built late', html)
+
+    def test_a_card_in_a_panel_layout_region_is_reached_before_it_renders(self):
+        view = _PanelRegionCardView()
+        view.request = RequestFactory().get('/')
+        html = view.get_context_data()['card_groups']['main']
         self.assertIn('Ready', html)
         self.assertNotIn('Built late', html)
 

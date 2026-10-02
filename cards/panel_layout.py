@@ -3,6 +3,33 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 
+class DeferredLayoutHtml:
+    """The html of a panel layout's card, rendered the first time something asks for it.
+
+    `PanelLayout.render()` is called inside `setup_cards()`, and the layout's regions hold cards
+    from `self.cards`. Rendering them there would fix their HTML before `cards_ready()` runs, so a
+    hook that adjusts a region card would change the object and not the page. Holding the layout
+    instead, and rendering when the layout card's template reads `extra_card_info.html`, puts the
+    region cards' render where every other card's is: after the whole setup chain.
+
+    Django treats an object with `__html__` as already safe, with or without the `|safe` filter,
+    and `str()` gives the same markup, so code reading the card's html gets a string either way.
+    The render happens once; a second read returns the same markup.
+    """
+
+    def __init__(self, layout):
+        self.layout = layout
+        self.rendered = None
+
+    def __html__(self):
+        if self.rendered is None:
+            self.rendered = self.layout._render_html()
+        return self.rendered
+
+    def __str__(self):
+        return self.__html__()
+
+
 class PanelTab:
     """
     A tab pane within a PanelRegion.
@@ -533,12 +560,15 @@ class PanelLayout:
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))
 
     def render(self):
-        """Render the layout and return a card ready for add_card_group()."""
+        """Return a card ready for add_card_group() that renders the layout when it is itself rendered.
+
+        The regions' cards are not rendered here but when the returned card is, so this can be
+        called inside `setup_cards()` and `cards_ready()` still reaches every card in a region.
+        """
         from cards.base import CARD_TYPE_PANEL_LAYOUT
-        html = self._render_html()
         return self.view.add_card(
             card_name=self.card_name,
             group_type=CARD_TYPE_PANEL_LAYOUT,
-            html=html,
+            html=DeferredLayoutHtml(self),
             show_header=False,
         )
