@@ -1,6 +1,37 @@
 from ajax_helpers.utils import random_string
 from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
+from django.utils.functional import lazy
+from django.utils.safestring import SafeString, mark_safe
+
+
+class DeferredLayoutHtml:
+    """The html of a panel layout's card, rendered the first time something asks for it.
+
+    `PanelLayout.render()` is called inside `setup_cards()`, and the layout's regions hold cards
+    from `self.cards`. Rendering them there would fix their HTML before `cards_ready()` runs, so a
+    hook that adjusts a region card would change the object and not the page. Holding the layout
+    instead, and rendering when the layout card's template reads `extra_card_info.html`, puts the
+    region cards' render where every other card's is: after the whole setup chain.
+
+    The render happens once; a second read returns the same markup. The card does not hold this
+    object itself but `lazy_layout_html(DeferredLayoutHtml(layout))`, a `SafeString` promise.
+    """
+
+    def __init__(self, layout):
+        self.layout = layout
+        self.rendered = None
+
+    def render(self):
+        if self.rendered is None:
+            self.rendered = self.layout._render_html()
+        return self.rendered
+
+
+#: Wraps a `DeferredLayoutHtml` as a `SafeString` promise, the kind a lazy translation string is.
+#: It renders when read, and reads as a string: `str()`, `+`, `len()`, `in`, `==`, the `|safe`
+#: filter and `__html__`, and `JsonResponse` (so `command_response`) through `DjangoJSONEncoder`.
+#: What it is not is an instance of `str`: plain `json.dumps` needs `str()` first.
+lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
 
 
 class PanelTab:
@@ -533,12 +564,15 @@ class PanelLayout:
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))
 
     def render(self):
-        """Render the layout and return a card ready for add_card_group()."""
+        """Return a card ready for add_card_group() that renders the layout when it is itself rendered.
+
+        The regions' cards are not rendered here but when the returned card is, so this can be
+        called inside `setup_cards()` and `cards_ready()` still reaches every card in a region.
+        """
         from cards.base import CARD_TYPE_PANEL_LAYOUT
-        html = self._render_html()
         return self.view.add_card(
             card_name=self.card_name,
             group_type=CARD_TYPE_PANEL_LAYOUT,
-            html=html,
+            html=lazy_layout_html(DeferredLayoutHtml(self)),
             show_header=False,
         )

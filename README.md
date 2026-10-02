@@ -599,6 +599,43 @@ card.add_child_card_group(child1, div_css_class='col-6 float-left')
 card.add_child_card_group(child2, div_css_class='col-6 float-left')
 ```
 
+### Once every card exists: `cards_ready()`
+
+`setup_datatable_cards()` and `setup_cards()` build the cards. `cards_ready()` runs once both have
+returned, before anything is rendered, so a base view can adjust a card that a subclass builds after
+its own `super().setup_cards()` call returns. It runs from `build_cards()`, which is how every path
+that builds all the view's cards to render them builds them: `get_context_data()`,
+`button_reload_card()` and `button_accordion_load()`. A handler of your own that builds the cards
+should call `build_cards()` too, or `rebuild_cards()` to throw away the ones built so far first,
+rather than the setup methods directly. By default the hook does nothing. A panel layout renders its
+regions' cards when the layout's card is rendered, not when `layout.render()` is called, so the hook
+reaches those cards too. The layout card's `extra_card_info['html']` is therefore a lazy string, of
+the kind a lazy translation is: it renders when read, and concatenates, compares, measures and goes
+through `JsonResponse` (so `command_response()`) as a string, but it is not an instance of `str`,
+and plain `json.dumps` needs `str()` first.
+
+It does not run on the paths that build only some of the cards, since there is no "every card" for
+it to see there: the datatable Ajax handlers (data, sort and row edit) run `setup_datatable_cards()`
+alone, and `CardList`'s detail handlers build only the detail cards. Configure a datatable's table in
+`setup_datatable_cards()` or `setup_table_<id>()`, and a detail card where it is built, so the
+rendered card and its Ajax data agree.
+
+```python
+class BaseView(CardMixin, TemplateView):
+    def cards_ready(self):
+        super().cards_ready()
+        card = self.cards.get('summary')
+        if card is not None:
+            card.show_header = False
+
+
+class SummaryView(BaseView):
+    def setup_cards(self):
+        super().setup_cards()  # a BaseView.setup_cards would run here, before the card exists
+        self.add_card('summary', title='Summary')
+        self.add_card_group('summary', div_css_class='col-12')
+```
+
 ---
 
 ## Multi-Entry Rows
