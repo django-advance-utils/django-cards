@@ -22,6 +22,7 @@ import os
 import re
 import shutil
 import tempfile
+from pathlib import Path, PureWindowsPath
 
 from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase, override_settings
@@ -139,29 +140,56 @@ def _normalise(text):
     return text
 
 
+def _template_name(path, root):
+    """``path`` below ``root``, spelled as a template name: forward slashes on every platform.
+
+    os.path.relpath spells it with the platform's separator, so on Windows it gave
+    standard\\default.html -- which matches neither the names written by hand in this file nor
+    the one a forwarder's {% pack_source %} tag carries, and failed the checks that use them.
+    """
+    return path.relative_to(root).as_posix()
+
+
 def _pack_files(pack):
-    root = os.path.join(TEMPLATE_ROOT, pack)
+    root = Path(TEMPLATE_ROOT, pack)
     found = []
     for dirpath, _dirnames, filenames in os.walk(root):
         for name in filenames:
             if name.endswith('.html'):
-                found.append(os.path.relpath(os.path.join(dirpath, name), root))
+                found.append(_template_name(Path(dirpath, name), root))
     return sorted(found)
 
 
 def _flat_files():
+    root = Path(TEMPLATE_ROOT)
     found = []
-    for dirpath, dirnames, filenames in os.walk(TEMPLATE_ROOT):
+    for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in PACKS]
         for name in filenames:
             if name.endswith('.html'):
-                found.append(os.path.relpath(os.path.join(dirpath, name), TEMPLATE_ROOT))
+                found.append(_template_name(Path(dirpath, name), root))
     return sorted(found)
 
 
 def _read(*parts):
-    with open(os.path.join(TEMPLATE_ROOT, *parts)) as f:
+    # As Django reads them. Left to the locale, Windows decodes them as cp1252.
+    with open(os.path.join(TEMPLATE_ROOT, *parts), encoding='utf-8') as f:
         return f.read()
+
+
+class TestTemplateNames(SimpleTestCase):
+    """The walkers above name templates as Django does, whatever the platform's separator."""
+
+    def test_a_windows_path_comes_out_forward_slashed(self):
+        """Pure paths, so this runs on Linux too and fails there if relpath comes back."""
+        root = PureWindowsPath(r'C:\site\cards\templates\cards\bootstrap4')
+        self.assertEqual(_template_name(root / 'standard' / 'default.html', root),
+                         'standard/default.html')
+
+    def test_the_walked_names_are_forward_slashed(self):
+        found = [name for name in _pack_files('bootstrap4') + _flat_files() if '\\' in name]
+        self.assertEqual(found, [], 'Template names spelled with the platform separator:\n'
+                         + '\n'.join(found))
 
 
 class TestPacksStayInStep(SimpleTestCase):
