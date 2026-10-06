@@ -17,8 +17,14 @@ Markup is checked by parsing the page, not by looking for a string: the question
 stored text became an element, and a substring can be present in escaped form or absent from a
 rewritten one without answering it.
 """
+import json
+import re
 from html.parser import HTMLParser
 
+from cards.base import escape_value
+from cards.card_list import CardTree
+from cards.card_list.main import CardList
+from cards.standard import CardMixin
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.utils.functional import lazy
 from django.utils.html import format_html
@@ -26,9 +32,6 @@ from django.utils.safestring import SafeString, mark_safe
 from django.views.generic import TemplateView
 from django_menus.menu import HtmlMenuItem
 
-from cards.base import escape_value
-from cards.card_list.main import CardList
-from cards.standard import CardMixin
 from cards_examples.models import Company, Sector
 
 PAYLOAD = '<img src=x onerror=alert(1)>'
@@ -422,3 +425,68 @@ class TestEscapeValue(SimpleTestCase):
                 return mark_safe('<b>')
 
         self.assertEqual(escape_value(Element()), '<b>')
+
+
+#: A node title that ends the script element it is written into. It need not be markup to do
+#: it: ``json.dumps`` leaves ``</script>`` alone because it is a legal JSON string, and the
+#: browser scans a ``<script>`` for the closing tag before anything reads the JSON.
+SCRIPT_PAYLOAD = '</script><img src=x onerror=alert(1)>'
+
+
+class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
+    """``CardTreeMixin`` writes its nodes into a ``<script>``, so ``json.dumps`` is not enough.
+
+    The seven treegrid blobs already went through ``json_for_script``; the tree card's own
+    ``data`` was the one left on ``json.dumps``. A node's ``text`` is whatever the application
+    put there -- in JMS Cloud it is a fitting type's name and a mailbox's label, both typed by
+    the people using it -- and ``tree_selection.html`` prints the blob with ``|safe``.
+
+    Escaping it for HTML would be the wrong fix: an application may put markup in a node's text
+    on purpose (JMS Cloud appends a ``<span class="badge">`` count), and jstree renders a node as
+    HTML. ``json_for_script`` writes the three characters as ordinary JSON escapes instead, so
+    ``JSON.parse`` hands jstree back exactly what the application built.
+    """
+
+    PACKS = PACKS
+
+    def tree_card_html(self, text, pack):
+        """The rendered tree card for a single node whose title is ``text``."""
+
+        class _TreeView(CardTree, TemplateView):
+            list_title = 'Tree'
+
+            def get_tree_data(self, selected_id):
+                return [{'id': 'one', 'parent': '#', 'text': text}]
+
+        with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+            view = _TreeView()
+            view.request = RequestFactory().get('/')
+            view.setup_cards()
+            return view.cards['tree_card'].render()
+
+    def test_a_node_title_does_not_end_the_script(self):
+        for pack in self.PACKS:
+            with self.subTest(pack=pack):
+                html = self.tree_card_html(SCRIPT_PAYLOAD, pack)
+
+                self.assertNotIn(SCRIPT_PAYLOAD, html, 'the node title must not reach the page as it stands')
+                self.assertEqual(_Page(html).find('img'), [], html)
+
+    def test_the_title_still_arrives_as_the_characters_it_was_built_from(self):
+        """The half an HTML-escaping fix would break: a node may carry markup on purpose."""
+        badge = '<span class="badge">3</span>'
+
+        for pack in self.PACKS:
+            with self.subTest(pack=pack):
+                html = self.tree_card_html(f'Hinges {badge}', pack)
+                data = json.loads(re.search(r"'data':\s*(\[.*?]),\s*$", html, re.M).group(1))
+
+                self.assertEqual([{'id': 'one', 'parent': '#', 'text': f'Hinges {badge}'}], data)
+
+    def test_an_ampersand_in_a_title_is_still_an_ampersand(self):
+        for pack in self.PACKS:
+            with self.subTest(pack=pack):
+                html = self.tree_card_html('Locks & Latches', pack)
+                data = json.loads(re.search(r"'data':\s*(\[.*?]),\s*$", html, re.M).group(1))
+
+                self.assertEqual('Locks & Latches', data[0]['text'])

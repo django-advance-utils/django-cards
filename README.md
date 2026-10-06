@@ -238,6 +238,23 @@ put it in the value or a placeholder rather than writing it into the string.
 was markup in a plain `str` -- an icon, a `&thinsp;` in a price, a `<sup>` in a label -- now
 shows its tags; mark it safe where it is made.
 
+### JSON written into a `<script>`
+
+A tree card and a treegrid hand their data to JavaScript by writing JSON into a `<script>`
+element, which the template prints with `|safe`. `json.dumps` is right about JSON but not
+about the element: `</script>` is a legal JSON string, and a browser scans a `<script>` for
+its closing tag before anything reads the JSON. A node title holding one would end the
+script mid-JSON and hand the rest to the HTML parser.
+
+So these blobs go through `cards.base.json_for_script`, which writes `<`, `>` and `&` as
+ordinary JSON escapes. Nothing is escaped for HTML, because a node title may carry markup
+on purpose -- a count badge, an icon -- and jstree renders a node as HTML; `JSON.parse`
+hands back exactly the characters the application built.
+
+**Fixed in 1.8.1 for the tree card.** The treegrid already did this; `CardTreeMixin` was
+still on plain `json.dumps`, so a node title containing `</script>` closed the element. If
+your application puts stored text in a tree node, that was reachable.
+
 ## Entry Parameters Reference
 
 The `add_entry()` method accepts 30+ parameters to control how each row is displayed.
