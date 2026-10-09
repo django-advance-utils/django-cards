@@ -3,6 +3,8 @@ from django.template.loader import render_to_string
 from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
 
+from cards.base import json_for_script
+
 
 class DeferredLayoutHtml:
     """The html of a panel layout's card, rendered the first time something asks for it.
@@ -538,7 +540,6 @@ class PanelLayout:
 
 
     def get_render_html_context(self):
-        import json
         context = {
             'layout_id': self.layout_id,
             'root': self.root._build_context(),
@@ -549,7 +550,10 @@ class PanelLayout:
             'panel_card_context': {'card_css_class': 'card panel-card'},
             'panel_no_header_context': {'card_css_class': 'card panel-card panel-card--no-header',
                                         'show_header': False},
-            'linked_tables_json': mark_safe(json.dumps(self.linked_tables)) if self.linked_tables else None,
+            # json_for_script, not json.dumps: panel_layout.html writes this into a <script>
+            # body, so a table_id an application built from stored text could otherwise close
+            # the element. mark_safe stays -- the template prints it with no |safe of its own.
+            'linked_tables_json': mark_safe(json_for_script(self.linked_tables)) if self.linked_tables else None,
             'persist': self.persist,
             # The split template is a Bootstrap pack template, and a pack is resolved per
             # request for a project whose pack setting is a callable. Without this, a panel

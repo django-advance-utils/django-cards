@@ -24,6 +24,7 @@ from html.parser import HTMLParser
 from cards.base import escape_value
 from cards.card_list import CardTree
 from cards.card_list.main import CardList
+from cards.panel_layout import PanelLayout
 from cards.standard import CardMixin
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.utils.functional import lazy
@@ -490,3 +491,35 @@ class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
                 data = json.loads(re.search(r"'data':\s*(\[.*?]),\s*$", html, re.M).group(1))
 
                 self.assertEqual('Locks & Latches', data[0]['text'])
+
+
+class TestALinkedTableIdCannotCloseTheScript(SimpleTestCase):
+    """A panel layout writes its linked-table config into a ``<script>`` body as well.
+
+    ``panel_layout.html`` prints ``{{ linked_tables_json }}`` with no filter at all -- the value
+    arrives already ``mark_safe``d -- so ``json.dumps`` there had the tree card's hole exactly,
+    and the ``mark_safe`` being in Python hid it from a search for ``|safe`` beside a dump.
+
+    A ``table_id`` is a datatable's id, so an application only reaches this by building one out
+    of stored text. The shape is the same and so is the one-line fix, which is why it is here
+    rather than left for somebody to find twice. One pack only: ``panel_layout.html`` is a flat
+    ``cards/standard/`` template, not a pack template.
+    """
+
+    def layout_html(self, table_id):
+        """The rendered layout for a single linked table whose id is ``table_id``."""
+        layout = PanelLayout(view=None, layout_id='layout')
+        layout.linked_tables = [{'table_id': table_id, 'linked_field': 'company_id'}]
+        return layout._render_html()
+
+    def test_a_linked_table_id_does_not_end_the_script(self):
+        html = self.layout_html(SCRIPT_PAYLOAD)
+
+        self.assertNotIn(SCRIPT_PAYLOAD, html, 'the table id must not reach the page as it stands')
+        self.assertEqual(_Page(html).find('img'), [], html)
+
+    def test_the_id_still_arrives_as_the_characters_it_was_built_from(self):
+        html = self.layout_html('Tables & Things')
+        config = json.loads(re.search(r"PanelLinkedTables\.init\('layout', (\[.*?])\);", html).group(1))
+
+        self.assertEqual([{'table_id': 'Tables & Things', 'linked_field': 'company_id'}], config)
