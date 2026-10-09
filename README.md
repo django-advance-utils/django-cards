@@ -238,6 +238,32 @@ put it in the value or a placeholder rather than writing it into the string.
 was markup in a plain `str` -- an icon, a `&thinsp;` in a price, a `<sup>` in a label -- now
 shows its tags; mark it safe where it is made.
 
+### JSON written into a `<script>`
+
+A tree card, a treegrid and a panel layout's linked tables hand their data to JavaScript by
+writing JSON into a `<script>` element. `json.dumps` is right about JSON but not about the
+element: `</script>` is a legal JSON string, and a browser scans a `<script>` for its closing
+tag before anything reads the JSON. A value holding one would end the script mid-JSON and hand
+the rest to the HTML parser.
+
+So these blobs go through `cards.base.json_for_script`, which writes `<`, `>` and `&` as
+ordinary JSON escapes. Nothing is escaped for HTML, because a node title may carry markup
+on purpose -- a count badge, an icon -- and jstree renders a node as HTML. The templates
+splice the JSON into the script as a JavaScript literal, and the escapes are ordinary string
+escapes there too, so jstree gets back exactly the characters the application built.
+
+**Fixed in 1.8.1 for the tree card and a panel layout's linked tables.** The treegrid blobs
+already did this. `CardTreeMixin` was still on plain `json.dumps`, so a node title containing
+`</script>` closed the element -- reachable by any application that puts stored text in a tree
+node. `PanelLayout` was too; there the `mark_safe` sits in Python and `panel_layout.html` shows
+no `|safe` at all, so searching the templates for one would not have found it. A `table_id` is
+normally a literal in your own code, which is why that half is the lesser of the two.
+
+The tree card's selected id is fixed in 1.8.1 as well. It comes from the url and was written
+into two single-quoted JavaScript strings with only HTML escaping, so a link whose pk ended in
+a backslash or held a line break left the tree's script a syntax error. It now goes through
+`escapejs`.
+
 ## Entry Parameters Reference
 
 The `add_entry()` method accepts 30+ parameters to control how each row is displayed.

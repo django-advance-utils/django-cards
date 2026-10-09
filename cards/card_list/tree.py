@@ -1,9 +1,7 @@
-import json
-
 from ajax_helpers.mixins import AjaxHelpers
 from django_menus.menu import MenuMixin
 
-from cards.base import CARD_TYPE_HTML
+from cards.base import CARD_TYPE_HTML, json_for_script
 from cards.card_list.base import CardListBaseMixin
 from cards.standard import CardMixin
 
@@ -57,8 +55,11 @@ class CardTreeMixin(CardListBaseMixin):
                 self.open_parent(tree_data=tree_data, parent_id=row['parent'])
                 break
 
+        # json_for_script, not json.dumps: a node's text is whatever the application put
+        # there, and the template writes this blob into a <script> with |safe. The themes
+        # and plugins beside it in base.py are the library's own literals.
         context = {'list_title': self.list_title,
-                   'data': json.dumps(tree_data),
+                   'data': json_for_script(tree_data),
                    'selected_id': self.selected_id,
                    'details_button_action_name': 'details_html',
                    'show_details_for_parents': self.show_details_for_parents}

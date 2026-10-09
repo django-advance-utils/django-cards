@@ -31,7 +31,9 @@ def json_for_script(value):
     to close the script element or open a tag: a node title containing '</script>' would
     otherwise end the script mid-JSON and hand the rest of the value to the HTML parser.
     The escapes are ordinary JSON string escapes, so json.loads and a JS engine both read
-    back the original characters.
+    back the original characters. The templates splice this text into the script as a JavaScript
+    literal, not through JSON.parse; json.dumps's default ensure_ascii escapes U+2028 and U+2029,
+    which older engines would otherwise read as line breaks inside that literal.
     """
     return (json.dumps(value)
             .replace('<', '\\u003c')
