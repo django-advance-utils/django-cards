@@ -45,9 +45,9 @@
                 }
          });
         $('#{{ card.code }}_tree').on("ready.jstree", function (e, data) {
-            $('#{{ card.code }}_tree').jstree(true).get_node('{{ selected_id }}', true).children('.jstree-anchor').focus();
+            $('#{{ card.code }}_tree').jstree(true).get_node('{{ selected_id|escapejs }}', true).children('.jstree-anchor').focus();
         });
-        window.cards_on_ready(function () { load_details('{{ selected_id }}'); });
+        window.cards_on_ready(function () { load_details('{{ selected_id|escapejs }}'); });
         </script>
     </div>
 

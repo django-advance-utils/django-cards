@@ -445,12 +445,12 @@ class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
     Escaping it for HTML would be the wrong fix: an application may put markup in a node's text
     on purpose (JMS Cloud appends a ``<span class="badge">`` count), and jstree renders a node as
     HTML. ``json_for_script`` writes the three characters as ordinary JSON escapes instead, so
-    ``JSON.parse`` hands jstree back exactly what the application built.
+    the JavaScript literal hands jstree back exactly what the application built.
     """
 
     PACKS = PACKS
 
-    def tree_card_html(self, text, pack):
+    def tree_card_html(self, text, pack, selected_id=None):
         """The rendered tree card for a single node whose title is ``text``."""
 
         class _TreeView(CardTree, TemplateView):
@@ -462,6 +462,8 @@ class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
         with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
             view = _TreeView()
             view.request = RequestFactory().get('/')
+            if selected_id is not None:
+                view.slug = {'pk': selected_id}
             view.setup_cards()
             return view.cards['tree_card'].render()
 
@@ -491,6 +493,19 @@ class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
                 data = json.loads(re.search(r"'data':\s*(\[.*?]),\s*$", html, re.M).group(1))
 
                 self.assertEqual('Locks & Latches', data[0]['text'])
+
+    def test_a_selected_id_from_the_url_stays_inside_its_string(self):
+        """The pk comes from the url slug and is written into two single-quoted JS strings.
+
+        HTML autoescaping covers the quote but not a backslash or a line break, so ``abc\\``
+        used to escape the closing quote and leave the script a syntax error.
+        """
+        for pack in self.PACKS:
+            with self.subTest(pack=pack):
+                html = self.tree_card_html('One', pack, selected_id='abc\\\n')
+
+                self.assertIn("load_details('abc\\u005C\\u000A')", html)
+                self.assertNotIn("abc\\\n", html)
 
 
 class TestALinkedTableIdCannotCloseTheScript(SimpleTestCase):
