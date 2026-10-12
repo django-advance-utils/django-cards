@@ -8,10 +8,12 @@ import json
 
 from ajax_helpers.mixins import AjaxHelpers
 from django.core.serializers.json import DjangoJSONEncoder
+from django.templatetags.static import static
 from django.test import RequestFactory, TestCase
 from django.utils.functional import Promise
 from django.views.generic import TemplateView
 
+from cards import includes
 from cards.base import CardBase
 from cards.standard import CardMixin
 
@@ -48,6 +50,12 @@ class TestPanelLayoutRender(TestCase):
         html = self._layout_html()
         self.assertEqual(_CountingCard.renders, 0)
         self.assertIsInstance(html, Promise)
+
+    def test_its_script_and_css_carry_the_package_version(self):
+        """Static is served with a far-future expiry: a url without ?v= is never fetched again."""
+        html = str(self._layout_html())
+        for path in ('cards/panel_layout/js/panel_layout.js', 'cards/panel_layout/css/panel_layout.css'):
+            self.assertIn(f'{static(path)}?v={includes.version}', html)
 
     def test_the_regions_render_with_the_layout_card(self):
         html = self.view.get_context_data()['card_groups']['main']

@@ -45,7 +45,6 @@ class FancytreeAwesomeSkinCSS(SourceBase):
     css_filename = 'skin-awesome/ui.fancytree.min.css'
 
 
-
 class PanelLayoutSource(SourceBase):
     # The panel layout's own script and css (cards/standard/panel_layout.html). Taken
     # through lib_include so they carry ?v= like every other include: static is served
