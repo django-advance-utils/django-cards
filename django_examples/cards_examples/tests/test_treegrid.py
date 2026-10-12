@@ -19,31 +19,31 @@ User = get_user_model()
 
 
 class TestFancytreeIncludes(TestCase):
-    """Verify Fancytree CDN includes generate correct URLs."""
+    """Fancytree is served from our own static files, never a CDN -- even when cdn=True is asked for."""
 
-    def test_js_url_no_double_scheme(self):
-        js = FancytreeJS('', False)
-        output = js.includes(cdn=True)
-        self.assertNotIn('https://https://', output)
-        self.assertIn('https://cdn.jsdelivr.net/', output)
+    def test_js_url_is_local(self):
+        for cdn in (False, True):
+            with self.subTest(cdn=cdn):
+                output = FancytreeJS('1.0', False).includes(cdn=cdn)
+                self.assertNotIn('http', output)
+                self.assertIn('src="/static/cards/fancytree/jquery.fancytree-all-deps.min.js?v=1.0"', output)
 
-    def test_js_url_correct_path(self):
-        js = FancytreeJS('', False)
-        output = js.includes(cdn=True)
-        self.assertIn('dist/jquery.fancytree-all-deps.min.js', output)
-        self.assertNotIn('dist/js/', output)
+    def test_css_url_is_local(self):
+        for cdn in (False, True):
+            with self.subTest(cdn=cdn):
+                output = FancytreeAwesomeSkinCSS('1.0', False).includes(cdn=cdn)
+                self.assertNotIn('http', output)
+                self.assertIn('href="/static/cards/fancytree/skin-awesome/ui.fancytree.min.css?v=1.0"', output)
 
-    def test_css_url_no_double_scheme(self):
-        css = FancytreeAwesomeSkinCSS('', False)
-        output = css.includes(cdn=True)
-        self.assertNotIn('https://https://', output)
-        self.assertIn('https://cdn.jsdelivr.net/', output)
-
-    def test_css_url_correct_path(self):
-        css = FancytreeAwesomeSkinCSS('', False)
-        output = css.includes(cdn=True)
-        self.assertIn('dist/skin-awesome/ui.fancytree.min.css', output)
-        self.assertNotIn('dist/css/', output)
+    def test_static_files_exist(self):
+        from django.contrib.staticfiles import finders
+        for path in ('cards/fancytree/jquery.fancytree-all-deps.min.js',
+                     'cards/fancytree/jquery.fancytree-all-deps.min.js.map',
+                     'cards/fancytree/skin-awesome/ui.fancytree.min.css',
+                     'cards/fancytree/skin-awesome/vline.gif',
+                     'cards/fancytree/skin-awesome/vline-rtl.gif'):
+            with self.subTest(path=path):
+                self.assertIsNotNone(finders.find(path))
 
 
 class TreegridViewTestMixin:
