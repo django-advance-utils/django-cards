@@ -45,6 +45,22 @@ class FancytreeAwesomeSkinCSS(SourceBase):
     css_filename = 'skin-awesome/ui.fancytree.min.css'
 
 
+
+class PanelLayoutSource(SourceBase):
+    # The panel layout's own script and css (cards/standard/panel_layout.html). Taken
+    # through lib_include so they carry ?v= like every other include: static is served
+    # with a far-future expiry, and a browser that had the old panel_layout.js kept it.
+    static_path = 'cards/panel_layout/'
+    filename = 'panel_layout'
+
+
+class PanelLinkedTablesJS(SourceBase):
+    # Clicking a row in one panel's table to drive another; only a layout with linked
+    # tables takes it.
+    static_path = 'cards/panel_layout/'
+    js_filename = 'panel_linked_tables.js'
+
+
 packages = {
     # CardTree selection UI — jsTree requires jQuery.
     'jstree_default': [JSSourceTree, JSSourceDefaultTheme],
@@ -52,4 +68,7 @@ packages = {
     'jstree_dark': [JSSourceTree, JSSourceDarkTheme],
     # Treegrid cards — FancyTree requires jQuery.
     'fancytree': [FancytreeJS, FancytreeAwesomeSkinCSS],
+    # Panel layouts (cards/standard/panel_layout.html).
+    'panel_layout': [PanelLayoutSource],
+    'panel_linked_tables': [PanelLinkedTablesJS],
 }
