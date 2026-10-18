@@ -507,6 +507,25 @@ class TestATreeNodeCannotCloseTheScript(SimpleTestCase):
                 self.assertIn("load_details('abc\\u005C\\u000A')", html)
                 self.assertNotIn("abc\\\n", html)
 
+    def test_focusing_the_selection_on_ready_survives_an_empty_selected_id(self):
+        """A tree card with nothing selected used to throw as soon as jstree was ready.
+
+        The ready handler focuses the selected node's anchor. With no selection ``selected_id``
+        is ``''``, ``get_node('', true)`` answers ``false``, and ``.children`` on that threw
+        ``get_node(...).children is not a function`` on every tree page opened without a pk in
+        its url. The handler now looks the node up, falls back to the first node, and only then
+        focuses -- so the lookup's answer is checked before anything is read off it.
+        """
+        for pack in self.PACKS:
+            with self.subTest(pack=pack):
+                html = self.tree_card_html('One', pack)
+                handler = re.search(r'on\("ready\.jstree", function \(e, data\) \{(.*?)\n\s*\}\);', html, re.S).group(1)
+
+                self.assertIn("get_node('', true)", handler, 'the empty selected_id is still looked up first')
+                self.assertNotIn("get_node('', true).children", handler, 'nothing is read straight off the lookup')
+                self.assertIn("get_node('#').children[0]", handler, 'the first node is the fallback')
+                self.assertIn('if (node && node.length)', handler, 'the focus is guarded')
+
 
 class TestALinkedTableIdCannotCloseTheScript(SimpleTestCase):
     """A panel layout writes its linked-table config into a ``<script>`` body as well.

@@ -45,7 +45,16 @@
                 }
          });
         $('#{{ card.code }}_tree').on("ready.jstree", function (e, data) {
-            $('#{{ card.code }}_tree').jstree(true).get_node('{{ selected_id|escapejs }}', true).children('.jstree-anchor').focus();
+            // The selected node, or the first node when nothing is selected: get_node() answers false
+            // for an id it does not hold, and an empty selected_id is one it never holds.
+            var tree = $('#{{ card.code }}_tree').jstree(true);
+            var node = tree.get_node('{{ selected_id|escapejs }}', true);
+            if (!node || !node.length) {
+                node = tree.get_node(tree.get_node('#').children[0], true);
+            }
+            if (node && node.length) {
+                node.children('.jstree-anchor').focus();
+            }
         });
         window.cards_on_ready(function () { load_details('{{ selected_id|escapejs }}'); });
         </script>
