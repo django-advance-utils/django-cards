@@ -1,7 +1,7 @@
 from django.db.models import Count, Sum
 from django.http import JsonResponse
 from django.urls import reverse
-from django.utils.html import escape, format_html
+from django.utils.html import conditional_escape, escape, format_html
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -1830,14 +1830,16 @@ class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
         {'title': 'Code', 'field': 'code', 'width': '25%'},
     ]
 
-    # (title, section, code). The title and the section are text; escaping them is the caller's
-    # job, done in _nodes the way a column drawn as markup needs it.
+    # (title, section, code). A title or section that is text is escaped in _nodes, the way a
+    # column drawn as markup needs it; a title built with format_html is markup already, with
+    # its text escaped inside it -- an icon beside the name, or a tag partway through it.
     ROWS = [
         ('Nuts & Bolts', 'Fixings & Fasteners', 'NB-01'),
         ("O'Neill's Hinges", 'Ironmongery', 'ON-02'),
-        ('Hooks & Eyes', 'Fixings & Fasteners', 'HE-03'),
+        (format_html('<i class="fas fa-link"></i> {}', 'Hooks & Eyes'), 'Fixings & Fasteners', 'HE-03'),
         ('Less <b> more', 'Tools & Kit', 'LM-04'),
         ('Washers', 'Tools & Kit', 'W&S-05'),
+        (format_html('Screws <b>{}</b> Plugs', '&'), 'Fixings & Fasteners', 'SP-06'),
     ]
 
     def setup_cards(self):
@@ -1859,17 +1861,14 @@ class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
 
     @classmethod
     def _nodes(cls, prefix):
-        nodes = []
-        for i, (title, section, code) in enumerate(cls.ROWS):
-            # One title carries an icon as well, so a title holding a tag is searched too.
-            markup_title = (format_html('<i class="fas fa-link"></i> {}', title) if i == 2
-                            else escape(title))
-            nodes.append({
-                'title': markup_title,
+        return [
+            {
+                'title': conditional_escape(title),
                 'key': f'{prefix}_{i}',
                 'data': {'type': 'item', 'section': escape(section), 'code': code},
-            })
-        return nodes
+            }
+            for i, (title, section, code) in enumerate(cls.ROWS)
+        ]
 
 
 class TreegridAdvancedExample(MainMenu, CardMixin, TemplateView):

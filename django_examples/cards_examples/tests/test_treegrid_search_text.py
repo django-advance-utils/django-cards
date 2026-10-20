@@ -51,6 +51,8 @@ class TestTreegridSearchesTheTextItShows(TreegridViewTestMixin, TestCase):
             self.assertIn('O&#x27;Neill&#x27;s Hinges', titles)
             self.assertIn('Less &lt;b&gt; more', titles)
             self.assertIn('<i class="fas fa-link"></i> Hooks &amp; Eyes', titles)
+            # A tag partway through: "screws & p" crosses it, in the search and its highlight.
+            self.assertIn('Screws <b>&amp;</b> Plugs', titles)
             self.assertIn('Fixings &amp; Fasteners', [n['data']['section'] for n in nodes])
 
     def test_a_text_column_is_sent_as_it_is(self):

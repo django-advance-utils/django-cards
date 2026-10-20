@@ -2238,7 +2238,8 @@ sees in those cells -- entities decoded, tags dropped -- so `nuts & b` finds "Nu
 `filter_options=True` offers it as "Nuts & Bolts", and a side-panel option is labelled that way
 too. The side-panel option still filters by the value itself, so two values that read the same
 (`Bolts` and `<b>Bolts</b>`) stay two options. Search highlighting marks the text inside the
-markup and leaves the tags, an icon in a title included, as they were.
+markup and leaves the tags, an icon in a title included, as they were; a match that crosses a
+tag (`screws & p` in `Screws <b>&amp;</b> Plugs`) is marked on each side of it.
 
 **Fixed after 1.8.4.** The grid used to compare what was typed with the escaped string, and
 fancytree's own filter decodes a title only when it holds a tag, so `nuts & b` and `o'neill`

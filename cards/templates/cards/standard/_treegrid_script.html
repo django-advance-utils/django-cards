@@ -598,35 +598,56 @@ window._treegridInit = window._treegridInit || function(CFG) {
     }
 
     function _highlightInHtml(html, term) {
-        // Highlight term inside arbitrary HTML by walking text nodes only,
-        // so tag names / attributes are never corrupted. A text node holds decoded text, so
-        // each match is built as a <mark> element rather than handed back to a parser as
-        // markup -- "&lt;b&gt;" re-parsed would come back as a real tag.
+        // Highlight term inside arbitrary HTML by marking text nodes only,
+        // so tag names / attributes are never corrupted. The term is looked for in the text
+        // the filters match -- every text node run together, whitespace collapsed as
+        // _htmlFilterKey collapses it -- so a match that crosses inline markup ("nuts & b" in
+        // "Nuts <b>&amp;</b> Bolts") is marked too, one <mark> per text node it covers. A text
+        // node holds decoded text, so each mark is built as an element rather than handed back
+        // to a parser as markup -- "&lt;b&gt;" re-parsed would come back as a real tag.
         if (!term || html == null) return String(html == null ? '' : html);
-        var re = _termPattern(term);
         var doc = _markupParser.parseFromString(String(html), 'text/html');
         var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
         var texts = [];
         while (walker.nextNode()) texts.push(walker.currentNode);
-        var marked = false;
-        texts.forEach(function(textNode) {
-            var parts = textNode.nodeValue.split(re);
-            if (parts.length === 1) return;
-            var frag = doc.createDocumentFragment();
-            parts.forEach(function(part, i) {
-                if (i % 2) {
-                    var mark = doc.createElement('mark');
-                    mark.textContent = part;
-                    frag.appendChild(mark);
-                } else if (part) {
-                    frag.appendChild(doc.createTextNode(part));
-                }
-            });
-            textNode.parentNode.replaceChild(frag, textNode);
-            marked = true;
-        });
+        // The collapsed text, and for each of its characters the position, in all the nodes'
+        // text run together, of the character it came from.
+        var source = texts.map(function(t) { return t.nodeValue; }).join('');
+        var text = '', from = [];
+        for (var i = 0; i < source.length; i++) {
+            if (/\s/.test(source[i])) {
+                if (!text || text[text.length - 1] === ' ') continue;
+                text += ' ';
+            } else {
+                text += source[i];
+            }
+            from.push(i);
+        }
+        if (text[text.length - 1] === ' ') { text = text.slice(0, -1); from.pop(); }
+        // Each match as a [start, end) range of source positions.
+        var ranges = [], re = _termPattern(term), m;
+        while ((m = re.exec(text))) ranges.push([from[m.index], from[m.index + m[0].length - 1] + 1]);
         // Nothing marked: hand back what came in rather than the parser's rewrite of it.
-        return marked ? doc.body.innerHTML : String(html);
+        if (!ranges.length) return String(html);
+        var offset = 0;
+        texts.forEach(function(textNode) {
+            var value = textNode.nodeValue, start = offset, end = offset + value.length;
+            offset = end;
+            var frag = doc.createDocumentFragment(), at = start;
+            ranges.forEach(function(r) {
+                var s = Math.max(r[0], start), e = Math.min(r[1], end);
+                if (s >= e) return;
+                if (s > at) frag.appendChild(doc.createTextNode(value.slice(at - start, s - start)));
+                var mark = doc.createElement('mark');
+                mark.textContent = value.slice(s - start, e - start);
+                frag.appendChild(mark);
+                at = e;
+            });
+            if (at === start) return;
+            if (at < end) frag.appendChild(doc.createTextNode(value.slice(at - start)));
+            textNode.parentNode.replaceChild(frag, textNode);
+        });
+        return doc.body.innerHTML;
     }
 
     // Hand a row's class to fancytree as well as applying it here. Fancytree rewrites
