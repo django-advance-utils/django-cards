@@ -2236,7 +2236,9 @@ node['title'] = format_html('<i class="fas fa-link"></i> {}', product.name)
 The search box, the column filters and the side-panel filters all work on the text a reader
 sees in those cells -- entities decoded, tags dropped -- so `nuts & b` finds "Nuts &amp; Bolts",
 `filter_options=True` offers it as "Nuts & Bolts", and a side-panel option is labelled that way
-too. The side-panel option still filters by the value itself, so two values that read the same
+too. An option from a `filter_options` list you write is matched against the markup as sent as
+well as its text, so it can name something only the tags hold -- `{'label': 'Yes', 'value':
+'check'}` for a tick drawn as `<i class="fas fa-check"></i>`. The side-panel option still filters by the value itself, so two values that read the same
 (`Bolts` and `<b>Bolts</b>`) stay two options. Search highlighting marks the text inside the
 markup and leaves the tags, an icon in a title included, as they were; a match that crosses a
 tag (`screws & p` in `Screws <b>&amp;</b> Plugs`) is marked on each side of it.

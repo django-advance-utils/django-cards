@@ -61,6 +61,23 @@ class TestTreegridSearchesTheTextItShows(TreegridViewTestMixin, TestCase):
         self.assertIn('W&S-05', [n['data']['code'] for n in nodes])
         self.assertNotIn('type', next(c for c in columns if c['field'] == 'code'))
 
+    def test_a_listed_option_can_name_what_only_the_markup_holds(self):
+        """Stock's Yes/No options are icon classes; the cells' text says only "yes" or "no".
+
+        So the grid has to match an option the server listed against the markup as well as
+        the text, or a Yes/No filter of that shape would match nothing.
+        """
+        nodes, columns = self._configs(self._render())[0]
+        stock = next(c for c in columns if c['field'] == 'in_stock')
+        self.assertEqual(stock['type'], 'html')
+        self.assertEqual([o['value'] for o in stock['filter_options']], ['check', 'times'])
+        cells = {n['data']['in_stock'] for n in nodes}
+        self.assertEqual(len(cells), 2)
+        for cell in cells:
+            text = re.sub(r'<[^>]*>', '', cell)
+            self.assertIn(text, ('yes', 'no'))
+            self.assertTrue('fa-check' in cell or 'fa-times' in cell)
+
     def test_the_section_column_is_markup(self):
         _nodes, columns = self._configs(self._render())[0]
         self.assertEqual(next(c for c in columns if c['field'] == 'section')['type'], 'html')

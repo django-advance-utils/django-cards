@@ -979,8 +979,13 @@ window._treegridInit = window._treegridInit || function(CFG) {
                 var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
                 cellVal = (field && node.data && node.data[field] != null) ? String(node.data[field]) : '';
             }
-            if (_isMarkupColumn(fi.colIdx)) cellVal = _htmlFilterKey(cellVal);
-            if (cellVal.toLowerCase().indexOf(fi.val) === -1) return false;
+            var shown = _isMarkupColumn(fi.colIdx) ? _htmlFilterKey(cellVal) : cellVal;
+            var hit = shown.toLowerCase().indexOf(fi.val) !== -1;
+            // An option from a list the server wrote may name something only the markup holds --
+            // 'check' for a tick drawn as <i class="fas fa-check"> -- so it is matched against
+            // the markup as sent as well. Typed text and auto-filled options match the text.
+            if (!hit && fi.fixed) hit = cellVal.toLowerCase().indexOf(fi.val) !== -1;
+            if (!hit) return false;
         }
         return true;
     }
@@ -1785,7 +1790,10 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     var val = $(this).val().trim().toLowerCase();
                     var colIdx = parseInt($(this).data('col-idx'));
                     if (val) {
-                        filters.push({colIdx: colIdx, val: val});
+                        // fixed: a select whose options the column's filter_options listed
+                        // (filled from the rows when it carries data-auto-options).
+                        var fixed = $(this).is('select') && !$(this).is('[data-auto-options]');
+                        filters.push({colIdx: colIdx, val: val, fixed: fixed});
                     }
                 });
                 if (filters.length === 0) {

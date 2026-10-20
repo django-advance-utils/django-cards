@@ -2,6 +2,7 @@ from django.db.models import Count, Sum
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.html import conditional_escape, escape, format_html
+from django.utils.safestring import mark_safe
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -1818,28 +1819,38 @@ class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
     "o'neill" find their rows and a facet option reads "Fixings & Fasteners". Code is an
     ordinary text column, drawn as text, so its "&" is sent and matched as it is.
 
+    Stock is a tick or a cross with hidden text beside it. Its Yes/No filter lists 'check' and
+    'times', which only the icon's class holds, so an option the server lists is matched against
+    the markup as well as the text.
+
     Left: every row on screen, searched by fancytree's filter. Right: the same rows paged in the
     browser and searched in memory.
     """
     template_name = 'cards_examples/cards.html'
 
     COLUMNS = [
-        {'title': 'Name', 'field': 'title', 'width': '45%'},
-        {'title': 'Section', 'field': 'section', 'width': '30%', 'type': 'html',
+        {'title': 'Name', 'field': 'title', 'width': '40%'},
+        {'title': 'Section', 'field': 'section', 'width': '25%', 'type': 'html',
          'filter_options': True},
-        {'title': 'Code', 'field': 'code', 'width': '25%'},
+        {'title': 'Code', 'field': 'code', 'width': '20%'},
+        {'title': 'Stock', 'field': 'in_stock', 'width': '15%', 'type': 'html',
+         'filter_options': [{'label': 'Yes', 'value': 'check'}, {'label': 'No', 'value': 'times'}]},
     ]
 
-    # (title, section, code). A title or section that is text is escaped in _nodes, the way a
-    # column drawn as markup needs it; a title built with format_html is markup already, with
-    # its text escaped inside it -- an icon beside the name, or a tag partway through it.
+    IN_STOCK = mark_safe('<i class="fas fa-check text-success"></i><span class="d-none">yes</span>')
+    OUT_OF_STOCK = mark_safe('<i class="fas fa-times text-danger"></i><span class="d-none">no</span>')
+
+    # (title, section, code, in stock). A title or section that is text is escaped in _nodes,
+    # the way a column drawn as markup needs it; a title built with format_html is markup
+    # already, with its text escaped inside it -- an icon beside the name, or a tag partway
+    # through it.
     ROWS = [
-        ('Nuts & Bolts', 'Fixings & Fasteners', 'NB-01'),
-        ("O'Neill's Hinges", 'Ironmongery', 'ON-02'),
-        (format_html('<i class="fas fa-link"></i> {}', 'Hooks & Eyes'), 'Fixings & Fasteners', 'HE-03'),
-        ('Less <b> more', 'Tools & Kit', 'LM-04'),
-        ('Washers', 'Tools & Kit', 'W&S-05'),
-        (format_html('Screws <b>{}</b> Plugs', '&'), 'Fixings & Fasteners', 'SP-06'),
+        ('Nuts & Bolts', 'Fixings & Fasteners', 'NB-01', True),
+        ("O'Neill's Hinges", 'Ironmongery', 'ON-02', False),
+        (format_html('<i class="fas fa-link"></i> {}', 'Hooks & Eyes'), 'Fixings & Fasteners', 'HE-03', True),
+        ('Less <b> more', 'Tools & Kit', 'LM-04', True),
+        ('Washers', 'Tools & Kit', 'W&S-05', False),
+        (format_html('Screws <b>{}</b> Plugs', '&'), 'Fixings & Fasteners', 'SP-06', True),
     ]
 
     def setup_cards(self):
@@ -1865,9 +1876,10 @@ class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
             {
                 'title': conditional_escape(title),
                 'key': f'{prefix}_{i}',
-                'data': {'type': 'item', 'section': escape(section), 'code': code},
+                'data': {'type': 'item', 'section': escape(section), 'code': code,
+                         'in_stock': cls.IN_STOCK if in_stock else cls.OUT_OF_STOCK},
             }
-            for i, (title, section, code) in enumerate(cls.ROWS)
+            for i, (title, section, code, in_stock) in enumerate(cls.ROWS)
         ]
 
 
