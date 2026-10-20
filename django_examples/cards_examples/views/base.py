@@ -45,6 +45,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:treegrid_sortable', 'Sortable'),
                 ('cards_examples:treegrid_drag_drop', 'Drag & Drop'),
                 ('cards_examples:treegrid_toolbar_slots', 'Toolbar Slots'),
+                ('cards_examples:treegrid_escaped_text', 'Escaped Text'),
             )),
             MenuItem(menu_display='Accordion', dropdown=(
                 ('cards_examples:accordion', 'Basic'),

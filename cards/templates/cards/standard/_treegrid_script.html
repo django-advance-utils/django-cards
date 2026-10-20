@@ -549,29 +549,105 @@ window._treegridInit = window._treegridInit || function(CFG) {
         return true;
     }
 
+    // Node titles and 'html' columns are drawn as markup (fancytree renders a title as html,
+    // escapeTitles being off), so their values arrive escaped -- "Nuts &amp; Bolts" -- or
+    // wrapped in tags. Search, column filters and facet labels work on the text a reader sees
+    // in them instead; every other column is drawn as text, so its raw value is what shows.
+    function _isMarkupColumn(colIdx) {
+        return colIdx === NODE_COLUMN || !!(COLUMNS[colIdx] && COLUMNS[colIdx].type === 'html');
+    }
+    var MARKUP_FIELDS = {};
+    for (var mc = 0; mc < COLUMNS.length; mc++) {
+        if (COLUMNS[mc].field && _isMarkupColumn(mc)) MARKUP_FIELDS[COLUMNS[mc].field] = true;
+    }
+
+    // DOMParser builds an inert document: nothing in it runs or loads, where markup handed to
+    // innerHTML on an element of this page would fetch an <img> and fire its onerror.
+    var _markupParser = new DOMParser();
+    var _filterKeys = Object.create(null);
+
+    // Reduce markup to the plain key it is searched, filtered and labelled by: its text, with
+    // entities decoded, tags dropped and whitespace collapsed as the browser collapses it --
+    // or, for markup with no text (a bare colour swatch), the first hex code in it. Cached,
+    // since every search and every keystroke in a column filter asks again for each row.
+    function _htmlFilterKey(html) {
+        html = html == null ? '' : String(html);
+        if (html.indexOf('<') === -1 && html.indexOf('&') === -1) return html.replace(/\s+/g, ' ').trim();
+        if (!(html in _filterKeys)) {
+            var body = _markupParser.parseFromString(html, 'text/html').body;
+            var text = (body.textContent || '').replace(/\s+/g, ' ').trim();
+            var m = text ? null : html.match(/#([0-9a-fA-F]{3,8})\b/);
+            _filterKeys[html] = text || (m ? m[1] : '');
+        }
+        return _filterKeys[html];
+    }
+
+    function _termPattern(term) {
+        return new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    }
+
     function _highlightText(text, term) {
-        // HTML-escape the value first, then wrap matches in <mark>
-        var safe = $('<span>').text(String(text)).html();
-        if (!term) return safe;
-        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return safe.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+        // Wrap each match in <mark>, escaping the text around it. The term is matched against
+        // the text itself, not its escaped form, so "&" finds "&" and "amp" cannot land inside
+        // an entity. split() with a capturing group puts each match at an odd index.
+        var parts = term ? String(text).split(_termPattern(term)) : [String(text)];
+        return parts.map(function(part, i) {
+            var safe = $('<span>').text(part).html();
+            return i % 2 ? '<mark>' + safe + '</mark>' : safe;
+        }).join('');
     }
 
     function _highlightInHtml(html, term) {
-        // Highlight term inside arbitrary HTML by walking text nodes only,
-        // so tag names / attributes are never corrupted.
+        // Highlight term inside arbitrary HTML by marking text nodes only,
+        // so tag names / attributes are never corrupted. The term is looked for in the text
+        // the filters match -- every text node run together, whitespace collapsed as
+        // _htmlFilterKey collapses it -- so a match that crosses inline markup ("nuts & b" in
+        // "Nuts <b>&amp;</b> Bolts") is marked too, one <mark> per text node it covers. A text
+        // node holds decoded text, so each mark is built as an element rather than handed back
+        // to a parser as markup -- "&lt;b&gt;" re-parsed would come back as a real tag.
         if (!term || html == null) return String(html == null ? '' : html);
-        var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        var re = new RegExp('(' + escaped + ')', 'gi');
-        var $wrap = $('<div>').html(String(html));
-        $wrap.find('*').addBack().contents().each(function() {
-            if (this.nodeType === 3 && re.test(this.nodeValue)) {
-                re.lastIndex = 0;
-                $(this).replaceWith(this.nodeValue.replace(re, '<mark>$1</mark>'));
+        var doc = _markupParser.parseFromString(String(html), 'text/html');
+        var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+        var texts = [];
+        while (walker.nextNode()) texts.push(walker.currentNode);
+        // The collapsed text, and for each of its characters the position, in all the nodes'
+        // text run together, of the character it came from.
+        var source = texts.map(function(t) { return t.nodeValue; }).join('');
+        var text = '', from = [];
+        for (var i = 0; i < source.length; i++) {
+            if (/\s/.test(source[i])) {
+                if (!text || text[text.length - 1] === ' ') continue;
+                text += ' ';
+            } else {
+                text += source[i];
             }
-            re.lastIndex = 0;
+            from.push(i);
+        }
+        if (text[text.length - 1] === ' ') { text = text.slice(0, -1); from.pop(); }
+        // Each match as a [start, end) range of source positions.
+        var ranges = [], re = _termPattern(term), m;
+        while ((m = re.exec(text))) ranges.push([from[m.index], from[m.index + m[0].length - 1] + 1]);
+        // Nothing marked: hand back what came in rather than the parser's rewrite of it.
+        if (!ranges.length) return String(html);
+        var offset = 0;
+        texts.forEach(function(textNode) {
+            var value = textNode.nodeValue, start = offset, end = offset + value.length;
+            offset = end;
+            var frag = doc.createDocumentFragment(), at = start;
+            ranges.forEach(function(r) {
+                var s = Math.max(r[0], start), e = Math.min(r[1], end);
+                if (s >= e) return;
+                if (s > at) frag.appendChild(doc.createTextNode(value.slice(at - start, s - start)));
+                var mark = doc.createElement('mark');
+                mark.textContent = value.slice(s - start, e - start);
+                frag.appendChild(mark);
+                at = e;
+            });
+            if (at === start) return;
+            if (at < end) frag.appendChild(doc.createTextNode(value.slice(at - start)));
+            textNode.parentNode.replaceChild(frag, textNode);
         });
-        return $wrap.html();
+        return doc.body.innerHTML;
     }
 
     // Hand a row's class to fancytree as well as applying it here. Fancytree rewrites
@@ -881,11 +957,12 @@ window._treegridInit = window._treegridInit || function(CFG) {
     // Filter _allNodes in memory and paginate the results.
     // Searches all data fields, not just node.title.
     function _nodeMatchesGlobal(node, lower) {
-        if (String(node.title || '').toLowerCase().indexOf(lower) !== -1) return true;
+        if (_htmlFilterKey(node.title).toLowerCase().indexOf(lower) !== -1) return true;
         if (node.data) {
             for (var k in node.data) {
                 if (node.data.hasOwnProperty(k) && node.data[k] != null && k !== 'type') {
-                    if (String(node.data[k]).toLowerCase().indexOf(lower) !== -1) return true;
+                    var v = MARKUP_FIELDS[k] ? _htmlFilterKey(node.data[k]) : String(node.data[k]);
+                    if (v.toLowerCase().indexOf(lower) !== -1) return true;
                 }
             }
         }
@@ -902,7 +979,13 @@ window._treegridInit = window._treegridInit || function(CFG) {
                 var field = COLUMNS[fi.colIdx] ? COLUMNS[fi.colIdx].field : '';
                 cellVal = (field && node.data && node.data[field] != null) ? String(node.data[field]) : '';
             }
-            if (cellVal.toLowerCase().indexOf(fi.val) === -1) return false;
+            var shown = _isMarkupColumn(fi.colIdx) ? _htmlFilterKey(cellVal) : cellVal;
+            var hit = shown.toLowerCase().indexOf(fi.val) !== -1;
+            // An option from a list the server wrote may name something only the markup holds --
+            // 'check' for a tick drawn as <i class="fas fa-check"> -- so it is matched against
+            // the markup as sent as well. Typed text and auto-filled options match the text.
+            if (!hit && fi.fixed) hit = cellVal.toLowerCase().indexOf(fi.val) !== -1;
+            if (!hit) return false;
         }
         return true;
     }
@@ -976,13 +1059,20 @@ window._treegridInit = window._treegridInit || function(CFG) {
             var $content = $panel.find('.treegrid-js-filter-block[data-field="' + f.field + '"] .treegrid-js-filter-content');
             $content.empty();
             var hidden = _jsFilterActive[f.field] || {};
-            var sortedVals = Object.keys(counts).sort();
+            // Each option is labelled, and sorted, by the text the grid shows for it, but keyed
+            // on the raw value: the checkbox's value is what _nodeMatchesJsFilters holds rows to.
+            var labels = {};
+            for (var cv in counts) labels[cv] = MARKUP_FIELDS[f.field] ? _htmlFilterKey(cv) : cv;
+            var sortedVals = Object.keys(counts).sort(function(a, b) {
+                if (labels[a] !== labels[b]) return labels[a] < labels[b] ? -1 : 1;
+                return a < b ? -1 : (a > b ? 1 : 0);
+            });
             for (var vi = 0; vi < sortedVals.length; vi++) {
                 var v = sortedVals[vi];
                 var $label = $('<label class="treegrid-jsf-check">');
                 var $cb = $('<input type="checkbox">').val(v).prop('checked', !hidden.hasOwnProperty(v)).attr('data-field', f.field);
                 $label.append($cb);
-                $label.append($('<span class="treegrid-jsf-label">').text(v || '(blank)'));
+                $label.append($('<span class="treegrid-jsf-label">').text(labels[v] || '(blank)'));
                 $label.append($('<span class="' + PACK_FACET_BADGE + '">').text(counts[v]));
                 $content.append($label);
             }
@@ -1073,12 +1163,14 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     var $ddHandleTd = $(data.node.tr).find('>td').eq(SORTABLE ? 1 : 0);
                     $ddHandleTd.html('<span class="treegrid-drag-handle"><i class="fas fa-arrows-alt"></i></span>');
                 }
-                // Highlight the node title when a pagination filter is active
+                // Highlight the node title when a pagination filter is active. A title is
+                // markup -- an icon, the edit pencil -- so mark the text inside it rather than
+                // flattening it to that text.
                 if (PAGINATION) {
                     var titleTerm = _filterTerm || _filterColTerms[NODE_COLUMN] || '';
                     if (titleTerm) {
                         var $title = $(data.node.tr).find('.fancytree-title');
-                        if ($title.length) $title.html(_highlightText($title.text(), titleTerm));
+                        if ($title.length) $title.html(_highlightInHtml($title.html(), titleTerm));
                     }
                 }
             },
@@ -1602,6 +1694,8 @@ window._treegridInit = window._treegridInit || function(CFG) {
                         ? String(title || '')
                         : (COLUMNS[idx] && data && data[COLUMNS[idx].field] != null
                             ? String(data[COLUMNS[idx].field]) : '');
+                    // Offered, and matched by _nodeMatchesColFilters, as the text the cell shows.
+                    if (_isMarkupColumn(idx)) val = _htmlFilterKey(val);
                     if (val) colValues[idx][val] = true;
                 });
             }
@@ -1622,17 +1716,6 @@ window._treegridInit = window._treegridInit || function(CFG) {
                 values.forEach(function(v) { $sel.append($('<option>').val(v).text(v)); });
                 if (currentVal) $sel.val(currentVal);
             });
-        }
-
-        // Reduce a cell's HTML to a plain filter key: its text content, or
-        // (for content with no text, e.g. a bare colour swatch) the first hex code.
-        function _htmlFilterKey(html) {
-            var d = document.createElement('div');
-            d.innerHTML = html;
-            var text = (d.textContent || '').replace(/\s+/g, ' ').trim();
-            if (text) return text;
-            var m = html.match(/#([0-9a-fA-F]{3,8})\b/);
-            return m ? m[1] : '';
         }
 
         // Populate the custom HTML (swatch) dropdowns: each option renders the cell
@@ -1707,7 +1790,10 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     var val = $(this).val().trim().toLowerCase();
                     var colIdx = parseInt($(this).data('col-idx'));
                     if (val) {
-                        filters.push({colIdx: colIdx, val: val});
+                        // fixed: a select whose options the column's filter_options listed
+                        // (filled from the rows when it carries data-auto-options).
+                        var fixed = $(this).is('select') && !$(this).is('[data-auto-options]');
+                        filters.push({colIdx: colIdx, val: val, fixed: fixed});
                     }
                 });
                 if (filters.length === 0) {
@@ -1801,7 +1887,16 @@ window._treegridInit = window._treegridInit || function(CFG) {
                     $('#' + CARD_CODE + '_matches').text('(' + matched.length + ' matches)');
                 } else {
                     var tree = $.ui.fancytree.getTree('#' + CARD_CODE + '_table');
-                    var count = tree.filterNodes(val, {autoExpand: FILTER_AUTO_EXPAND});
+                    // A function, not the string: fancytree matches a string against the raw
+                    // title and decodes it only when it holds a tag, so an escaped title
+                    // ("O&#x27;Neill") never matched what the reader typed. Given a function
+                    // it highlights nothing either, so the match is marked here.
+                    var lowerVal = val.toLowerCase();
+                    var count = tree.filterNodes(function(node) {
+                        if (_htmlFilterKey(node.title).toLowerCase().indexOf(lowerVal) === -1) return false;
+                        node.titleWithHighlight = _highlightInHtml(node.title, val);
+                        return true;
+                    }, {autoExpand: FILTER_AUTO_EXPAND});
                     _filterMatchCount = count;
                     $('#' + CARD_CODE + '_matches').text('(' + count + ' matches)');
                 }
