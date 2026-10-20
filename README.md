@@ -2243,7 +2243,7 @@ well as its text, so it can name something only the tags hold -- `{'label': 'Yes
 markup and leaves the tags, an icon in a title included, as they were; a match that crosses a
 tag (`screws & p` in `Screws <b>&amp;</b> Plugs`) is marked on each side of it.
 
-**Fixed after 1.8.4.** The grid used to compare what was typed with the escaped string, and
+**Fixed in 1.8.5.** The grid used to compare what was typed with the escaped string, and
 fancytree's own filter decodes a title only when it holds a tag, so `nuts & b` and `o'neill`
 found nothing, `amp` matched the entity behind an `&`, and a side-panel option read "Nuts &amp; Bolts".
 The search highlight in a paginated grid also handed a cell's decoded text back to the HTML
