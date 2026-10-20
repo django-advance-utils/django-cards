@@ -1,6 +1,7 @@
 from django.db.models import Count, Sum
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils.html import escape, format_html
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -1806,6 +1807,69 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
         self.add_command(toast_commands(
             header='Row action', text=f"{kwargs.get('action')} on {kwargs.get('key')}"))
         return self.command_response()
+
+
+class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
+    """Titles and html cells holding & and ', escaped the way markup needs them.
+
+    A node's title, and a cell in an 'html' column, is drawn as markup, so text bound for one
+    is escaped first: "Nuts & Bolts" arrives as "Nuts &amp; Bolts". The search box, the column
+    filters and the facet panel all work on the text the grid shows, so "nuts & b" and
+    "o'neill" find their rows and a facet option reads "Fixings & Fasteners". Code is an
+    ordinary text column, drawn as text, so its "&" is sent and matched as it is.
+
+    Left: every row on screen, searched by fancytree's filter. Right: the same rows paged in the
+    browser and searched in memory.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    COLUMNS = [
+        {'title': 'Name', 'field': 'title', 'width': '45%'},
+        {'title': 'Section', 'field': 'section', 'width': '30%', 'type': 'html',
+         'filter_options': True},
+        {'title': 'Code', 'field': 'code', 'width': '25%'},
+    ]
+
+    # (title, section, code). The title and the section are text; escaping them is the caller's
+    # job, done in _nodes the way a column drawn as markup needs it.
+    ROWS = [
+        ('Nuts & Bolts', 'Fixings & Fasteners', 'NB-01'),
+        ("O'Neill's Hinges", 'Ironmongery', 'ON-02'),
+        ('Hooks & Eyes', 'Fixings & Fasteners', 'HE-03'),
+        ('Less <b> more', 'Tools & Kit', 'LM-04'),
+        ('Washers', 'Tools & Kit', 'W&S-05'),
+    ]
+
+    def setup_cards(self):
+        for name, title, extra in (
+                ('escaped_tree', 'Escaped Text', {}),
+                ('escaped_paged', 'Escaped Text (Paginated)',
+                 {'treegrid_pagination': True, 'treegrid_page_size': 3})):
+            self.add_treegrid_card(
+                card_name=name,
+                title=title,
+                treegrid_columns=self.COLUMNS,
+                treegrid_static_data=self._nodes(name),
+                treegrid_icon_map={'item': 'fas fa-box'},
+                column_search=True,
+                treegrid_js_filters=[{'field': 'section', 'title': 'Section'}],
+                **extra,
+            )
+            self.add_card_group(name, div_css_class=col('col-6', self.request))
+
+    @classmethod
+    def _nodes(cls, prefix):
+        nodes = []
+        for i, (title, section, code) in enumerate(cls.ROWS):
+            # One title carries an icon as well, so a title holding a tag is searched too.
+            markup_title = (format_html('<i class="fas fa-link"></i> {}', title) if i == 2
+                            else escape(title))
+            nodes.append({
+                'title': markup_title,
+                'key': f'{prefix}_{i}',
+                'data': {'type': 'item', 'section': escape(section), 'code': code},
+            })
+        return nodes
 
 
 class TreegridAdvancedExample(MainMenu, CardMixin, TemplateView):

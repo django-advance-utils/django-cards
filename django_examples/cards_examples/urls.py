@@ -26,6 +26,7 @@ from cards_examples.views.treegrid import (
     TreegridSortableExample,
     TreegridDragDropExample,
     TreegridToolbarSlotsExample,
+    TreegridEscapedTextExample,
 )
 from cards_examples.views.panel_layout import (
     PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
@@ -105,6 +106,7 @@ urlpatterns = [
     path('treegrid/sortable/', TreegridSortableExample.as_view(), name='treegrid_sortable'),
     path('treegrid/drag-drop/', TreegridDragDropExample.as_view(), name='treegrid_drag_drop'),
     path('treegrid/toolbar-slots/', TreegridToolbarSlotsExample.as_view(), name='treegrid_toolbar_slots'),
+    path('treegrid/escaped-text/', TreegridEscapedTextExample.as_view(), name='treegrid_escaped_text'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),

@@ -2214,6 +2214,41 @@ self.add_treegrid_card(
 - Works in both paginated and non-paginated modes.
 - In paginated mode the panel filters combine with the toolbar search box — both must match for a row to appear.
 
+### Titles and `html` Columns Are Markup
+
+A node's `title`, and a cell in a `type='html'` column, is drawn as HTML, so text bound for one
+has to be escaped first; every other column is drawn as text and takes its value as it is:
+
+```python
+from django.utils.html import escape, format_html
+
+node = {
+    'title': escape(product.name),                   # "Nuts &amp; Bolts"
+    'key': f'product_{product.pk}',
+    'data': {'type': 'product',
+             'section': escape(product.section),     # a type='html' column
+             'code': product.code},                  # a text column: as it is
+}
+# A title carrying an icon as well: format_html escapes the name inside the markup.
+node['title'] = format_html('<i class="fas fa-link"></i> {}', product.name)
+```
+
+The search box, the column filters and the side-panel filters all work on the text a reader
+sees in those cells -- entities decoded, tags dropped -- so `nuts & b` finds "Nuts &amp; Bolts",
+`filter_options=True` offers it as "Nuts & Bolts", and a side-panel option is labelled that way
+too. The side-panel option still filters by the value itself, so two values that read the same
+(`Bolts` and `<b>Bolts</b>`) stay two options. Search highlighting marks the text inside the
+markup and leaves the tags, an icon in a title included, as they were.
+
+**Fixed after 1.8.4.** The grid used to compare what was typed with the escaped string, and
+fancytree's own filter decodes a title only when it holds a tag, so `nuts & b` and `o'neill`
+found nothing, `amp` matched the entity behind an `&`, and a side-panel option read "Nuts &amp; Bolts".
+The search highlight in a paginated grid also handed a cell's decoded text back to the HTML
+parser, so an escaped `&lt;img …&gt;` in an `html` column came back as a real element whenever a
+search matched that cell. Each match is now built as a `<mark>` element, and markup is decoded
+for matching in an inert `DOMParser` document, never through `innerHTML` on the page.
+The example page *Treegrid → Escaped Text* shows both grid modes.
+
 ### Multi-Row Headers
 
 Use `treegrid_header_rows` to build colspan/rowspan headers. Define a list of rows, each a list of cell dicts:
