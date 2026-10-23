@@ -15,8 +15,9 @@ class CardTreeMixin(CardListBaseMixin):
 
     Attributes:
         show_details_for_parents (bool): If True, allows parent nodes to show detail views. Otherwise a node
-            that says ``'is_group': False`` in its data opens its details even when it has children, one that
-            says ``True`` never does, and one that says nothing is a group when it has children.
+            dict that carries ``'is_group': False`` (a key on the node itself, beside ``id`` and ``text`` --
+            not under jstree's ``data``, which jstree strips) opens its details even when it has children,
+            one that carries ``True`` never does, and one that carries neither is a group when it has children.
     """
 
     show_details_for_parents = False
