@@ -36,8 +36,12 @@
                         {% if show_details_for_parents %}
                             load_details(data.selected[0])
                         {% else %}
-                        let has_children = data.node.children.length > 0;
-                        if (!has_children) {
+                        // A node may say whether it is a group -- a parent with nothing of its own to show --
+                        // with `is_group` in its data: a folder that holds sub-folders is still a folder. One
+                        // that does not say is a group when it has children, as before.
+                        let original = data.node.original || {};
+                        let is_group = original.is_group !== undefined ? original.is_group : data.node.children.length > 0;
+                        if (!is_group) {
                             load_details(data.selected[0])
                         }
                         {% endif %}

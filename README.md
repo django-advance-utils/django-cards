@@ -259,6 +259,12 @@ node. `PanelLayout` was too; there the `mark_safe` sits in Python and `panel_lay
 no `|safe` at all, so searching the templates for one would not have found it. A `table_id` is
 normally a literal in your own code, which is why that half is the lesser of the two.
 
+**Fixed in 1.8.6.** With `show_details_for_parents` off, the tree card took every node with
+children for a group and never loaded its details, so a node that is both a thing to show and a
+parent -- a mail folder holding sub-folders -- could not be opened. A node now says for itself
+with `'is_group': True` or `False` in its data; one that says nothing is a group when it has
+children, as before.
+
 The tree card's selected id is fixed in 1.8.1 as well. It comes from the url and was written
 into two single-quoted JavaScript strings with only HTML escaping, so a link whose pk ended in
 a backslash or held a line break left the tree's script a syntax error. It now goes through
