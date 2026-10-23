@@ -30,17 +30,24 @@
                     'themes': {{ tree_themes|safe }}
                 }{% if tree_plugins %}, 'plugins':{{ tree_plugins|safe }}{% endif %}
             });
+            // Whether a node has details to show. A node may say for itself with `is_group` -- a group is a
+            // parent with nothing of its own to show; a folder that holds sub-folders is still a folder -- and
+            // one that says nothing (the key absent, or null) is a group when it has children, as before.
+            function has_details(node) {
+                {% if show_details_for_parents %}
+                return true;
+                {% else %}
+                var original = node.original || {};
+                if (original.is_group === true || original.is_group === false) {
+                    return !original.is_group;
+                }
+                return node.children.length === 0;
+                {% endif %}
+            }
             $('#{{ card.code }}_tree').on("changed.jstree", function (e, data) {
                 if (data.selected.length > 0) {
-                    if (data.node !== undefined) {
-                        {% if show_details_for_parents %}
-                            load_details(data.selected[0])
-                        {% else %}
-                        let has_children = data.node.children.length > 0;
-                        if (!has_children) {
-                            load_details(data.selected[0])
-                        }
-                        {% endif %}
+                    if (data.node !== undefined && has_details(data.node)) {
+                        load_details(data.selected[0])
                     }
                 }
          });
@@ -55,8 +62,15 @@
             if (node && node.length) {
                 node.children('.jstree-anchor').focus();
             }
+            // The first details, for the selected id: not when that names a group, which has none to show. An
+            // id the tree does not hold (an empty one) is still asked for, as it always was. jstree can be
+            // ready before the document is, and the details card comes after the tree card, so the request
+            // waits for the document as it did.
+            var selected = tree.get_node('{{ selected_id|escapejs }}');
+            if (!selected || has_details(selected)) {
+                window.cards_on_ready(function () { load_details('{{ selected_id|escapejs }}'); });
+            }
         });
-        window.cards_on_ready(function () { load_details('{{ selected_id|escapejs }}'); });
         </script>
     </div>
 

@@ -812,7 +812,15 @@ class CategoryTreeView(CardTree, TemplateView):
         card.add_entry(value=details_object, label='Selected ID')
 ```
 
-Override `get_tree_data(selected_id)` to return a list of node dicts with `id`, `parent` (`'#'` for root), `text`, and optionally `icon` and `state`.
+Override `get_tree_data(selected_id)` to return a list of node dicts with `id`, `parent` (`'#'` for root), `text`, and optionally `icon`, `state` and `is_group`.
+
+With `show_details_for_parents` off (the default), clicking a node loads its details unless the node is a
+group: a parent with nothing of its own to show. A node says which with `'is_group': True` or `False` on
+the dict itself, beside `id` and `text` (not under jstree's `data`, which jstree strips); one that says
+neither is a group when it has children. The first load on opening the page follows the same rule.
+
+**Fixed in 1.8.6.** The tree took every node with children for a group, so a node that is both a thing
+to show and a parent -- a mail folder holding sub-folders -- could not be opened; `is_group` is new.
 
 ---
 
