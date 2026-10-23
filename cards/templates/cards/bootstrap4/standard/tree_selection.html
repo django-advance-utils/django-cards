@@ -63,10 +63,12 @@
                 node.children('.jstree-anchor').focus();
             }
             // The first details, for the selected id: not when that names a group, which has none to show. An
-            // id the tree does not hold (an empty one) is still asked for, as it always was.
+            // id the tree does not hold (an empty one) is still asked for, as it always was. jstree can be
+            // ready before the document is, and the details card comes after the tree card, so the request
+            // waits for the document as it did.
             var selected = tree.get_node('{{ selected_id|escapejs }}');
             if (!selected || has_details(selected)) {
-                load_details('{{ selected_id|escapejs }}');
+                window.cards_on_ready(function () { load_details('{{ selected_id|escapejs }}'); });
             }
         });
         </script>

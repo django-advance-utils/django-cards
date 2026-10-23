@@ -53,6 +53,7 @@ class TestANodeSaysWhetherItIsAGroup(SimpleTestCase):
                 self.assertIn('return node.children.length === 0', html)
                 self.assertIn('has_details(data.node)', html)
                 self.assertIn('!selected || has_details(selected)', html)
+                self.assertIn("window.cards_on_ready(function () { load_details('')", html)  # after the document, still
 
     def test_show_details_for_parents_loads_every_node(self):
         for pack in PACKS:
