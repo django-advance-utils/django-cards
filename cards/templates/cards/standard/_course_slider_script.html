@@ -1,0 +1,63 @@
+{# Arrows and dots for add_course_tiles(slider=True). The track scrolls natively, so touch and trackpads need nothing here; #}
+{# this only moves it a slide at a time and keeps the dots and the arrows' disabled state in step with where it is.      #}
+<script>
+(function () {
+    var slider = document.getElementById('{{ card.code|escapejs }}_slider');
+    if (!slider) { return; }
+    var track = slider.querySelector('.django-card__course-tiles');
+    var prev = slider.querySelector('.django-card__course-slider-arrow--prev');
+    var next = slider.querySelector('.django-card__course-slider-arrow--next');
+    var dots = slider.querySelectorAll('.django-card__course-slider-dots button');
+    var slides = function () { return track.querySelectorAll(':scope > .django-card__course-tile'); };
+    // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft less that.
+    var restingLeft = function (slide) { return slide.offsetLeft - parseFloat(getComputedStyle(track).paddingLeft); };
+
+    function current() {
+        var items = slides(), best = 0;
+        for (var i = 1; i < items.length; i++) {
+            if (Math.abs(restingLeft(items[i]) - track.scrollLeft) < Math.abs(restingLeft(items[best]) - track.scrollLeft)) { best = i; }
+        }
+        // At the end of the track the last slides may never reach its left edge, so the last dot would never light.
+        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 1) { best = items.length - 1; }
+        return best;
+    }
+
+    function go(index) {
+        var items = slides();
+        if (!items.length) { return; }
+        index = Math.max(0, Math.min(items.length - 1, index));
+        track.scrollTo({left: restingLeft(items[index]), behavior: 'smooth'});
+    }
+
+    // The arrows step to the nearest slide starting before or after where the track is, not to
+    // current() +/- 1: with several slides on screen the track can be at its end with current()
+    // on the last dot, and the slide before that may start beyond where the track can scroll.
+    function step(direction) {
+        var items = slides(), left = track.scrollLeft;
+        for (var i = 0; i < items.length; i++) {
+            var j = direction > 0 ? i : items.length - 1 - i;
+            var resting = restingLeft(items[j]);
+            if (direction > 0 ? resting > left + 1 : resting < left - 1) { go(j); return; }
+        }
+    }
+
+    function update() {
+        var index = current();
+        dots.forEach(function (dot, i) { dot.classList.toggle('active', i === index); });
+        prev.disabled = track.scrollLeft <= 1;
+        next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+    }
+
+    prev.addEventListener('click', function () { step(-1); });
+    next.addEventListener('click', function () { step(1); });
+    dots.forEach(function (dot, i) { dot.addEventListener('click', function () { go(i); }); });
+    var pending = false;
+    track.addEventListener('scroll', function () {
+        if (pending) { return; }
+        pending = true;
+        requestAnimationFrame(function () { pending = false; update(); });
+    });
+    window.addEventListener('resize', update);
+    update();
+})();
+</script>

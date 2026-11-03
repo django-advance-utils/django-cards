@@ -315,6 +315,255 @@ class Tile:
         return lines
 
 
+@dataclass
+class CourseTile:
+    """One card in an :meth:`CardBase.add_course_tiles` grid -- a large tile with a banner.
+
+    Built for a course or lesson list (a coloured banner, a title, a short description, a
+    few stats, a progress bar and an action button), but nothing in it is course-specific:
+    every field but ``key`` is optional, and a tile draws only what it was given::
+
+        CourseTile(key='course_12', title='Getting Started',
+                   description='This course covers the first steps, from setting up...',
+                   banner_label='Projects', banner_icon='fas fa-folder-open',
+                   step='Step 1 of 2', badge='Required for your role',
+                   stats=[('fas fa-play-circle', '13 lessons'),
+                          ('fas fa-question-circle', '8 quizzes')],
+                   progress=0, status='Not started',
+                   footer_label='Projects', footer_icon='fas fa-folder-open',
+                   action_label='Start', action_url='/courses/12/')
+
+    Args:
+        key (str): Stable identifier; becomes the tile's DOM id, so it has to be unique on
+            the page.
+        title (str, optional): The tile's heading. Escaped.
+        title_html (str, optional): The heading as markup, for one with a word in italics
+            (``format_html('Learn <em>every</em> part of {}', product)``). Rendered unescaped;
+            see the warning below. Used instead of ``title``, not alongside it.
+        description (str, optional): A short paragraph under the title, cut to two lines by
+            the stylesheet; the full text stays in the tile's ``title`` attribute. Escaped.
+        banner_label (str, optional): Upper-case caption in the banner's bottom-left. Escaped.
+        banner_icon (str, optional): Icon classes (``'fas fa-folder-open'``) drawn beside the
+            caption and again, large and faded, on the banner's right.
+        banner_background (str, optional): CSS ``background`` for the banner -- a colour or a
+            gradient. Defaults to the stylesheet's blue gradient. Written into a ``style``
+            attribute, so it must come from code, never from a form or a model field.
+        image_url (str, optional): A banner image, drawn instead of the background and icon.
+        step (str, optional): A flag in the banner's top-left (``'Step 1 of 2'``). Escaped.
+        badge (str, optional): A pill under the description (``'Required for your role'``).
+            Escaped.
+        stats (list, optional): Short facts in a row under the badge. Each is a string or an
+            ``(icon_classes, text)`` pair. Escaped.
+        progress (int, optional): 0-100. A progress bar is drawn whenever this is not None,
+            so 0 draws an empty bar -- pass None for no bar at all.
+        status (str, optional): A quiet line under the progress bar (``'Not started'``).
+            Escaped.
+        footer_label (str, optional): Text in the footer's left (a category). Escaped.
+        footer_icon (str, optional): Icon classes drawn before ``footer_label``.
+        action_label (str, optional): The footer button's text. No button without one.
+        action_url (str, optional): Where the button goes. A plain href, so a ``javascript:``
+            URL that opens a modal works as well as a real one.
+        action_css_class (str, optional): The button's classes. Defaults to
+            ``'btn btn-sm btn-outline-primary'`` in the compact layout and
+            ``'btn btn-primary'`` (full width) in the detail one.
+        css_class (str, optional): Extra classes on the tile.
+        layout (str, optional): ``'compact'`` (the default) is the grid tile: stats in a row,
+            the button in the footer. ``'detail'`` is the one-course sidebar: stats one per
+            line, a full-width button under them, then ``secondary_label`` and ``note``.
+            ``'highlight'`` is a tile filled with ``banner_background`` (a purple gradient by
+            default) in place of a banner: ``banner_icon``/``banner_label`` as a small
+            upper-case line over the title and description, then ``status``, ``progress`` and
+            a white button pinned to the bottom -- a learning path at the head of a grid.
+            ``'feature'`` is a wide promotional slide: title, description and button on the
+            left over a ``banner_background`` tint, and on the right decorative shapes with
+            ``banner_icon`` in a white tile (no icon draws a single grey shape). Meant for a
+            slider (``add_course_tiles(slider=True)``); in a grid it takes the whole row.
+            ``'plain'`` is text only, with no box: a large title and a quieter description (and
+            an optional link), to introduce the tiles after it in a grid.
+            ``'showcase'`` is a wide dark panel: title, description, ``points`` in two columns
+            and a white button on the left; on the right a mosaic of a tall ``banner_icon``
+            panel, a small diagram of ``flow`` names joined by lines, and a ``panel_icon``
+            panel. Any panel not given is left out. In a grid it takes the whole row.
+        banner_url (str, optional): Makes the banner a link, with a round play button over
+            its middle -- a course preview.
+        banner_caption (str, optional): Text under the play button (``'Preview this course'``).
+            Escaped.
+        callout_title, callout_text (str, optional): A tinted box under the banner (``'On your
+            Estimator path'`` / ``'Step 1 of 2, required for your role.'``). Escaped.
+        callout_icon (str, optional): Icon classes drawn at the callout's left.
+        callout_link_label, callout_link_url (str, optional): A link at the end of the
+            callout's text (``'See your path'``).
+        secondary_label, secondary_url (str, optional): A quiet link under the button
+            (``'Save for later'``).
+        secondary_icon (str, optional): Icon classes drawn before ``secondary_label``.
+        note (str, optional): A small centred line at the bottom (``'Your progress is saved as
+            you go.'``). Escaped.
+        points (list, optional): The showcase layout's list. Each is ``(icon_classes, text)``
+            or ``(icon_classes, text, colour)``, the colour filling the icon's circle; without
+            one the circles take turns through four soft colours. The text is escaped; the
+            colour is written into a ``style`` attribute, so like ``banner_background`` it must
+            come from code.
+        flow (list, optional): Names drawn as boxes joined by lines in a showcase panel
+            (``['CRM', 'Projects', 'Gantt']``). Escaped.
+        panel_icon (str, optional): Icon classes for the showcase's small icon panel.
+
+    Warning:
+        ``title_html`` is the one field rendered as-is, for the same reason as
+        ``Tile.heading_html``: build it with :func:`~django.utils.html.format_html` and never
+        pass a value from a form or a model field straight into it.
+
+    The detail layout, as a sidebar on a course's own page::
+
+        CourseTile(key='course_12', title=None, layout='detail',
+                   banner_icon='fas fa-folder-open', banner_url=course.preview_url,
+                   banner_caption='Preview this course',
+                   callout_icon='fas fa-route', callout_title='On your Estimator path',
+                   callout_text='Step 1 of 2, required for your role.',
+                   callout_link_label='See your path', callout_link_url=path_url,
+                   stats=[('far fa-play-circle', '13 lessons in 2 sections'),
+                          ('far fa-question-circle', '8 quizzes to check your understanding'),
+                          ('fas fa-award', 'Certificate of completion')],
+                   action_label='Start this course', action_url=course.start_url,
+                   secondary_label='Save for later', secondary_icon='far fa-bookmark',
+                   secondary_url=save_url, note='Your progress is saved as you go.')
+    """
+
+    LAYOUTS = ('compact', 'detail', 'highlight', 'feature', 'plain', 'showcase')
+    # The showcase points' icon circles, in turn, when a point names no colour of its own.
+    POINT_COLOURS = ('#e3cde6', '#fbe3a1', '#c9ecd8', '#dfe3ea')
+
+    key: str
+    title: str = None
+    title_html: str = None
+    description: str = None
+    banner_label: str = None
+    banner_icon: str = None
+    banner_background: str = None
+    image_url: str = None
+    step: str = None
+    badge: str = None
+    stats: list = field(default_factory=list)
+    progress: int = None
+    status: str = None
+    footer_label: str = None
+    footer_icon: str = None
+    action_label: str = None
+    action_url: str = None
+    action_css_class: str = None
+    css_class: str = None
+    layout: str = 'compact'
+    banner_url: str = None
+    banner_caption: str = None
+    callout_title: str = None
+    callout_text: str = None
+    callout_icon: str = None
+    callout_link_label: str = None
+    callout_link_url: str = None
+    secondary_label: str = None
+    secondary_url: str = None
+    secondary_icon: str = None
+    note: str = None
+    points: list = field(default_factory=list)
+    flow: list = field(default_factory=list)
+    panel_icon: str = None
+
+    def __post_init__(self):
+        if self.layout not in self.LAYOUTS:
+            raise ValueError(f'CourseTile layout is one of {self.LAYOUTS}; got {self.layout!r}')
+        if self.action_css_class is None:
+            self.action_css_class = {'detail': 'btn btn-primary',
+                                     'highlight': 'btn django-card__course-highlight-action',
+                                     'feature': 'btn django-card__course-feature-action',
+                                     'plain': 'django-card__course-plain-action',
+                                     'showcase': 'btn django-card__course-showcase-action',
+                                     }.get(self.layout, 'btn btn-sm btn-outline-primary')
+
+    @property
+    def is_detail(self):
+        return self.layout == 'detail'
+
+    @property
+    def is_highlight(self):
+        return self.layout == 'highlight'
+
+    @property
+    def is_feature(self):
+        return self.layout == 'feature'
+
+    @property
+    def is_plain(self):
+        return self.layout == 'plain'
+
+    @property
+    def is_showcase(self):
+        return self.layout == 'showcase'
+
+    @property
+    def point_items(self):
+        """`points` as {'icon', 'text', 'colour'} dicts, colours filled in turn where missing."""
+        items = []
+        for index, point in enumerate(self.points or ()):
+            if not isinstance(point, (list, tuple)) or len(point) not in (2, 3):
+                raise ValueError(f'A point is (icon_classes, text) or (icon_classes, text, colour); '
+                                 f'got {point!r}')
+            icon, text = point[0], point[1]
+            colour = point[2] if len(point) == 3 else self.POINT_COLOURS[index % len(self.POINT_COLOURS)]
+            items.append({'icon': icon or '', 'text': text, 'colour': colour})
+        return items
+
+    @property
+    def has_panels(self):
+        return bool(self.banner_icon or self.flow or self.panel_icon)
+
+    @property
+    def has_title(self):
+        return bool(self.title or self.title_html)
+
+    @property
+    def has_callout(self):
+        return bool(self.callout_title or self.callout_text or self.callout_link_label)
+
+    @classmethod
+    def build(cls, tile):
+        """Return `tile` as a CourseTile, accepting a dict of the same fields; see Tile.build."""
+        if isinstance(tile, cls):
+            return tile
+        if isinstance(tile, dict):
+            return cls(**tile)
+        raise TypeError(f'add_course_tiles() takes CourseTile objects or dicts of CourseTile '
+                        f'fields, not {type(tile).__name__}')
+
+    @property
+    def stat_items(self):
+        """`stats` as {'icon', 'text'} dicts, for the same reason as Tile.meta_lines."""
+        items = []
+        for stat in self.stats or ():
+            if isinstance(stat, (list, tuple)):
+                if len(stat) != 2:
+                    raise ValueError(f'A stat pair is (icon_classes, text); got {stat!r}')
+                icon, text = stat
+            else:
+                icon, text = None, stat
+            items.append({'icon': icon or '', 'text': text})
+        return items
+
+    @property
+    def progress_percent(self):
+        """`progress` clamped to 0-100, so a bad figure cannot push the bar out of its track."""
+        if self.progress is None:
+            return None
+        return max(0, min(100, int(self.progress)))
+
+    @property
+    def has_footer(self):
+        """The compact layout's footer row; the others draw their button in the body."""
+        if self.is_highlight or self.is_feature or self.is_plain or self.is_showcase:
+            return False
+        if self.is_detail:
+            return bool(self.footer_label or self.footer_icon)
+        return bool(self.footer_label or self.footer_icon or self.action_label)
+
+
 class CardBase:
     """
     Card Framework for Django Views
@@ -414,6 +663,9 @@ class CardBase:
                  'tiles': {'name': 'cards/standard/tiles.html',
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list'}},
+                 'course_tiles': {'name': 'cards/standard/course_tiles.html',
+                                  'context': {'card_css_class': 'card django-card',
+                                              'card_body_css_class': 'card-body cards-list'}},
                  'message': {'name': 'cards/standard/message.html',
                              'context': {'card_css_class': 'card django-card',
                                          'alert_css_class': 'alert-warning'}},
@@ -1900,6 +2152,57 @@ class CardBase:
         if width is not None:
             self.extra_card_info['tiles_width'] = width
         self.template_name = 'tiles'
+        self.requires_card_css = True
+        return self
+
+    def add_course_tiles(self, tiles, empty_message=None, width=None, slider=False):
+        """Render the card's body as a grid of :class:`CourseTile` cards.
+
+        The card it is called on is the master card -- its header, menu and footer stay as
+        they are -- and each tile is a card of its own inside it::
+
+            card = self.add_card('training', title='Your training')
+            card.add_course_tiles(
+                [CourseTile(key=f'course_{c.pk}', title=c.name, description=c.summary,
+                            banner_label=c.category.name, banner_icon=c.category.icon,
+                            step=f'Step {n} of {len(courses)}',
+                            stats=[('fas fa-play-circle', f'{c.lessons} lessons')],
+                            progress=c.progress_for(user), status=c.status_for(user),
+                            action_label='Start', action_url=c.get_absolute_url())
+                 for n, c in enumerate(courses, 1)],
+                empty_message='No courses assigned yet.',
+            )
+
+        ``slider=True`` puts the tiles in one horizontal, swipeable row instead of a grid,
+        with prev/next arrows and a dot per tile -- the shape for ``layout='feature'``
+        promotions, though any layout can be a slide.
+
+        A learning path at the head of the grid is a ``CourseTile(layout='highlight')`` first
+        in the list. A single course on its own is the same call with one tile; pass ``border='none'`` to
+        add_card() as well to drop the master card's box around it.
+
+        Like add_tiles, this sets the card's template (replacing any template_name given to
+        add_card()), and called more than once it adds to the grid.
+
+        Args:
+            tiles (list): :class:`CourseTile` objects, or dicts of the same fields.
+            empty_message (str, optional): Shown in place of the grid when there are no tiles.
+            width (str, optional): The width of one tile, as a CSS length. Defaults to the
+                stylesheet's 260px. A feature tile's width is set by the stylesheet instead.
+            slider (bool, optional): Lay the tiles out as a slider rather than a grid.
+
+        Returns:
+            CardBase: The card, so the call can be chained onto add_card().
+        """
+        if slider:
+            self.extra_card_info['course_tiles_slider'] = True
+        self.extra_card_info.setdefault('course_tiles', []).extend(
+            CourseTile.build(tile) for tile in tiles)
+        if empty_message is not None:
+            self.extra_card_info['course_tiles_empty_message'] = empty_message
+        if width is not None:
+            self.extra_card_info['course_tiles_width'] = width
+        self.template_name = 'course_tiles'
         self.requires_card_css = True
         return self
 

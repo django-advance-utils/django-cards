@@ -275,3 +275,742 @@
     font-size: 12px;
     line-height: 1;
 }
+
+/* Course tiles (add_course_tiles()).
+ *
+ * A grid of larger cards inside a master card: a banner, a body and a footer pinned to the
+ * bottom, so a row of tiles whose descriptions differ in length still lines its buttons up.
+ * Colours are custom properties, so a project restyles the family without overriding rules.
+ */
+
+.django-card__course-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--django-card-course-tile-width, 260px)), 1fr));
+    gap: 16px;
+    padding: 8px;
+}
+
+.django-card__course-tile {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border: 1px solid var(--django-card-border-color, #dee2e6);
+    border-radius: 8px;
+    background: var(--django-card-course-tile-bg, #fff);
+    min-width: 0;
+}
+
+.django-card__course-banner {
+    position: relative;
+    height: 128px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: var(--django-card-course-banner-bg, linear-gradient(135deg, #2b3fd6 0%, #2a2f8f 100%));
+    color: #fff;
+}
+
+.django-card__course-banner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* The banner's icon again, large and faded, so a banner with no image still says what it is. */
+.django-card__course-banner-watermark {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 72px;
+    opacity: .2;
+}
+
+.django-card__course-step {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(10, 16, 60, .75);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.django-card__course-banner-label {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.django-card__course-body {
+    flex: 1 1 auto;
+    padding-top: 12px;
+}
+
+.django-card__course-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* Two lines, then an ellipsis; the template puts the full text in the title attribute. */
+.django-card__course-description {
+    margin-top: 6px;
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 13px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.django-card__course-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--django-card-course-badge-bg, #0d6efd);
+    color: var(--django-card-course-badge-color, #fff);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.django-card__course-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 12px;
+}
+
+.django-card__course-progress {
+    height: 6px;
+    margin-top: 20px;
+    border-radius: 3px;
+    background: var(--django-card-course-track-bg, #e9ecef);
+    overflow: hidden;
+}
+
+.django-card__course-progress-bar {
+    height: 100%;
+    background: var(--django-card-course-progress-bg, #198754);
+}
+
+.django-card__course-status {
+    margin-top: 8px;
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 12px;
+}
+
+.django-card__course-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--django-card-border-color, #dee2e6);
+}
+
+.django-card__course-footer-label {
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 12px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The detail layout (CourseTile(layout='detail')): one course in a sidebar. */
+
+a.django-card__course-banner--link {
+    display: block;
+    text-decoration: none;
+}
+
+.django-card__course-detail .django-card__course-banner {
+    height: 190px;
+}
+
+.django-card__course-play {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    color: #212529;
+    font-size: 22px;
+    transition: transform .2s;
+}
+
+.django-card__course-play i {
+    margin-left: 4px;
+}
+
+a.django-card__course-banner--link:hover .django-card__course-play {
+    transform: translate(-50%, -50%) scale(1.08);
+}
+
+.django-card__course-banner-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.django-card__course-callout {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--django-card-course-callout-bg, #f3eef6);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.django-card__course-callout-icon {
+    margin-top: 2px;
+    color: var(--django-card-course-accent, #8e3a94);
+}
+
+.django-card__course-callout-title {
+    font-weight: 700;
+}
+
+.django-card__course-callout a {
+    color: var(--django-card-course-accent, #8e3a94);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.django-card__course-stats--list {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    color: inherit;
+    font-size: 14px;
+}
+
+.django-card__course-stats--list i {
+    width: 1.25em;
+    margin-right: 6px;
+    text-align: center;
+}
+
+.django-card__course-action {
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-weight: 700;
+}
+
+.django-card__course-secondary {
+    display: block;
+    margin-top: 12px;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+}
+
+.django-card__course-note {
+    margin-top: 12px;
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* The highlight layout (CourseTile(layout='highlight')): a filled tile, a learning path say,
+ * at the head of a grid. It stretches to its row's height and pins progress and the button to
+ * the bottom, so it lines up with the course tiles beside it. */
+
+.django-card__course-highlight {
+    padding: 18px;
+    border: 0;
+    background: var(--django-card-course-highlight-bg, linear-gradient(160deg, #94409a 0%, #5e2a7e 100%));
+    color: #fff;
+}
+
+.django-card__course-highlight-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    opacity: .9;
+}
+
+.django-card__course-highlight-title {
+    margin-top: 6px;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.django-card__course-highlight-description {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.django-card__course-highlight-bottom {
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+.django-card__course-highlight-status {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.django-card__course-highlight-progress {
+    margin-top: 10px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .3);
+}
+
+.django-card__course-highlight-progress .django-card__course-progress-bar {
+    background: #fff;
+}
+
+.django-card__course-highlight-action {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--django-card-course-accent, #5e2a7e);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    white-space: normal;
+}
+
+.django-card__course-highlight-action:hover {
+    background: #f3eef6;
+    color: var(--django-card-course-accent, #5e2a7e);
+}
+
+/* Course tile slider (add_course_tiles(slider=True)).
+ *
+ * The track is a native horizontal scroller with snap points, so swiping and trackpads work
+ * with no script; _course_slider_script.html adds the arrows and dots. The track's padding
+ * leaves room for the arrows, which sit over the slides' edges. */
+
+.django-card__course-slider {
+    position: relative;
+}
+
+.django-card__course-tiles--slider {
+    display: flex;
+    position: relative;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 8px;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+}
+
+.django-card__course-tiles--slider::-webkit-scrollbar {
+    display: none;
+}
+
+.django-card__course-tiles--slider > .django-card__course-tile {
+    flex: 0 0 var(--django-card-course-tile-width, 260px);
+    scroll-snap-align: start;
+}
+
+.django-card__course-tiles--slider > .django-card__course-feature,
+.django-card__course-tiles--slider > .django-card__course-showcase {
+    flex-basis: var(--django-card-course-feature-width, min(820px, 88%));
+}
+
+.django-card__course-slider-arrow {
+    position: absolute;
+    top: calc(50% - 14px);
+    z-index: 3;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    border: 1px solid var(--django-card-border-color, #dee2e6);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+    color: #212529;
+    transition: opacity .2s;
+}
+
+.django-card__course-slider-arrow--prev {
+    left: -6px;
+}
+
+.django-card__course-slider-arrow--next {
+    right: -6px;
+}
+
+.django-card__course-slider-arrow:disabled {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.django-card__course-slider-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.django-card__course-slider-dots button {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: #ced4da;
+    transition: width .2s, background-color .2s;
+}
+
+.django-card__course-slider-dots button.active {
+    width: 40px;
+    background: var(--django-card-course-accent, #8e3a94);
+}
+
+/* The feature layout (CourseTile(layout='feature')): a wide promotional slide. In a grid it
+ * takes the whole row; in a slider the rule above sets its width. */
+
+.django-card__course-feature {
+    position: relative;
+    flex-direction: row;
+    grid-column: 1 / -1;
+    min-height: 300px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    background: var(--django-card-course-feature-bg, #f2e5f2);
+}
+
+.django-card__course-feature--plain {
+    background: var(--django-card-course-feature-plain-bg, #eeeff2);
+}
+
+.django-card__course-feature-text {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 0 1 55%;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 24px 40px clamp(24px, 10%, 84px);
+}
+
+.django-card__course-feature-title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.django-card__course-feature-description {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.django-card__course-feature-action,
+.django-card__course-feature-action:hover {
+    margin-top: 22px;
+    padding: 10px 28px;
+    border-radius: 4px;
+    background: var(--django-card-course-accent, #8e3a94);
+    color: #fff;
+    font-weight: 700;
+}
+
+.django-card__course-feature-action:hover {
+    filter: brightness(1.1);
+}
+
+.django-card__course-feature-art {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
+}
+
+.django-card__course-feature-shape {
+    position: absolute;
+    display: block;
+}
+
+.django-card__course-feature-shape--accent {
+    top: -70px;
+    right: -50px;
+    width: 360px;
+    height: 360px;
+    border-radius: 48% 52% 46% 54% / 55% 50% 50% 45%;
+    background: var(--django-card-course-accent-shape, #a159a8);
+}
+
+.django-card__course-feature-shape--grey {
+    bottom: -140px;
+    left: 0;
+    width: 310px;
+    height: 330px;
+    border-radius: 50%;
+    background: var(--django-card-course-grey-shape, #b8b6bc);
+}
+
+/* The grey shape sits under the purple one, so the overlap reads as the purple's edge. */
+.django-card__course-feature-shape--accent {
+    z-index: 1;
+}
+
+.django-card__course-feature--plain .django-card__course-feature-shape--grey {
+    top: 130px;
+    bottom: auto;
+    left: auto;
+    right: -170px;
+}
+
+.django-card__course-feature-icon {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: 132px;
+    height: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-30%, -45%) rotate(-6deg);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .18);
+    color: var(--django-card-course-accent, #8e3a94);
+    font-size: 64px;
+}
+
+@media (max-width: 576px) {
+    .django-card__course-feature-art {
+        display: none;
+    }
+
+    .django-card__course-feature-text {
+        flex-basis: 100%;
+    }
+}
+
+/* The plain layout (CourseTile(layout='plain')): text with no box, introducing the tiles after
+ * it. Centred vertically so it sits level with the middle of the tiles beside it. */
+
+.django-card__course-plain {
+    justify-content: center;
+    padding: 16px 8px;
+    border: 0;
+    background: transparent;
+}
+
+.django-card__course-plain-title {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.django-card__course-plain-title em {
+    font-style: italic;
+}
+
+.django-card__course-plain-description {
+    margin-top: 10px;
+    color: var(--django-card-course-muted-color, #6c757d);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.django-card__course-plain-action {
+    margin-top: 14px;
+    color: var(--django-card-course-accent, #8e3a94);
+    font-weight: 700;
+}
+
+/* The showcase layout (CourseTile(layout='showcase')): a wide dark panel, text and points on
+ * the left and a mosaic of panels on the right. Without panels the text takes the width. */
+
+.django-card__course-showcase {
+    flex-direction: row;
+    gap: 40px;
+    grid-column: 1 / -1;
+    min-height: 380px;
+    padding: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--django-card-course-showcase-bg, #1f2023);
+    color: var(--django-card-course-showcase-color, #fff);
+}
+
+.django-card__course-showcase-text {
+    display: flex;
+    flex: 1 1 50%;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.django-card__course-showcase-title {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.django-card__course-showcase-description {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.5;
+    opacity: .8;
+}
+
+.django-card__course-showcase-points {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 32px;
+    margin: 26px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 15px;
+}
+
+.django-card__course-showcase-points li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.django-card__course-showcase-point-icon {
+    display: flex;
+    flex: 0 0 26px;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    border-radius: 50%;
+    color: #3b2a3d;
+    font-size: 12px;
+}
+
+.django-card__course-showcase-action,
+.django-card__course-showcase-action:hover {
+    margin-top: 34px;
+    padding: 11px 46px;
+    border-radius: 4px;
+    background: #fff;
+    color: #1f2023;
+    font-weight: 700;
+}
+
+.django-card__course-showcase-action:hover {
+    background: #f1f1f3;
+}
+
+.django-card__course-showcase-panels {
+    display: grid;
+    flex: 0 0 46%;
+    grid-template-columns: 2fr 3fr;
+    gap: 16px;
+}
+
+.django-card__course-showcase-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+/* Only one column of panels given: let it take both. */
+.django-card__course-showcase-panels > :only-child {
+    grid-column: 1 / -1;
+}
+
+.django-card__course-showcase-panel--main {
+    background: var(--django-card-course-showcase-main-bg, linear-gradient(160deg, #b25cb8 0%, #6f2a78 100%));
+    color: #fff;
+    font-size: 72px;
+}
+
+.django-card__course-showcase-side {
+    display: grid;
+    grid-auto-rows: 1fr;
+    gap: 16px;
+}
+
+.django-card__course-showcase-panel--flow {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 16px;
+    background: var(--django-card-course-showcase-flow-bg, #ebecef);
+}
+
+.django-card__course-showcase-flow-node {
+    padding: 8px 12px;
+    border: 2px solid var(--django-card-course-accent, #8e3a94);
+    border-radius: 5px;
+    background: #fff;
+    color: #212529;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.django-card__course-showcase-flow-line {
+    width: 18px;
+    height: 2px;
+    margin: 0 6px;
+    background: var(--django-card-course-flow-line, #1e9e6a);
+}
+
+.django-card__course-showcase-panel--icon {
+    background: var(--django-card-course-showcase-icon-bg, #e3cde6);
+    color: var(--django-card-course-accent-dark, #5e2a7e);
+    font-size: 60px;
+}
+
+@media (max-width: 768px) {
+    .django-card__course-showcase {
+        padding: 32px 24px;
+    }
+
+    .django-card__course-showcase-panels {
+        display: none;
+    }
+
+    .django-card__course-showcase-points {
+        grid-template-columns: 1fr;
+    }
+}
