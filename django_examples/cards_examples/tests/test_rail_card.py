@@ -194,6 +194,17 @@ class TestTheRail(SimpleTestCase):
         with self.assertRaisesMessage(ValueError, 'a list of dicts'):
             _rail(_view(), panels=[{'title': 'A', 'panels': {'title': 'B'}}]).render()
 
+    def test_a_panel_that_is_not_a_dict_is_refused(self):
+        view = _view()
+        with self.assertRaisesMessage(ValueError, 'a list of dicts'):
+            _rail(view, panels=[_body(view, 'loose', 'x')]).render()
+
+    def test_the_shown_event_names_the_panes_own_button(self):
+        """Opening a column shows a pane two buttons from the one clicked: the event names the pane's."""
+        html = _rail(_view()).render()
+        self.assertIn("var detail = {button: p.getAttribute('aria-labelledby')};", html)
+        self.assertIn("pane.querySelectorAll('.django-card-rail__pane')", html)
+
 
 class TestTheSharedScript(SimpleTestCase):
 

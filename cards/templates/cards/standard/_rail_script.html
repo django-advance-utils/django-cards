@@ -100,18 +100,34 @@
             return own(column, 'django-card-rail__btn').filter(function (b) { return b.classList.contains('active'); })[0];
         }
 
-        function shown(pane, button) {
+        // Whether el is on show within root: neither it nor anything between them is hidden.
+        function onShow(el, root) {
+            for (; el && el !== root; el = el.parentElement) {
+                if (el.hidden || el.classList.contains('django-card__section--folded')) { return false; }
+            }
+            return true;
+        }
+
+        // A pane newly on show: its datatables, laid out while it was hidden, are measured again,
+        // and it raises shown.cards.rail, as does the open pane of any rail inside it, which has
+        // just come on show with it. detail.button is the pane's own button.
+        function shown(pane) {
             var $ = window.jQuery;
             if ($ && $.fn.dataTable) {
-                $(pane).find('table.dataTable').each(function () { $(this).DataTable().columns.adjust(); });
+                $(pane).find('table.dataTable').filter(function () { return onShow(this, pane); })
+                    .each(function () { $(this).DataTable().columns.adjust(); });
             }
-            var detail = {button: button ? button.id : null};
-            if ($) { $(pane).trigger($.Event('shown.cards.rail'), [detail]); }
-            pane.dispatchEvent(new CustomEvent('shown.cards.rail', {bubbles: true, detail: detail}));
+            [pane].concat([].slice.call(pane.querySelectorAll('.django-card-rail__pane')).filter(function (inner) {
+                return onShow(inner, pane);
+            })).forEach(function (p) {
+                var detail = {button: p.getAttribute('aria-labelledby')};
+                if ($) { $(p).trigger($.Event('shown.cards.rail'), [detail]); }
+                p.dispatchEvent(new CustomEvent('shown.cards.rail', {bubbles: true, detail: detail}));
+            });
         }
 
         // Show what the active buttons lead to; raise shown.cards.rail on a pane newly on show.
-        function refresh(body, clicked) {
+        function refresh(body) {
             var columns = own(body, 'django-card-rail__column');
             var byId = {};
             columns.forEach(function (c) { byId[c.id] = c; });
@@ -137,7 +153,7 @@
             panesOf(body).forEach(function (pane) {
                 var was = !pane.hidden;
                 pane.hidden = pane.id !== paneId;
-                if (!pane.hidden && !was) { shown(pane, clicked); }
+                if (!pane.hidden && !was) { shown(pane); }
             });
         }
 
@@ -149,7 +165,7 @@
                 b.setAttribute('aria-selected', on ? 'true' : 'false');
                 b.tabIndex = on ? 0 : -1;
             });
-            refresh(column.parentElement, button);
+            refresh(column.parentElement);
             if (focus) { button.focus(); }
         }
 

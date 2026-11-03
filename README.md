@@ -1722,8 +1722,9 @@ class DashboardView(CardMixin, TemplateView):
 
 `add_rail_card()` puts a column of icons down a card's left side with the open panel beside them, one
 panel open at a time. A panel that holds `panels` of its own opens a **second column of icons** beside the
-first, and that column's icons open their panels -- or further columns -- in turn. The panel list takes the
-accordion's keys, so `add_accordion_card` and `add_rail_card` take the same list.
+first, and that column's icons open their panels -- or further columns -- in turn. A panel takes the
+accordion's `title`, `icon`, `card` and `expanded`, so an accordion's list of those moves across unchanged; its
+`id`, `ajax_load` and `header_css_class` are not read here.
 
 It is a card like any other, so it goes wherever a card goes: a panel region beside a splitter, a region
 tab, an accordion panel, a card group.
@@ -1759,7 +1760,9 @@ class ItemView(CardMixin, TemplateView):
 - The open pane scrolls on its own and the icon columns stay put. A column opened again opens on the
   panel last chosen in it.
 - Showing a pane raises `shown.cards.rail` on it (native and jQuery, bubbling, `detail.button` the
-  button's id), and its datatables are measured again, as they are laid out while hidden.
+  pane's own button id), and its datatables are measured again, as they are laid out while hidden. A rail
+  inside the pane raises it for its own open pane too. The pane open when the page loads raises nothing:
+  load that one from the page's ready handler, as with an accordion's open panel.
 - Up/Down, Home and End move along a column, as in a vertical tab list.
 - Colours are custom properties a theme can set: `--django-card-rail-bg`, `--django-card-rail-nested-bg`,
   `--django-card-rail-icon`, `--django-card-rail-icon-active`, `--django-card-rail-active-bg`,

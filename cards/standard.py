@@ -708,17 +708,19 @@ class CardMixin:
 
         Each icon opens its panel -- one at a time, one always open. A panel that holds
         ``panels`` of its own opens a second column of icons beside the first rather than a
-        pane, and that column's icons open their panels (or further columns) in turn. The panel
-        list takes the accordion's keys, so ``add_accordion_card`` and ``add_rail_card`` take the
-        same list.
+        pane, and that column's icons open their panels (or further columns) in turn. A panel takes
+        the accordion's ``title``, ``icon``, ``card`` and ``expanded``, so an accordion's list of those
+        moves across unchanged; its ``id``, ``ajax_load`` and ``header_css_class`` are not read here.
 
         The card is a card like any other, so it goes wherever a card goes: a panel region or
         tab, an accordion panel, a card group. The open pane scrolls on its own and the icon
         columns stay put.
 
         Showing a pane raises ``shown.cards.rail`` on it (native and jQuery, bubbling, with the
-        pane's button id as ``detail.button``), so a page can load a pane's content the first
-        time it is opened; its datatables are measured again as it shows.
+        pane's own button id as ``detail.button``), so a page can load a pane's content the first
+        time it is opened -- the pane open when the page loads raises nothing, so load that one
+        from the page's ready handler, as with an accordion's open panel. A rail inside the pane
+        raises it for its own open pane too, and the pane's datatables are measured again.
 
         Args:
             card_name (str, optional): Unique card identifier.

@@ -1009,6 +1009,11 @@ class PanelLayoutRailExample(MainMenu, CardMixin, TemplateView):
                 ]},
             ]},
             {'title': 'Notes', 'card': self._rows('notes', 2, 'No icon: the rail shows the first letter.')},
+            {'title': 'A rail in a pane', 'icon': 'fas fa-layer-group', 'card': self.add_rail_card(
+                card_name='pane_rail', panels=[
+                    {'title': 'Inner one', 'icon': 'fas fa-dice-one', 'card': self._rows('inner_one', 2, 'Inner')},
+                    {'title': 'Inner two', 'icon': 'fas fa-dice-two', 'card': self._rows('inner_two', 2, 'Inner')},
+                ])},
         ])
         root.add_region('rail', size='380px', min_size=200).add_card(rail)
 

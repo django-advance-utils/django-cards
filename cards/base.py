@@ -2683,6 +2683,9 @@ class CardBase:
         def walk(panels, column_id, parent_id, on_path):
             if not isinstance(panels, (list, tuple)):
                 raise ValueError(f'A rail\'s panels are a list of dicts; got {panels!r}')
+            loose = next((panel for panel in panels if not isinstance(panel, dict)), None)
+            if loose is not None:
+                raise ValueError(f'A rail\'s panels are a list of dicts; got {loose!r} in it')
             buttons = []
             columns.append({'id': column_id, 'parent': parent_id, 'visible': on_path, 'buttons': buttons})
             active = next((i for i, panel in enumerate(panels) if panel.get('expanded')), 0)
