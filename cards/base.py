@@ -391,6 +391,7 @@ CARD_TYPE_ACCORDION = 10
 CARD_TYPE_PANEL_LAYOUT = 11
 CARD_TYPE_IFRAME = 12
 CARD_TYPE_TREEGRID = 13
+CARD_TYPE_RAIL = 14
 
 # Opt-in card chrome. None keeps the Bootstrap `.card` border; 'thin' is a 1px
 # hairline like the purchase-order detail boxes; 'none' drops the box entirely
@@ -694,6 +695,7 @@ def build_sections(entries, register=True):
 
 
 SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
+RAIL_SCRIPT_MARK = '_django_cards_rail_script_rendered'
 
 #: Where a view keeps what it built this build (`_this_build`): ``(cards dict, {'stacks': [...],
 #: 'layouts': [...]})`` -- its section stacks, each a list of sections, and its panel layouts. What
@@ -756,6 +758,15 @@ def find_section(view, card):
     return None
 
 
+def _panel_cards(panels):
+    """The cards of an accordion's or a rail's panels, those of a rail's nested columns included."""
+    for panel in panels or ():
+        if isinstance(panel, dict):
+            if panel.get('card') is not None:
+                yield panel['card']
+            yield from _panel_cards(panel.get('panels'))
+
+
 def placements(view):
     """The ids of every card placed on ``view`` this build somewhere other than a section stack:
     its card groups, a layout or group card's child groups, an accordion's panels, and a panel
@@ -769,9 +780,7 @@ def placements(view):
     for holder in (getattr(view, 'cards', None) or {}).values():
         for group in getattr(holder, 'child_card_groups', None) or ():
             placed.update(id(card) for card in group.get('cards', ()))
-        for panel in (getattr(holder, 'extra_card_info', None) or {}).get('panels', ()) or ():
-            if isinstance(panel, dict) and panel.get('card') is not None:
-                placed.add(id(panel['card']))
+        placed.update(id(card) for card in _panel_cards((getattr(holder, 'extra_card_info', None) or {}).get('panels')))
     for layout in (_this_build(view) or {}).get('layouts', ()):
         placed.update(id(card) for card in layout.placed_cards())
     return placed
@@ -1356,7 +1365,10 @@ class CardBase:
                                         'card_body_css_class': 'card-body p-0'}},
                  'treegrid': {'name': 'cards/standard/treegrid.html',
                               'context': {'card_css_class': 'card django-card',
-                                          'card_body_css_class': 'card-body cards-list'}}}
+                                          'card_body_css_class': 'card-body cards-list'}},
+                 'rail': {'name': 'cards/standard/rail.html',
+                          'context': {'card_css_class': 'card django-card',
+                                      'card_body_css_class': 'card-body p-0'}}}
 
     ajax_commands = ['datatable']
 
@@ -1372,7 +1384,8 @@ class CardBase:
                          CARD_TYPE_ACCORDION: 'accordion',
                          CARD_TYPE_PANEL_LAYOUT: 'panel_layout_card',
                          CARD_TYPE_IFRAME: 'iframe',
-                         CARD_TYPE_TREEGRID: 'treegrid'}
+                         CARD_TYPE_TREEGRID: 'treegrid',
+                         CARD_TYPE_RAIL: 'rail'}
 
     button_menu_type = 'button_group'
     tab_menu_type = 'tabs'
@@ -1555,6 +1568,10 @@ class CardBase:
                 extra_info['order_field'] = kwargs.get('order_field', 'order')
         elif group_type == CARD_TYPE_LINKED_DATATABLES:
             extra_info['datatables'] = kwargs.get('datatables', [])
+        elif group_type == CARD_TYPE_RAIL:
+            extra_info['panels'] = kwargs.get('panels', [])
+            extra_info['height'] = kwargs.get('height', '100%')
+            extra_info['pane_titles'] = kwargs.get('pane_titles', True)
         elif group_type == CARD_TYPE_ACCORDION:
             extra_info['panels'] = kwargs.get('panels', [])
             extra_info['multi_open'] = kwargs.get('multi_open', False)
@@ -2547,6 +2564,8 @@ class CardBase:
             self._process_linked_datatables()
         elif self.group_type == CARD_TYPE_ACCORDION:
             self._process_accordion()
+        elif self.group_type == CARD_TYPE_RAIL:
+            self._process_rail()
         elif self.group_type == CARD_TYPE_STANDARD and self.call_details_data:
             if self.code is not None and hasattr(self.view, f'get_{self.code}_data'):
                 getattr(self.view, f'get_{self.code}_data')(card=self, details_object=self.details_object)
@@ -2644,6 +2663,57 @@ class CardBase:
             })
 
         self.extra_card_info['initialized_panels'] = initialized_panels
+
+    def _process_rail(self):
+        """Lay a rail card's panels out as icon columns and panes (``add_rail_card``).
+
+        Every column, nested ones included, becomes one entry of ``rail_columns`` and every panel
+        with no ``panels`` of its own one entry of ``rail_panes``, listed flat in depth-first order:
+        a column comes before the columns nested in it, so the ones on show read left to right.
+        Each column has one active button -- the panel marked ``expanded``, or its first -- and the
+        columns and pane on show are those the active buttons lead to from the first column. A
+        column off that path keeps its own active button, which is where it opens next time.
+
+        Ids are built from each panel's position under the card's code, so two branches holding
+        panels of the same name cannot write the same id twice.
+        """
+        columns = []
+        panes = []
+
+        def walk(panels, column_id, parent_id, on_path):
+            if not isinstance(panels, (list, tuple)):
+                raise ValueError(f'A rail\'s panels are a list of dicts; got {panels!r}')
+            buttons = []
+            columns.append({'id': column_id, 'parent': parent_id, 'visible': on_path, 'buttons': buttons})
+            active = next((i for i, panel in enumerate(panels) if panel.get('expanded')), 0)
+            for i, panel in enumerate(panels):
+                node_id = f'{column_id}_{i}'
+                button = {
+                    'id': node_id,
+                    'title': panel.get('title', f'Panel {i + 1}'),
+                    'icon': panel.get('icon'),
+                    'active': i == active,
+                }
+                buttons.append(button)
+                children = panel.get('panels')
+                if children:
+                    if panel.get('card') is not None:
+                        raise ValueError(f'Rail panel {button["title"]!r} holds both panels and a card; '
+                                         f'a panel opens a column or a pane, not both')
+                    button['column'] = f'{node_id}_col'
+                    walk(children, button['column'], node_id, on_path and i == active)
+                else:
+                    card = panel.get('card')
+                    refuse_if_stacked(self.view, card, 'a rail panel')
+                    button['pane'] = f'{node_id}_pane'
+                    panes.append({'id': button['pane'], 'button': node_id, 'title': button['title'],
+                                  'icon': button['icon'], 'card': card, 'visible': on_path and i == active})
+
+        panels = self.extra_card_info.get('panels') or []
+        if panels:
+            walk(panels, f'{self.code}_rail', '', True)
+        self.extra_card_info['rail_columns'] = columns
+        self.extra_card_info['rail_panes'] = panes
 
     def add_table(self, model, table_id=None):
         """
@@ -3013,7 +3083,7 @@ class CardBase:
     #: Named rather than excluded, as every other template sizes itself or lays its body out its own
     #: way -- a treegrid's own scrolling grid, an accordion, an iframe, a panel layout, a list
     #: selection's fixed-height body, a card layout's rows -- and would spill or scroll twice.
-    REGION_FILLING_TEMPLATES = frozenset({'default', 'table', 'html', 'message'})
+    REGION_FILLING_TEMPLATES = frozenset({'default', 'table', 'html', 'message', 'rail'})
 
     @property
     def fills_region(self):

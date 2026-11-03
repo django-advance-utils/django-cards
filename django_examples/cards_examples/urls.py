@@ -35,7 +35,7 @@ from cards_examples.views.panel_layout import (
     PanelLayoutAccordionExample, PanelLayoutIframeExample,
     PanelLayoutLinkedDatatablesExample,
     PanelLayoutDetailDatatablesExample,
-    PanelLayoutTabsExample, PanelLayoutSlotExample, PanelLayoutTreegridExample,
+    PanelLayoutTabsExample, PanelLayoutSlotExample, PanelLayoutTreegridExample, PanelLayoutRailExample,
 )
 
 app_name = 'cards_examples'
@@ -122,6 +122,7 @@ urlpatterns = [
     path('panel-layout/tabs/', PanelLayoutTabsExample.as_view(), name='panel_tabs'),
     path('panel-layout/slot/', PanelLayoutSlotExample.as_view(), name='panel_slot'),
     path('panel-layout/treegrid/', PanelLayoutTreegridExample.as_view(), name='panel_treegrid'),
+    path('panel-layout/rail/', PanelLayoutRailExample.as_view(), name='panel_rail'),
 ]
 
 

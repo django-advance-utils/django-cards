@@ -67,6 +67,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:panel_tabs', 'Tabs'),
                 ('cards_examples:panel_slot', 'Slot'),
                 ('cards_examples:panel_treegrid', 'Treegrid'),
+                ('cards_examples:panel_rail', 'Icon rail'),
             )),
             MenuItem(menu_display='Display', dropdown=(
                 ('cards_examples:child_cards', 'Child Cards'),

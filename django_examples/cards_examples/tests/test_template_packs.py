@@ -125,6 +125,9 @@ FLAT_TEMPLATES = {
                                      'the sections\' own, and its controls come from the pack\'s '
                                      'own partials',
     'standard/_section_stack_script.html': 'script',
+    'standard/_rail_body.html': 'the icon columns and panes inside an add_rail_card() card, shared by '
+                                'both packs; its classes are the rail\'s own, with no Bootstrap name in it',
+    'standard/_rail_script.html': 'the rail\'s styles and script, rendered once per request',
     'standard/_section_redraw_script.html': 'script',
     'standard/_header_controls.html': 'a card header\'s search, export and reload controls, shared by '
                                       'both packs; it only includes the pack\'s own partials',

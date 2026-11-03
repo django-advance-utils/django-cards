@@ -1,0 +1,22 @@
+{% load django_cards_tags %}<div class="{{ card_css_class }} django-card-rail" id="{{ card.code }}_card" data-title="" style="height: {{ card.extra_card_info.height }};">
+    {% if show_header %}
+    <div class="card-header {{ card.header_css_class }}">
+        <div class="d-flex align-items-center">
+            <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
+            {{ card.menu.render }}
+            {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
+        </div>
+    </div>
+    {% endif %}
+    {{ card.tab_menu.render }}
+    <div class="{{ card_body_css_class }} django-card-rail__body{% if card.extra_card_info.pane_titles %} django-card-rail__body--titled{% endif %}" id="{{ card.code }}_body">
+        {% include 'cards/standard/_rail_body.html' %}
+    </div>
+    {% if card.footer %}
+        <div class="card-footer">
+            <small style="text-align: left">{{ card.footer|safe }}</small>
+        </div>
+    {% endif %}
+</div>
+{% rail_script %}
+{% include 'cards/standard/_reload_script.html' %}

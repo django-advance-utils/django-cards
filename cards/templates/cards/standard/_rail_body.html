@@ -1,0 +1,25 @@
+{% comment %}
+A rail card's icon columns and panes (add_rail_card), shared by both packs: its classes are the
+rail's own. Columns and panes come flat from _process_rail, a column before those nested in it;
+the shared script (_rail_script.html) shows the ones its active buttons lead to.
+{% endcomment %}{% for column in card.extra_card_info.rail_columns %}
+<div class="django-card-rail__column" id="{{ column.id }}" data-rail-parent="{{ column.parent }}" role="tablist" aria-orientation="vertical"{% if not column.visible %} hidden{% endif %}>
+    {% for button in column.buttons %}
+    <button type="button" role="tab" id="{{ button.id }}"
+            class="django-card-rail__btn{% if button.column %} django-card-rail__btn--group{% endif %}{% if button.active %} active{% endif %}"
+            title="{{ button.title|striptags|force_escape }}" aria-label="{{ button.title|striptags|force_escape }}" tabindex="{% if button.active %}0{% else %}-1{% endif %}"
+            aria-selected="{{ button.active|yesno:'true,false' }}"
+            {% if button.column %}data-rail-column="{{ button.column }}" aria-controls="{{ button.column }}" aria-expanded="{% if button.active and column.visible %}true{% else %}false{% endif %}"{% else %}data-rail-pane="{{ button.pane }}" aria-controls="{{ button.pane }}"{% endif %}>
+        {% if button.icon %}<i class="{{ button.icon }}" aria-hidden="true"></i>{% else %}<span class="django-card-rail__letter" aria-hidden="true">{{ button.title|striptags|slice:":1"|force_escape }}</span>{% endif %}
+    </button>
+    {% endfor %}
+</div>
+{% endfor %}
+<div class="django-card-rail__panes">
+    {% for pane in card.extra_card_info.rail_panes %}
+    <div class="django-card-rail__pane" id="{{ pane.id }}" role="tabpanel" aria-labelledby="{{ pane.button }}"{% if not pane.visible %} hidden{% endif %}>
+        {% if card.extra_card_info.pane_titles %}<div class="django-card-rail__pane-title">{% if pane.icon %}<i class="{{ pane.icon }}" aria-hidden="true"></i>{% endif %}<span>{{ pane.title }}</span></div>{% endif %}
+        {% if pane.card %}{{ pane.card.render }}{% endif %}
+    </div>
+    {% endfor %}
+</div>
