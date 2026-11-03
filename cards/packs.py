@@ -47,7 +47,8 @@ Django finds at the flat path is cards' own forwarder, and leaves the name alone
 project's override (or not a pack template at all), so overrides win exactly as before. It
 saves a forwarder's second lookup and context copy per template -- around 20 microseconds
 each with the cached loader, five of them in a plain card. Which file owns a flat name is
-remembered per name, and forgotten when ``TEMPLATES`` changes.
+remembered per name, and forgotten when ``TEMPLATES`` changes -- except under ``DEBUG``,
+where it is checked on every render, so an override added while the server runs shows at once.
 """
 import os
 
@@ -138,7 +139,9 @@ def _same_file(a, b):
 
 # Flat name -> whether what Django loads there is cards' own forwarder. It depends on the
 # template folders, not the request, so it is worked out once per name; a change to TEMPLATES
-# (an override_settings in a test, say) clears it, as it resets Django's own engines.
+# (an override_settings in a test, say) clears it, as it resets Django's own engines. Not
+# kept under DEBUG, where an override added while the server runs must show on the next
+# render, as it did when every render went through the forwarder.
 _OWN_FORWARDER = {}
 
 
@@ -149,10 +152,9 @@ def _forget_forwarders(setting, **kwargs):
 
 
 def _is_own_forwarder(name):
-    try:
+    remember = not settings.DEBUG
+    if remember and name in _OWN_FORWARDER:
         return _OWN_FORWARDER[name]
-    except KeyError:
-        pass
     rest = name[len('cards/'):]
     own_path = os.path.join(_TEMPLATES_DIR, 'cards', *rest.split('/'))
     has_pack_copy = os.path.exists(os.path.join(_TEMPLATES_DIR, 'cards', DEFAULT_PACK, *rest.split('/')))
@@ -164,7 +166,8 @@ def _is_own_forwarder(name):
             origin = None
         # An origin that is not a file (a locmem or database loader) is not ours.
         verdict = bool(origin) and os.path.isabs(origin) and _same_file(origin, own_path)
-    _OWN_FORWARDER[name] = verdict
+    if remember:
+        _OWN_FORWARDER[name] = verdict
     return verdict
 
 

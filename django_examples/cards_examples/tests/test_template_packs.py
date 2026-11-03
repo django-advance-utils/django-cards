@@ -716,3 +716,13 @@ class TestProjectOverrideWinsWithoutTheForwarder(SimpleTestCase):
         self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
                          f'cards/{DEFAULT_PACK}/standard/_reload_button.html')
 
+    def test_under_debug_an_override_added_while_running_shows_at_once(self):
+        """With DEBUG on, nothing is remembered: a file added at the flat path wins on the next
+        render, as it did when every render went through the forwarder."""
+        with override_settings(TEMPLATES=self._templates_setting()), override_settings(DEBUG=True):
+            self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                             f'cards/{DEFAULT_PACK}/standard/_reload_button.html')
+            self._override('_reload_button.html', 'x')
+            self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                             'cards/standard/_reload_button.html')
+
