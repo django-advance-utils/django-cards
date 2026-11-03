@@ -1,9 +1,31 @@
+import re
+
 from ajax_helpers.mixins import AjaxHelpers
 from django_menus.menu import MenuMixin
 
 from cards.base import CARD_TYPE_HTML, escape_value
 from cards.card_list.base import CardListBaseMixin
 from cards.standard import CardMixin
+
+#: The digits of a css hex colour -- #rgb, #rgba, #rrggbb or #rrggbbaa -- with or without the hash.
+_HEX_COLOUR = re.compile(r'#?([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
+
+
+def list_colour_digits(colour):
+    """``colour``'s hex digits, without the ``#``, or ``None`` when it is not a hex colour.
+
+    The list templates write the swatch as ``color: #`` followed by the entry's colour, inside a
+    ``style`` attribute -- where html-escaping is the wrong tool, because the character that
+    does the damage is a semicolon and escaping leaves it alone. A stored
+    ``f;position:fixed;inset:0`` would arrive as a second declaration and lift the swatch out of
+    the list and over the page. So the shape is checked and anything else dropped: an entry with
+    no colour is what the template already draws when there is none. A leading ``#`` is taken
+    off rather than refused, since the template writes its own.
+    """
+    if colour is None:
+        return None
+    match = _HEX_COLOUR.fullmatch(str(colour).strip())
+    return match.group(1) if match else None
 
 
 class CardListMixin(CardListBaseMixin):
@@ -166,7 +188,9 @@ class CardListMixin(CardListBaseMixin):
             pk (int or str): The primary key or unique ID for the entry.
             name (str): The display name of the entry. Escaped unless it is marked safe, so a name
                 that is markup -- a swatch, a badge -- has to be marked safe where it is made.
-            colour (str, optional): Optional badge or label colour to display alongside the entry.
+            colour (str, optional): Optional swatch colour to display alongside the entry, as hex
+                digits with or without the ``#``. Anything that is not a hex colour draws no
+                swatch (`list_colour_digits`).
             row_class (str, optional): Optional CSS class for styling the row.
         """
         if callable(name):
@@ -174,7 +198,7 @@ class CardListMixin(CardListBaseMixin):
             # template called it. Escaping would print the method's repr, so it is called here.
             name = name()
         self.list_entries.append({'pk': pk, 'name': escape_value(name),
-                                  'colour': colour, 'class': row_class if row_class else ''})
+                                  'colour': list_colour_digits(colour), 'class': row_class if row_class else ''})
 
     def get_list_entry_name(self, entry_object):
         """
@@ -201,7 +225,8 @@ class CardListMixin(CardListBaseMixin):
            entry_object (object): The model instance representing a list entry.
 
         Returns:
-           str or None: A colour name (e.g., 'green', 'red') or None for no colour.
+           str or None: A hex colour ('90EE90' or '#90EE90') or None for no colour. Anything
+           that is not a hex colour draws no swatch (`list_colour_digits`).
         """
         return None
 

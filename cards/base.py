@@ -835,8 +835,12 @@ class CardBase:
         self.rows = []
         self._row_styles = {}
         self._default_row_styles = None
+        # Text unless it says otherwise, as a row's value and label are (`escape_value`): a title
+        # that is markup -- `format_html`, `mark_safe`, a rendered template or menu -- is marked
+        # safe where it is made. The code above is slugified from the title as it was passed, so
+        # escaping here does not turn 'R&D Details' into `ramp_d_details_card`.
         if title is not None:
-            self.title = mark_safe(title)
+            self.title = escape_value(title)
         else:
             self.title = None
         self.created_modified_dates = self.get_created_modified_dates(details_object=details_object)
@@ -854,6 +858,9 @@ class CardBase:
         self.hidden_if_blank_or_none = hidden_if_blank_or_none
         self.hidden_if_zero = hidden_if_zero
         self.show_header = show_header
+        # Kept so a template or a caller can ask afterwards -- e.g. to start an empty card folded.
+        # The flag also picks the empty template below, after which there is no other way to tell.
+        self.is_empty = is_empty
         self.header_icon = header_icon
         self.header_css_class = header_css_class
         self.ajax_reload = ajax_reload

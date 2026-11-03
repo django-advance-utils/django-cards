@@ -246,8 +246,8 @@ class TestTilesExamplePage(TestCase):
         # every field, heading only, both consumer shapes, and the empty state
         self.assertIn('Every field', html)
         self.assertIn('Heading only', html)
-        # the card title is mark_safe'd by CardBase, so the ampersand stays raw
-        self.assertIn('Colours & Finishes (heading_html)', html)
+        # a card title is text unless it is marked safe, so the ampersand is escaped
+        self.assertIn('Colours &amp; Finishes (heading_html)', html)
         self.assertIn('Sizes (wider tile, plain heading)', html)
         self.assertIn('No tiles yet. Use Add above to add one.', html)
         # the wider tile is per card: the sizes card asks for 190px, the colours card 150px
