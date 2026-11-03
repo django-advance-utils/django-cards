@@ -93,18 +93,14 @@
     // hidden at load measures 0 wide. A reload of the card replaces this slider and runs this
     // script again, so each listener lets go once its slider has left the page; otherwise every
     // reload would leave one behind, holding the old slider in memory.
+    // A browser without ResizeObserver (none current) keeps the arrows and dots as they were
+    // set at load; scrolling still updates them, and the track itself still scrolls.
     if (window.ResizeObserver) {
         var observer = new ResizeObserver(function () {
             if (!slider.isConnected) { observer.disconnect(); return; }
             update();
         });
         observer.observe(track);
-    } else {
-        var onResize = function () {
-            if (!slider.isConnected) { window.removeEventListener('resize', onResize); return; }
-            update();
-        };
-        window.addEventListener('resize', onResize);
     }
     update();
 })();

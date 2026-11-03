@@ -1179,7 +1179,8 @@ around it, give `add_card()` `border='none'`.
 ### Layouts
 
 `BannerTile(layout=...)` picks one of six shapes. Every field but `key` is optional, and a tile
-draws only the parts it was given.
+draws only the parts it was given -- except the banner of a `compact` or `detail` tile, which is
+always drawn, in the default blue gradient when no banner field is set.
 
 | Layout | Use | Fields it draws |
 | --- | --- | --- |
@@ -1235,7 +1236,7 @@ BannerTile(key='system_map', layout='showcase',
 | `step` | A flag in the banner's corner (`'Step 1 of 2'`) |
 | `badge` | A pill under the description |
 | `stats` | Short facts: a string or an `(icon_classes, text)` pair |
-| `progress` | 0-100, clamped. `0` draws an empty bar; `None` draws none |
+| `progress` | 0-100, clamped and rounded. `0` draws an empty bar; `None` draws none |
 | `status` | A quiet line under the progress bar |
 | `footer_label`, `footer_icon` | The footer's left side |
 | `action_label`, `action_url`, `action_css_class` | The button. Its classes default per layout |
@@ -1278,8 +1279,14 @@ BannerTile(key='intro', layout='plain',
            description='Pick a stage of your work to see the courses that teach it.')
 ```
 
-`banner_background` and the `points` colours are written into `style` attributes, so they must
-come from your code, never from a form or a model field.
+`banner_background`, the `points` colours and `add_banner_tiles(width=...)` are written into
+`style` attributes, so they must come from your code, never from a form or a model field.
+
+The URL fields -- `action_url`, `banner_url`, `callout_link_url`, `secondary_url` and
+`image_url` -- are escaped, but escaping does not stop a `javascript:` URL from running. That is
+deliberate, as with `Tile.edit_url`: a `javascript:` URL that opens a modal is a normal button.
+So build them in your code (`reverse()`, `get_absolute_url()`, a modal call), and never pass a URL
+a user typed in without checking its scheme first.
 
 ### Styling
 

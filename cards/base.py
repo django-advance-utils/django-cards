@@ -322,7 +322,9 @@ class BannerTile:
 
     For a list of courses, products or articles (a coloured banner, a title, a short
     description, a few stats, a progress bar and an action button), but nothing is fixed:
-    every field but ``key`` is optional, and a tile draws only what it was given::
+    every field but ``key`` is optional, and a tile draws only what it was given (the
+    compact and detail layouts always draw their banner, in the default gradient if no banner
+    field is set)::
 
         BannerTile(key='course_12', title='Getting Started',
                    description='This course covers the first steps, from setting up...',
@@ -415,6 +417,11 @@ class BannerTile:
         ``title_html`` is the one field rendered as-is, for the same reason as
         ``Tile.heading_html``: build it with :func:`~django.utils.html.format_html` and never
         pass a value from a form or a model field straight into it.
+
+        The URL fields (``action_url``, ``banner_url``, ``callout_link_url``,
+        ``secondary_url``, ``image_url``) are escaped, but escaping does not stop a
+        ``javascript:`` URL, which they allow on purpose, as ``Tile.edit_url`` does. Build
+        them in code, and never pass in a URL a user typed without checking its scheme.
 
     The detail layout, as a sidebar on a course's own page::
 
@@ -589,7 +596,8 @@ class BannerTile:
 
     @property
     def progress_percent(self):
-        """`progress` clamped to 0-100, so a bad figure cannot push the bar out of its track."""
+        """`progress` clamped to 0-100 and rounded, so a bad figure cannot push the bar out
+        of its track and 99.6 is not drawn as 99."""
         if self.progress is None:
             return None
         try:
@@ -599,7 +607,7 @@ class BannerTile:
                              f'got {self.progress!r}') from None
         if progress != progress:  # NaN
             raise ValueError('BannerTile progress is a number from 0 to 100 or None; got NaN')
-        return int(max(0, min(100, progress)))  # clamp first: int() of an infinity raises
+        return round(max(0, min(100, progress)))  # clamp first: rounding an infinity raises
 
     @property
     def has_footer(self):
@@ -2236,16 +2244,18 @@ class CardBase:
             empty_message (str, optional): Shown in place of the grid when there are no tiles.
             width (str, optional): The width of one tile, as a CSS length. Defaults to the
                 stylesheet's 260px. A feature tile's width is set by the stylesheet instead.
+                It is written into a ``style`` attribute, so it must come from code.
             slider (bool, optional): True lays the tiles out as a slider, False as a grid.
                 Left as None, it keeps what an earlier call set (a grid if none did).
 
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
+        # Build them all before changing anything, so one bad tile leaves the card as it was.
+        tiles = [BannerTile.build(tile) for tile in tiles]
         if slider is not None:
             self.extra_card_info['banner_tiles_slider'] = bool(slider)
-        self.extra_card_info.setdefault('banner_tiles', []).extend(
-            BannerTile.build(tile) for tile in tiles)
+        self.extra_card_info.setdefault('banner_tiles', []).extend(tiles)
         # What the template draws, worked out once: a slider only when there is something to
         # slide, so an empty one is just the empty message.
         self.extra_card_info['banner_tiles_is_slider'] = bool(

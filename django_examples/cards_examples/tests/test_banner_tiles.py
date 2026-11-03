@@ -340,7 +340,7 @@ class TestBannerTileReviewFixes(TestCase):
 
     def test_progress_clamps_an_infinity_and_accepts_a_numeric_string(self):
         self.assertEqual(BannerTile(key='c', progress=float('inf')).progress_percent, 100)
-        self.assertEqual(BannerTile(key='c', progress='42.7').progress_percent, 42)
+        self.assertEqual(BannerTile(key='c', progress='42.7').progress_percent, 43)
 
     def test_bad_stats_and_points_fail_when_the_tile_is_built_in_any_layout(self):
         with self.assertRaises(ValueError):
@@ -498,3 +498,24 @@ class TestBannerTileSecondReviewFixes(TestCase):
     def test_the_slider_hides_its_dots_when_nothing_overflows(self):
         _, html = self.render([BannerTile(key='a')], slider=True)
         self.assertIn("dotRow.style.display = overflows() ? '' : 'none';", html)
+
+
+class TestBannerTileThirdReviewFixes(TestCase):
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def test_progress_is_rounded_not_truncated(self):
+        self.assertEqual(BannerTile(key='c', progress=99.6).progress_percent, 100)
+        self.assertEqual(BannerTile(key='c', progress=0.9).progress_percent, 1)
+        self.assertEqual(BannerTile(key='c', progress=42.4).progress_percent, 42)
+
+    def test_one_bad_tile_leaves_the_card_as_it_was(self):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles([BannerTile(key='a')])
+        before = dict(card.extra_card_info)
+        with self.assertRaises(ValueError):
+            card.add_banner_tiles([{'key': 'b'}, {'key': 'c', 'progress': 'n/a'}], slider=True)
+        self.assertEqual([t.key for t in card.extra_card_info['banner_tiles']], ['a'])
+        self.assertNotIn('banner_tiles_slider', card.extra_card_info)
+        self.assertEqual(card.extra_card_info['banner_tiles_is_slider'], before['banner_tiles_is_slider'])
