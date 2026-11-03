@@ -1751,7 +1751,7 @@ class ItemView(CardMixin, TemplateView):
 |-----------|---------|-------------|
 | `panels` | `[]` | Panel dicts: `title`, `icon`, and either `card` (shown in its pane) or `panels` (a column of icons opened beside this one); `expanded` marks the panel open in its column, the first if none is |
 | `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab; inside something with no height of its own -- an accordion panel, a page -- give a length such as `'480px'` |
-| `pane_titles` | `True` | Head each pane with its icon and title, in place of the pane card's own header |
+| `pane_titles` | `True` | Head each pane with its icon and title, in place of the pane card's own header -- which takes that header's menu, search, export and reload buttons with it, as in an accordion; set `False` to keep the card's header |
 | `title` | `None` | Card header title; no header without one unless `show_header` says otherwise |
 
 - Each icon's tooltip and accessible name is its panel's title; a panel with no `icon` shows its title's
