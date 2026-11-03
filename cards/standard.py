@@ -1195,109 +1195,65 @@ class CardMixin:
         Returns:
             JsonResponse: A ``refresh_row`` command for the row, or a ``null`` command.
         """
-        row_id = self._parse_row_no(kwargs.get('row_no'))
-        if row_id is None:
+        row_no = kwargs.get('row_no')
+        # isdecimal() alone also passes other scripts' digits, which int() does not always take.
+        if not isinstance(row_no, str) or not (row_no[1:].isascii() and row_no[1:].isdecimal()):
             return self.command_response('null')
-        found = self._read_rows(kwargs.get('table_id'), [row_id])
-        if not found or not found[1]:
+        self.setup_datatable_cards()
+        table_id = kwargs.get('table_id') or next(iter(self.tables), None)
+        table = self.tables.get(table_id)
+        if table is None:
             return self.command_response('null')
-        table, rows = found
-        data = next(iter(rows.values()))
-        command = {'function': 'refresh_row', 'row_no': kwargs['row_no'], 'data': data, 'table_id': table.table_id}
+        id_column = table.setup_column_id()
+        if id_column is None:
+            return self.command_response('null')
+        # Narrowed on the queryset rather than through the table's own `refresh_row_command`,
+        # which writes the id into `table.filter` as a dict key -- raising on a table whose
+        # filter is a Q -- and skips a view's `get_<table_id>_query`. `max_records` is off while
+        # it reads: `get_query` slices to it, and a sliced query cannot be narrowed.
+        view_kwargs = getattr(self, 'kwargs', None) or {}
+        field_query = f'get_{table_id}_query'
+        max_records, table.max_records = table.max_records, None
+        try:
+            if hasattr(self, field_query):
+                query = getattr(self, field_query)(table, **view_kwargs)
+            else:
+                query = table.get_query(**view_kwargs)
+            rows = table.get_table_array(self.request, query.filter(**{id_column.field: int(row_no[1:])}))
+        finally:
+            table.max_records = max_records
+        if not rows:
+            return self.command_response('null')
+        command = {'function': 'refresh_row', 'row_no': row_no, 'data': rows[0], 'table_id': table.table_id}
         if kwargs.get('seq') is not None:
             command['seq'] = kwargs['seq']
         return JsonResponse([command], safe=False)
-
-    REFRESH_BATCH_SIZE = 500
-    MAX_ROW_ID = 2 ** 63 - 1
 
     def row_refresh_many(self, **kwargs):
         """
         Re-renders many datatable rows in one request: the ``{row: 'refresh_many'}`` command.
 
         django-advanced-datatables' ``refresh_rows`` command (1.0.12 and later) posts it when
-        called without ``rows``, with the ids of the rows to repaint as ``row_nos``. The rows
-        come back in one ``refresh_rows`` command and the page repaints them with one draw.
+        called without ``rows``. ``DatatableView`` answers it there, but a cards view builds its
+        tables in ``setup_datatable_cards``, so this builds them the cards way and hands the
+        reading to the table's own ``refresh_rows``.
 
-        The rows are read as ``row_refresh`` reads one: from the table ``setup_datatable_cards``
-        builds, through the view's ``get_<table_id>_query`` where it has one, narrowed to the
-        rows asked for so the table's own filters still apply. The ids are looked up in batches,
-        so a long list does not run into a database's limit on query parameters.
-
-        An id that is not one (``'i'`` and digits), or a row no longer in the table, is left out
-        of the reply and stays on the page as it was. Nothing to repaint at all -- no ids, a
-        table this view does not build, a table with no id column -- answers ``null``.
-
-        A ``seq`` the page sent comes back on the command, as with ``row_refresh``.
+        Unlike ``row_refresh``, a view's ``get_<table_id>_query`` is not read: the rows come
+        from the table's own query and filters.
 
         Args:
             **kwargs: ``row_nos`` (a list of row ids as the table writes them, e.g. ``'i12'``),
-                and optionally ``table_id`` (defaults to the view's first table) and ``seq``.
+                and optionally ``table_id`` (defaults to the view's first table).
 
         Returns:
-            JsonResponse: A ``refresh_rows`` command, its ``rows`` keyed by row id, or a
-            ``null`` command.
-        """
-        row_nos = kwargs.get('row_nos')
-        if not isinstance(row_nos, (list, tuple)):
-            return self.command_response('null')
-        ids = list(dict.fromkeys(i for i in map(self._parse_row_no, row_nos) if i is not None))
-        found = self._read_rows(kwargs.get('table_id'), ids) if ids else None
-        if found is None:
-            return self.command_response('null')
-        table, rows = found
-        command = {'function': 'refresh_rows', 'table_id': table.table_id, 'rows': rows}
-        if kwargs.get('seq') is not None:
-            command['seq'] = kwargs['seq']
-        return JsonResponse([command], safe=False)
-
-    @classmethod
-    def _parse_row_no(cls, row_no):
-        """The primary key in a row id the table wrote (``'i12'`` -> 12), or None if it is not one."""
-        if not isinstance(row_no, str) or not row_no.startswith('i'):
-            return None
-        digits = row_no[1:]
-        # isdecimal() alone also passes other scripts' digits, which int() does not always take;
-        # the length check keeps a huge number from reaching the database as one.
-        if not digits or len(digits) > 19 or not (digits.isascii() and digits.isdecimal()):
-            return None
-        value = int(digits)
-        return value if value <= cls.MAX_ROW_ID else None
-
-    def _read_rows(self, table_id, ids):
-        """The table and its rows with these primary keys, keyed by row id; None if there is no table.
-
-        Read from the query the page's table was drawn from -- the view's ``get_<table_id>_query``
-        where it has one -- rather than through the table's own ``refresh_row_command``, which
-        writes the id into ``table.filter`` as a dict key (raising on a table whose filter is a Q)
-        and skips that hook. The table's ``max_records`` is off while it reads: it slices the
-        query, which then cannot be narrowed, and the rows asked for are not the page's first.
+            JsonResponse: A ``refresh_rows`` command, or a ``null`` command for a table this
+            view does not build.
         """
         self.setup_datatable_cards()
-        table_id = table_id or next(iter(self.tables), None)
-        table = self.tables.get(table_id)
+        table = self.tables.get(kwargs.get('table_id') or next(iter(self.tables), None))
         if table is None:
-            return None
-        id_column = table.setup_column_id()
-        if id_column is None:
-            return None
-        column_id = table.table_options['column_id']
-        view_kwargs = getattr(self, 'kwargs', None) or {}
-        field_query = f'get_{table_id}_query'
-        max_records, table.max_records = table.max_records, None
-        rows = {}
-        try:
-            if hasattr(self, field_query):
-                query = getattr(self, field_query)(table, **view_kwargs)
-            else:
-                query = table.get_query(**view_kwargs)
-            for start in range(0, len(ids), self.REFRESH_BATCH_SIZE):
-                batch = ids[start:start + self.REFRESH_BATCH_SIZE]
-                for row in table.get_table_array(self.request, query.filter(**{f'{id_column.field}__in': batch})):
-                    rows[f'i{row[column_id]}'] = row
-        finally:
-            table.max_records = max_records
-        return table, rows
+            return self.command_response('null')
+        return table.refresh_rows(self.request, kwargs.get('row_nos'))
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()
