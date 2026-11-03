@@ -524,9 +524,11 @@ class TestSectionFourthReviewFixes(SimpleTestCase):
             stack.add_tiles([Tile(key='t1', heading='One')])
         with self.assertRaisesMessage(ValueError, 'holds a section stack'):
             stack.add_banner_tiles([BannerTile(key='b1', title='One')])
-        stack.add_entry(value='lost', label='Row')
-        with self.assertRaisesMessage(ValueError, 'rows were added'):
-            stack.render()
+        for add_row in (lambda: stack.add_entry(value='lost', label='Row'),
+                        lambda: stack.add_rows({'label': 'Lost', 'value': 'x'}),
+                        lambda: stack.add_html_string_entry('<p>lost</p>')):
+            with self.assertRaisesMessage(ValueError, 'holds a section stack'):
+                add_row()
 
     def test_a_stack_in_your_own_templates_brings_its_script_once(self):
         with _Request():
@@ -568,17 +570,24 @@ class TestSectionFifthReviewFixes(SimpleTestCase):
         self.assertIn("exportCard('rows','csv')", rows_header)
 
     def test_a_card_kept_between_builds_goes_into_the_rebuilt_stack(self):
-        """An ajax reload throws the cards away and builds them again; a card the view kept is
-        claimed by the old stack, which is no longer on the view."""
-        view = _view()
-        contact, _tags, _site = _cards(view)
-        view.add_card('customer', title='Customer').add_sections([contact])
-        view.cards = {'contact': contact}  # rebuild_cards() starts the view's cards again
-        rebuilt = view.add_card('customer', title='Customer').add_sections([contact])
-        self.assertIs(contact.section.owner, rebuilt)
-        # while the first stack is still on the view, a second one is refused
+        """An ajax reload throws the cards away and builds them again (rebuild_cards); a card the
+        view kept is claimed by the old stack, which went with them."""
+        class Kept(CardMixin, TemplateView):
+            def setup_cards(self):
+                if not hasattr(self, 'contact'):
+                    self.contact = self.add_card('contact', title='Contact')
+                    self.contact.add_entry(value='Brass & Co', label='Company')
+                self.add_card('customer', title='Customer').add_sections([self.contact])
+
+        view = Kept()
+        view.request = RequestFactory().get('/')
+        view.build_cards()
+        first = view.contact.section.owner
+        view.rebuild_cards()
+        self.assertIsNot(view.contact.section.owner, first)
+        # within one build, a second stack is refused -- named or not
         with self.assertRaisesMessage(ValueError, 'in a section stack already'):
-            view.add_card('other', title='Other').add_sections([contact])
+            view.add_card(title='Unnamed').add_sections([view.contact])
 
     def test_a_redraw_follows_the_servers_fold_where_the_reader_chose_none(self):
         view = _view()
@@ -617,3 +626,67 @@ class TestSectionFifthReviewFixes(SimpleTestCase):
         card.add_entry(value='x', label='X')
         html = view.add_card('customer', title='Customer').add_sections([card]).render()
         self.assertNotIn('django-card__section-menu', html)
+
+
+class TestSectionSixthReviewFixes(SimpleTestCase):
+
+    def test_a_card_is_in_one_unnamed_stack_too(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card(title='First').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            view.add_card(title='Second').add_sections([contact])
+
+    def test_a_stacked_card_drawn_anywhere_else_raises(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'is in a section stack'):
+            contact.render()
+        self.assertIn('Brass &amp; Co', stack.render())  # its section draws it
+
+    def test_build_sections_checks_as_add_sections_does(self):
+        view = _view()
+        contact, _tags, site = _cards(view)
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            build_sections([contact, contact])
+        self.assertTrue(contact.show_header)
+        build_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            view.add_card('customer', title='Customer').add_sections([contact])
+        view.add_card('site-section-stack', title='Clash')
+        with self.assertRaisesMessage(ValueError, 'site-section-stack'):
+            build_sections([site])
+
+    def test_a_card_can_say_its_template_carries_the_controls(self):
+        view = _view()
+        notes = view.add_html_data_card(card_name='notes', title='Notes', html='<p>n</p>', searchable=True)
+        notes.section_header_controls = True
+        html = view.add_card('customer', title='Customer').add_sections([notes]).render()
+        header = html[html.index('id="notes-section-header"'):html.index('id="notes-section-body"')]
+        self.assertIn('id="notes_search"', header)
+
+    def test_an_empty_stack_draws_nothing(self):
+        view = _view()
+        html = render_to_string('cards/standard/_section_stack_body.html', {'sections': [], 'request': view.request})
+        self.assertNotIn('django-card__sections', html)
+        self.assertNotIn('-stack', html)
+
+    def test_reloading_a_sectioned_card_that_does_not_reload_redraws_its_section_body(self):
+        class Plain(AjaxHelpers, CardMixin, TemplateView):
+            def setup_cards(self):
+                contact = self.add_card('contact', title='Contact')
+                contact.add_entry(value='Brass & Co', label='Company')
+                self.add_card('customer', title='Customer').add_sections([contact])
+
+        view = Plain()
+        view.request = RequestFactory().post('/')
+        view.setup_cards()
+        commands = json.loads(view.button_reload_card(card='contact').content)
+        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-header', '#contact-section-body'])
+        self.assertIn('Brass &amp; Co', commands[1]['html'])
+
+    def test_a_fold_put_back_runs_what_opening_does(self):
+        script = render_to_string('cards/standard/_section_stack_script.html')
+        self.assertIn('if (was !== folded) { window.djangoCardsSectionFolded(section, folded); }', script)
+        self.assertIn('window.djangoCardsSectionFolded(section, folded);\n    };', script)

@@ -175,3 +175,11 @@ def section_stack_script(context):
             return ''
         setattr(holder, SECTION_SCRIPT_MARK, True)
     return mark_safe(render_to_string('cards/standard/_section_stack_script.html'))
+
+
+@register.simple_tag
+def section_stack_id(sections, stack_id=None):
+    """The DOM id of a section stack: its card's (``<code>-sections``) or, for one in a template of
+    an application's own, one named for its first section -- checked, with the rest, when built."""
+    from cards.base import own_stack_id
+    return stack_id or own_stack_id(sections)

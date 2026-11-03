@@ -525,6 +525,9 @@ class CardMixin:
         self.cards = {}
         self.card_groups = {}
         self.tables = {}
+        # The section stacks go with the cards: a card kept between builds is free to be claimed again.
+        from cards.base import SECTION_CLAIMS
+        setattr(self, SECTION_CLAIMS, {})
         self.build_cards()
 
     def add_html_card(self, context_template_name, context=None, is_empty=False, **kwargs):
@@ -1238,6 +1241,10 @@ class CardMixin:
                 # A card in an add_sections() stack: its header is the section's, outside the
                 # card, so it is redrawn too -- the title, menu and actions may have changed.
                 self.add_command('html', selector=f'#{section.id}-header', html=section.render_header(redraw=True))
+                if not card.ajax_reload:
+                    # No #<code>_ajax around a card that does not reload: its section's body is
+                    # where it is drawn, so header and body change together.
+                    return self.command_response('html', selector=f'#{section.id}-body', html=section.render_body())
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 
