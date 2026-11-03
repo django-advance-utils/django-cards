@@ -386,3 +386,41 @@ class TestBannerTileReviewFixes(TestCase):
                 source = f.read()
             self.assertIn("{% include 'cards/standard/_banner_tiles_body.html' %}", source)
             self.assertNotIn('tile.', source)
+
+
+class TestBannerTileProgressGroup(TestCase):
+    """The bar and status are pinned to the bottom of a compact tile, so a row's bars line up."""
+
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def group(self, **fields):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles([BannerTile(key='c', title='T', **fields)])
+        html = card.render()
+        start = html.find('<div class="django-card__banner-tile-progress-group">')
+        if start == -1:
+            return None
+        # Walk the divs to the group's own closing tag; its children are divs too.
+        depth = 0
+        for tag in re.finditer(r'<div\b|</div>', html[start:]):
+            depth += 1 if tag.group() == '<div' else -1
+            if depth == 0:
+                return html[start:start + tag.end()]
+
+    def test_bar_and_status_are_in_the_group_in_that_order(self):
+        group = self.group(progress=45, status='45% complete')
+        self.assertLess(group.index('role="progressbar"'), group.index('45% complete'))
+
+    def test_a_bar_without_a_status_keeps_an_empty_status_line(self):
+        group = self.group(progress=60)
+        self.assertIn('<div class="django-card__banner-tile-status"></div>', group)
+
+    def test_a_status_without_a_bar_is_in_the_group_alone(self):
+        group = self.group(status='Archived')
+        self.assertIn('Archived', group)
+        self.assertNotIn('role="progressbar"', group)
+
+    def test_neither_means_no_group(self):
+        self.assertIsNone(self.group())

@@ -103,12 +103,17 @@
             </div>
             {% endif %}
 
-            {% if tile.progress_percent is not None %}
-            <div class="django-card__banner-tile-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ tile.progress_percent }}">
-                <div class="django-card__banner-tile-progress-bar" style="width: {{ tile.progress_percent }}%"></div>
+            {# Pinned to the bottom of the body, so the bars of a row of tiles line up however much text is above them. #}
+            {% if tile.progress_percent is not None or tile.status %}
+            <div class="django-card__banner-tile-progress-group">
+                {% if tile.progress_percent is not None %}
+                <div class="django-card__banner-tile-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ tile.progress_percent }}">
+                    <div class="django-card__banner-tile-progress-bar" style="width: {{ tile.progress_percent }}%"></div>
+                </div>
+                {% endif %}
+                {% if tile.status or tile.progress_percent is not None %}<div class="django-card__banner-tile-status">{{ tile.status|default:'' }}</div>{% endif %}{# empty under a bar: it keeps the line, so the bars of a row line up #}
             </div>
             {% endif %}
-            {% if tile.status %}<div class="django-card__banner-tile-status">{{ tile.status }}</div>{% endif %}
 
             {% if tile.is_detail %}
             {% if tile.action_label %}<a href="{{ tile.action_url|default:'#' }}" class="{{ tile.action_classes }} django-card__banner-tile-action">{{ tile.action_label }} <i class="fas fa-arrow-right"></i></a>{% endif %}

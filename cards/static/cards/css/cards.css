@@ -348,7 +348,17 @@
 
 .django-card__banner-tile-body {
     flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
     padding-top: 12px;
+}
+
+/* Progress and status sit at the bottom of the body, just above the footer: tiles in a row are
+ * stretched to one height, so their bars line up even when one tile has a longer description,
+ * a badge or no stats. The bar's own top margin keeps the gap above it in the tallest tile (a
+ * flex item's margins do not collapse through it). */
+.django-card__banner-tile-progress-group {
+    margin-top: auto;
 }
 
 .django-card__banner-tile-title {
@@ -407,6 +417,8 @@
     margin-top: 8px;
     color: var(--django-card-banner-tile-muted-color, #6c757d);
     font-size: 12px;
+    line-height: 1.5;
+    min-height: 1.5em;  /* drawn empty under a bar with no status, so that bar lines up with its row's */
 }
 
 .django-card__banner-tile-footer {
@@ -483,6 +495,12 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     background: var(--django-card-banner-tile-callout-bg, #f3eef6);
     font-size: 13px;
     line-height: 1.4;
+}
+
+/* The body is a flex column, where margins add rather than collapse: drop the top margin of
+ * whatever follows the callout, so the gap under it stays the callout's 12px. */
+.django-card__banner-tile-body > .django-card__banner-tile-callout + * {
+    margin-top: 0;
 }
 
 .django-card__banner-tile-callout-icon {
