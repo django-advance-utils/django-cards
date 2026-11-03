@@ -103,7 +103,7 @@ Expects 'split' context variable with: direction, resizable, children[]
                 </div>
                 <div class="tab-content panel-region__content" style="flex: 1; overflow: auto; height: 0; min-height: 0;">
                     {% for tab in child.tabs %}
-                    <div class="tab-pane{% if tab.active %} active{% endif %}"
+                    <div class="tab-pane{% if tab.active %} active{% endif %}{% if scroll_cards and tab.cards|length == 1 and tab.cards.0.fills_region %} panel-region__content--single{% endif %}"
                          id="panel_tab_{{ child.name }}_{{ tab.name }}"
                          role="tabpanel"
                          style="height: 100%;">
@@ -114,7 +114,7 @@ Expects 'split' context variable with: direction, resizable, children[]
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="panel-region__content" style="flex: 1; overflow: auto; height: 0; min-height: 0;">
+                <div class="panel-region__content{% if scroll_cards and child.cards|length == 1 and child.cards.0.fills_region %} panel-region__content--single{% endif %}" style="flex: 1; overflow: auto; height: 0; min-height: 0;">
                     {% for card in child.cards %}
                         {% if child.menu or child.title %}
                             {% show_card card override_card_context=panel_no_header_context %}

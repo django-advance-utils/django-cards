@@ -617,16 +617,14 @@ class CardSection:
         own = getattr(card, 'section_header_controls', None)
         if own is not None:
             return bool(own)
-        name = card.template_name or card.template_defaults.get(card.group_type)
-        entry = card.templates.get(name)
+        entry = card.templates.get(card.template_name or card.template_defaults.get(card.group_type))
         if entry is not None and 'header_controls' in entry:
             return bool(entry['header_controls'])
         # Otherwise by the template file that will render: cards' own default and table templates
         # carry them, whether named by key ('table'), through a subclass entry that left the flag
         # out, or by path ('cards/standard/table.html'). A subclass entry naming a template of its
         # own is not assumed to.
-        path = entry['name'] if entry is not None else name
-        return path in _header_control_templates()
+        return card.template_path in _header_control_templates()
 
     def has_controls(self, full_controls):
         """Whether the card has header controls besides its menu: what the section header draws,
@@ -1646,7 +1644,21 @@ class CardBase:
             extra_info['treegrid_js_filters_json'] = json_for_script(extra_info['treegrid_js_filters'])
             extra_info['treegrid_default_selected_json'] = json_for_script(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
-            extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width', '600px')
+            # 600px unless given, and a treegrid placed in a panel region or tab with none given
+            # takes 100% instead (panel_layout._fill_region_width), so a narrow region does not
+            # scroll the grid sideways under its splitter. A width given is kept everywhere, ''
+            # (no floor at all) included. The value is always a width, so a project's own copy of
+            # the template, or code reading it, never meets an unset one.
+            given = kwargs.get('treegrid_min_width')
+            extra_info['treegrid_min_width'] = '600px' if given is None else given
+            extra_info['treegrid_min_width_given'] = given is not None
+            # 'cell' (the default) lights the cell under the pointer, the cue for a grid edited in
+            # place; 'row' lights the row, for one read a row at a time -- an editable cell in it
+            # (it carries the pencil) keeps the cell cue as well.
+            hover = kwargs.get('treegrid_hover') or 'cell'
+            if hover not in ('cell', 'row'):
+                raise ValueError(f"treegrid_hover is 'cell' or 'row'; got {hover!r}")
+            extra_info['treegrid_hover'] = hover
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,
@@ -2996,6 +3008,35 @@ class CardBase:
                 data.append({'label': label or '', 'value': value})
         return data
 
+    #: The card templates whose body is one ``.card-body`` that can be made to scroll: alone in a
+    #: ``scroll_cards`` region, a card drawn by one of these fills the region and scrolls its body.
+    #: Named rather than excluded, as every other template sizes itself or lays its body out its own
+    #: way -- a treegrid's own scrolling grid, an accordion, an iframe, a panel layout, a list
+    #: selection's fixed-height body, a card layout's rows -- and would spill or scroll twice.
+    REGION_FILLING_TEMPLATES = frozenset({'default', 'table', 'html', 'message'})
+
+    @property
+    def fills_region(self):
+        """Whether, alone in a panel region or tab under ``scroll_cards``, the card fills it and
+        scrolls its own body: drawn by the template file of one of `REGION_FILLING_TEMPLATES` --
+        by key or by path, and not a subclass's entry pointing that key at a template of its own --
+        and not collapsible (it would fill the region folded)."""
+        if self.enable_collapse or self.group_type == CARD_TYPE_PANEL_LAYOUT:
+            # A nested panel layout is drawn by html.html too, but sizes itself.
+            return False
+        return self.template_path in {CardBase.templates[key]['name'] for key in self.REGION_FILLING_TEMPLATES}
+
+    @property
+    def template_path(self):
+        """The template file this card renders with: its ``template_name`` (or its type's default)
+        through its own ``templates``, or the name itself where that is a path."""
+        # As _render_template resolves it: the type's default only where no template_name is set.
+        name = self.template_name
+        if name is None:
+            name = self.template_defaults.get(self.group_type)
+        entry = self.templates.get(name)
+        return entry['name'] if entry is not None else name
+
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the
         card's button group unless given), anything else (an HtmlMenu, None) as it is."""
@@ -3053,7 +3094,7 @@ class CardBase:
         """
         html = self._render_template(override_card_context)
         if self.ajax_reload:
-            return mark_safe(f'<div id="{self.code}_ajax">{html}</div>')
+            return mark_safe(f'<div id="{self.code}_ajax" class="django-card__ajax">{html}</div>')
         return html
 
     def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='',

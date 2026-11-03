@@ -430,3 +430,41 @@
     bottom: 0;
     z-index: 100;
 }
+
+/* add_panel_layout(scroll_cards=True): the lone card of a region or tab fills it and scrolls its own
+   body, so a card longer than the window keeps its header and tab bar in view. The template marks a
+   region or tab holding one card that fills it (panel-region__content--single, from the card's
+   fills_region), and only in a scroll_cards layout -- counted there, as a card's own <script>
+   siblings and its ajax-reload wrapper would defeat a CSS count, and a slot is not a card; and
+   only where asked, so a layout nested in one is not swept in. Several cards keep the region's
+   scroll rather than sharing its height evenly; a card that sizes itself is not marked.
+
+   A region's content is a flex column already, so only a tab pane is made one -- out-ranking the
+   active pane's display: block. Nothing here sets a region's display, so a collapsed region stays
+   hidden. The ajax-reload wrapper takes no box (display: contents), so its card is laid out as
+   the region's own. */
+.panel-layout--scroll-cards .panel-region__content.tab-content > .tab-pane.active.panel-region__content--single {
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .django-card__ajax {
+    display: contents;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .card,
+.panel-layout--scroll-cards .panel-region__content--single > .django-card__ajax > .card {
+    flex: 1;
+    min-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .card > .card-body,
+.panel-layout--scroll-cards .panel-region__content--single > .django-card__ajax > .card > .card-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}

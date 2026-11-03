@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
 
-from cards.base import json_for_script
+from cards.base import CARD_TYPE_TREEGRID, json_for_script
 from cards.render_scope import get_render_scope
 
 
@@ -67,6 +67,19 @@ def slot_marker():
         if nonce is None:
             nonce = scope.panel_slot_nonce = secrets.token_hex(12)
     return f'<!--django-cards-panel-slot-{nonce}-->'
+
+
+def _fill_region_width(card):
+    """A treegrid placed in a region or tab with no treegrid_min_width of its own takes 100%.
+
+    A region can be dragged narrower than the 600px a treegrid otherwise keeps, and the grid would
+    scroll sideways with its last column under the splitter. Set as the card is placed, so an ajax
+    reload -- which rebuilds the cards, and the layout with them -- draws it the same way.
+    """
+    info = getattr(card, 'extra_card_info', None)
+    if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
+            and not info.get('treegrid_min_width_given', True):
+        info['treegrid_min_width'] = '100%'
 
 
 class PanelSlot:
@@ -145,6 +158,7 @@ class PanelTab:
 
     def add_card(self, card):
         """Add a card to this tab pane."""
+        _fill_region_width(card)
         self.cards.append(card)
         return self
 
@@ -247,6 +261,7 @@ class PanelRegion:
         When the region has a ``title`` or ``menu``, the card's own header is
         hidden to avoid duplication (the region toolbar acts as the header).
         """
+        _fill_region_width(card)
         self.cards.append(card)
         return self
 
@@ -572,7 +587,7 @@ class PanelLayout:
     def __init__(self, view=None, card_name='panel_layout', layout_id=None,
                  direction=PanelSplit.HORIZONTAL,
                  resizable=True, full_height=True, min_height='400px',
-                 css_class='', css_style='', persist=True):
+                 css_class='', css_style='', persist=True, scroll_cards=False):
         if layout_id is not None and layout_id in self.wrapper_ids(card_name):
             # The wrapper card takes `card_name` as its DOM id, and its body and reload
             # container ids from it; panel_layout.js finds the layout by id, taking the first
@@ -589,7 +604,11 @@ class PanelLayout:
         self.root = PanelSplit(direction=direction, resizable=resizable)
         self.full_height = full_height
         self.min_height = min_height
-        self.css_class = css_class
+        self.css_class = css_class or ''
+        # A region's (or tab's) lone card fills it and scrolls its own body, so a long card keeps its
+        # header and tab bar in view rather than the region scrolling them away (the template adds
+        # the class, and marks a region or tab holding one card).
+        self.scroll_cards = bool(scroll_cards)
         self.css_style = css_style
         self.linked_tables = None
         self.persist = persist
@@ -639,6 +658,7 @@ class PanelLayout:
             'full_height': self.full_height,
             'min_height': self.min_height,
             'css_class': self.css_class,
+            'scroll_cards': self.scroll_cards,
             'css_style': self.css_style,
             'panel_card_context': {'card_css_class': 'card panel-card'},
             'panel_no_header_context': {'card_css_class': 'card panel-card panel-card--no-header',

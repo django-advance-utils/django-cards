@@ -920,3 +920,52 @@ class PanelLayoutSlotExample(MainMenu, CardMixin, TemplateView):
         )
         sidebar.add_card(nav_card)
         root.add_region('main', size='1fr', min_size=300, title='Page content').add_slot()
+
+
+class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
+    """A treegrid in a narrow region, read a row at a time, beside a long card that scrolls.
+
+    The treegrid gives no treegrid_min_width, so in a region it takes 100% and follows the region
+    down when the splitter is dragged, rather than scrolling sideways at 600px. treegrid_hover='row'
+    lights the whole row. scroll_cards=True makes each region card fill its region and scroll its
+    own body, so the long card's header stays in view.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        layout = self.add_panel_layout(card_name='treegrid_layout', min_height='500px', persist=False,
+                                       scroll_cards=True)
+        root = layout.root
+        nodes = [{'title': f'Department {d}', 'key': f'dept_{d}', 'folder': True, 'expanded': d == 1,
+                  'data': {'code': f'D{d}', 'people': 4},
+                  'children': [{'title': f'Team {d}.{t}', 'key': f'team_{d}_{t}',
+                                'data': {'code': f'T{d}{t}', 'people': t + 1}} for t in range(1, 5)]}
+                 for d in range(1, 6)]
+        grid = self.add_treegrid_card(
+            card_name='org_grid', title='Organisation',
+            treegrid_columns=[{'title': 'Name', 'field': 'title', 'width': '55%'},
+                              {'title': 'Code', 'field': 'code', 'width': '20%'},
+                              {'title': 'People', 'field': 'people', 'width': '25%'}],
+            treegrid_static_data=nodes, treegrid_show_filter=False, treegrid_hover='row')
+        root.add_region('grid', size='420px', min_size=200).add_card(grid)
+        notes = self.add_card(title='Notes (scrolls inside its card)', searchable=True, ajax_reload=True)
+        notes.add_rows(*[{'label': f'Note {i}', 'value': 'A long card: its header stays put while its body scrolls.'}
+                         for i in range(1, 31)])
+        root.add_region('notes', size='1fr', min_size=200).add_card(notes)
+        # Two cards in one region: neither is stretched; the region scrolls them as it would.
+        summary = self.add_card(title='Summary')
+        summary.add_rows({'label': 'Departments', 'value': '5'}, {'label': 'Teams', 'value': '20'})
+        more = self.add_card(title='More notes')
+        more.add_rows(*[{'label': f'Item {i}', 'value': 'Under the summary, in the same region.'} for i in range(1, 16)])
+        both = root.add_region('both', size='320px', min_size=200)
+        both.add_card(summary)
+        both.add_card(more)
+        # A tab whose lone card scrolls inside itself, as a region's does.
+        tabbed = root.add_region('tabbed', size='320px', min_size=200)
+        long_tab = self.add_card(title='Long tab card')
+        long_tab.add_rows(*[{'label': f'Row {i}', 'value': 'In a tab, scrolling inside its card.'} for i in range(1, 26)])
+        tabbed.add_tab('long', title='Long').add_card(long_tab)
+        short_tab = self.add_card(title='Short tab card')
+        short_tab.add_rows({'label': 'Only', 'value': 'one row'})
+        tabbed.add_tab('short', title='Short').add_card(short_tab)
+        self.add_card_group(layout.render(), div_css_class='col-12')

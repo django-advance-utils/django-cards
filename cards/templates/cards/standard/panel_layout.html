@@ -1,6 +1,6 @@
 {% load ajax_helpers django_cards_tags %}
 <div id="{{ layout_id }}"
-     class="panel-layout {{ css_class }}"
+     class="panel-layout {{ css_class }}{% if scroll_cards %} panel-layout--scroll-cards{% endif %}"
      style="{% if full_height %}min-height: {{ min_height }};{% endif %} {{ css_style }}"
      data-panel-layout="true"
      {% if full_height %}data-full-height="true" data-min-height="{{ min_height }}"{% endif %}>

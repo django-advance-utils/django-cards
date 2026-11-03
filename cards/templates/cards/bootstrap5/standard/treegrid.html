@@ -122,7 +122,7 @@
         <div style="overflow:auto; max-height:{{ card.extra_card_info.treegrid_height }};">
         {% endif %}
         <table id="{{ card.code }}_table"
-               class="display compact smalltext table-sm table w-100{% if card.extra_card_info.treegrid_sortable %} treegrid-sortable{% endif %}{% if card.extra_card_info.treegrid_nowrap %} treegrid-nowrap{% endif %}"
+               class="display compact smalltext table-sm table w-100{% if card.extra_card_info.treegrid_sortable %} treegrid-sortable{% endif %}{% if card.extra_card_info.treegrid_nowrap %} treegrid-nowrap{% endif %}{% if card.extra_card_info.treegrid_hover == 'row' %} treegrid--row-hover{% endif %}"
                style="min-width:{{ card.extra_card_info.treegrid_min_width }}">
                 <colgroup>
                     {% if card.extra_card_info.treegrid_sortable %}<col style="width:28px">{% endif %}

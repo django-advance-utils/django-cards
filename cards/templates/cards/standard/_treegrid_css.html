@@ -118,9 +118,27 @@
         background-color: rgba(0, 0, 0, 0.06);
     }
 
-    /* Cell hover highlight matching datatable */
-    .fancytree-ext-table tbody td:hover {
+    /* Cell hover highlight matching datatable (treegrid_hover='cell', the default). Not in a
+       row-hover grid, where the row's overlay is the cue and a cell keeps its own colour -- left
+       out by :where(), which adds no specificity, so a project's own override of this rule still
+       wins as it always has. */
+    .fancytree-ext-table tbody td:hover:not(:where(.treegrid--row-hover td)) {
         background-color: #a2bbd333;
+    }
+
+    /* treegrid_hover='row': the row lights, for a grid read a row at a time. Drawn as an overlay
+       (a background image over the cell's own colour) rather than as the cell's colour, so a cell
+       coloured by a class -- a status, a column's css_class -- keeps it, as does a folder row's
+       shade. An editable cell takes a deeper overlay, on the active row too; the active row's other
+       cells none, keeping its highlight. */
+    .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {
+        background-image: linear-gradient(#a2bbd333, #a2bbd333);
+    }
+    .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {
+        background-image: linear-gradient(#a2bbd366, #a2bbd366);
+    }
+    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-active:hover > td:not(.treegrid-editable:hover) {
+        background-image: none;
     }
 
     /* Inline checkbox */

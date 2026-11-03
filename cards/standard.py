@@ -337,7 +337,7 @@ class CardMixin:
     def add_panel_layout(self, card_name='panel_layout', layout_id=None,
                          direction=PanelSplit.HORIZONTAL,
                          resizable=True, full_height=True, min_height='400px',
-                         css_class='', css_style='', persist=True) -> PanelLayout:
+                         css_class='', css_style='', persist=True, scroll_cards=False) -> PanelLayout:
         """
         Creates a CSS Grid-based panel layout with resizable and collapsible regions.
 
@@ -370,6 +370,10 @@ class CardMixin:
             min_height (str, optional): CSS min-height when full_height is True. Defaults to '400px'.
             css_class (str, optional): Additional CSS classes for the layout container.
             css_style (str, optional): Additional inline styles for the layout container.
+            scroll_cards (bool, optional): The lone card of a region or tab fills it and scrolls
+                its own body, so a card longer than the window keeps its header and tab bar in
+                view rather than the region scrolling them away. Several cards in a region keep
+                the region's scroll, and a treegrid card scrolls its own grid. Off by default.
 
         Returns:
             PanelLayout: The layout object to configure and render.
@@ -385,6 +389,7 @@ class CardMixin:
             css_class=css_class,
             css_style=css_style,
             persist=persist,
+            scroll_cards=scroll_cards,
         )
         register_panel_layout(self, layout)
         return layout
@@ -779,7 +784,8 @@ class CardMixin:
                           treegrid_drag_cross_level: bool = False,
                           treegrid_nowrap: bool = False,
                           treegrid_current_node: str = '',
-                          treegrid_min_width: str = '600px',
+                          treegrid_min_width: str = None,
+                          treegrid_hover: str = 'cell',
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -839,7 +845,12 @@ class CardMixin:
             treegrid_drag_drop (bool): Allows dragging and dropping nodes. Defaults to False. CANNOT BE USED WITH STATIC DATA.,
             treegrid_drag_cross_level (bool): Used with treegrid_drag_drop to allow multi-level drag and drop. Defaults to False,
             treegrid_nowrap (bool): If the cells of treegrid should not wrap text. Defaults to False,
-            treegrid_min_width (str): Minimum width for the treegrid div. Defaults to 600px.
+            treegrid_min_width (str): Minimum width for the treegrid table. Left as None it is
+                600px, or 100% for a treegrid placed in a panel layout region or tab, which can be
+                dragged narrower than 600px. '' sets no floor at all.
+            treegrid_hover (str): 'cell' (the default) lights the cell under the pointer, the
+                cue for a grid edited in place; 'row' lights the whole row, for one read a row
+                at a time (an editable cell in it keeps the cell cue too).
             **kwargs: Additional keyword arguments passed to `add_card`.
 
         Returns:
@@ -918,6 +929,7 @@ class CardMixin:
             treegrid_nowrap=treegrid_nowrap,
             treegrid_current_node=treegrid_current_node,
             treegrid_min_width=treegrid_min_width,
+            treegrid_hover=treegrid_hover,
             show_header=show_header,
             **kwargs,
         )
