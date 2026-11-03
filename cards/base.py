@@ -13,7 +13,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.html import conditional_escape, strip_tags
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeData, mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
 from django_datatables.columns import ColumnBase
@@ -760,7 +760,9 @@ def find_section(view, card):
 
 def _panel_cards(panels):
     """The cards of an accordion's or a rail's panels, those of a rail's nested columns included."""
-    for panel in panels or ():
+    if not isinstance(panels, (list, tuple)):
+        return
+    for panel in panels:
         if isinstance(panel, dict):
             if panel.get('card') is not None:
                 yield panel['card']
@@ -2691,9 +2693,13 @@ class CardBase:
             active = next((i for i, panel in enumerate(panels) if panel.get('expanded')), 0)
             for i, panel in enumerate(panels):
                 node_id = f'{column_id}_{i}'
+                title = panel.get('title', f'Panel {i + 1}')
                 button = {
                     'id': node_id,
-                    'title': panel.get('title', f'Panel {i + 1}'),
+                    'title': title,
+                    # The tooltip and accessible name are text: a title marked safe gives its words,
+                    # its entities read once, and is escaped as text when written.
+                    'label': unescape(strip_tags(title)) if isinstance(title, SafeData) else str(title),
                     'icon': panel.get('icon'),
                     'active': i == active,
                 }
@@ -3094,6 +3100,9 @@ class CardBase:
         scrolls its own body: drawn by the template file of one of `REGION_FILLING_TEMPLATES` --
         by key or by path, and not a subclass's entry pointing that key at a template of its own --
         and not collapsible (it would fill the region folded)."""
+        if self.group_type == CARD_TYPE_RAIL and self.extra_card_info.get('height', '100%') != '100%':
+            # A rail given a height of its own keeps it; filling the region would override it.
+            return False
         if self.enable_collapse or self.group_type == CARD_TYPE_PANEL_LAYOUT:
             # A nested panel layout is drawn by html.html too, but sizes itself.
             return False

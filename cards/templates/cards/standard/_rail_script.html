@@ -100,12 +100,10 @@
             return own(column, 'django-card-rail__btn').filter(function (b) { return b.classList.contains('active'); })[0];
         }
 
-        // Whether el is on show within root: neither it nor anything between them is hidden.
-        function onShow(el, root) {
-            for (; el && el !== root; el = el.parentElement) {
-                if (el.hidden || el.classList.contains('django-card__section--folded')) { return false; }
-            }
-            return true;
+        // Whether el is on show: it has a box, so nothing above it is hidden -- a hidden pane, an
+        // inactive tab, a closed accordion panel, a folded section. Asked once the pane is shown.
+        function onShow(el) {
+            return el.getClientRects().length > 0;
         }
 
         // A pane newly on show: its datatables, laid out while it was hidden, are measured again,
@@ -114,11 +112,11 @@
         function shown(pane) {
             var $ = window.jQuery;
             if ($ && $.fn.dataTable) {
-                $(pane).find('table.dataTable').filter(function () { return onShow(this, pane); })
+                $(pane).find('table.dataTable').filter(function () { return onShow(this); })
                     .each(function () { $(this).DataTable().columns.adjust(); });
             }
             [pane].concat([].slice.call(pane.querySelectorAll('.django-card-rail__pane')).filter(function (inner) {
-                return onShow(inner, pane);
+                return onShow(inner);
             })).forEach(function (p) {
                 var detail = {button: p.getAttribute('aria-labelledby')};
                 if ($) { $(p).trigger($.Event('shown.cards.rail'), [detail]); }

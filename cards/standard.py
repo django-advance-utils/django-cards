@@ -720,7 +720,9 @@ class CardMixin:
         pane's own button id as ``detail.button``), so a page can load a pane's content the first
         time it is opened -- the pane open when the page loads raises nothing, so load that one
         from the page's ready handler, as with an accordion's open panel. A rail inside the pane
-        raises it for its own open pane too, and the pane's datatables are measured again.
+        raises it for its own open pane too, and the event bubbles, so a listener on an outer
+        pane sees its inner rail's: check ``event.target`` is the pane meant. Which panel is open
+        lives in the page, so a reload of the card over ajax opens the server's choice again.
 
         Args:
             card_name (str, optional): Unique card identifier.
@@ -733,10 +735,14 @@ class CardMixin:
                 - card (CardBase, optional): the card shown in its pane.
                 - panels (list, optional): instead of a card, the panels of a column of icons
                   opened beside this one.
-                - expanded (bool, optional): the panel open in its column; the first if none is.
+                - expanded (bool, optional): the panel open in its column. A column always has
+                  one open: the first marked ``expanded``, or its first panel if none is -- so a
+                  list with every panel closed, or several open, opens one here.
             height (str): The card's CSS height. ``'100%'``, the default, fills a panel region or
-                tab; where the card's container has no height of its own -- an accordion panel,
-                a page -- give a length (``'480px'``), or the card is as tall as its tallest part.
+                tab, and alone in a ``scroll_cards`` region it fills that; where the card's
+                container has no height of its own -- an accordion panel, a page -- give a length
+                (``'480px'``), or the card is as tall as its tallest part. A length is kept in a
+                ``scroll_cards`` region too.
             pane_titles (bool): Head each pane with its icon and title. Default True.
 
         Example::
@@ -750,6 +756,9 @@ class CardMixin:
                 ]},
             ])
         """
+        if kwargs.get('collapsed') is not None:
+            raise ValueError('A rail card does not fold: it has no collapse markup, and folded it could '
+                             'not fill a region. Put it in a collapsible region or an accordion panel instead.')
         show_header = kwargs.pop('show_header', title is not None)
         return self.add_card(
             card_name=card_name,

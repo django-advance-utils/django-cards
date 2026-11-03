@@ -11,7 +11,7 @@ A Django library for building rich, interactive detail cards in your views — w
 
 django-cards gives you a Python API to build Bootstrap-styled information cards directly from your Django views. Instead of writing repetitive template HTML, you declare cards and entries in Python:
 
-- **13 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, accordion, icon rail, panel layout, and iframe
+- **14 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, accordion, icon rail, panel layout, iframe, and treegrid
 - **30+ entry display options** — badges, icons, sparklines, ratings, progress bars, status dots, popovers, copy-to-clipboard, and more
 - **Interactive features** — AJAX reload, client-side search, CSV/JSON export, collapsible cards
 - **Layout system** — card groups, layout cards, and child card groups for complex page layouts
@@ -1751,7 +1751,7 @@ class ItemView(CardMixin, TemplateView):
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `panels` | `[]` | Panel dicts: `title`, `icon`, and either `card` (shown in its pane) or `panels` (a column of icons opened beside this one); `expanded` marks the panel open in its column, the first if none is |
-| `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab; inside something with no height of its own -- an accordion panel, a page -- give a length such as `'480px'` |
+| `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab; inside something with no height of its own -- an accordion panel, a page -- give a length such as `'480px'`, which is kept in a `scroll_cards` region too |
 | `pane_titles` | `True` | Head each pane with its icon and title, in place of the pane card's own header -- which takes that header's menu, search, export and reload buttons with it, as in an accordion; set `False` to keep the card's header |
 | `title` | `None` | Card header title; no header without one unless `show_header` says otherwise |
 
@@ -1761,8 +1761,13 @@ class ItemView(CardMixin, TemplateView):
   panel last chosen in it.
 - Showing a pane raises `shown.cards.rail` on it (native and jQuery, bubbling, `detail.button` the
   pane's own button id), and its datatables are measured again, as they are laid out while hidden. A rail
-  inside the pane raises it for its own open pane too. The pane open when the page loads raises nothing:
-  load that one from the page's ready handler, as with an accordion's open panel.
+  inside the pane raises it for its own open pane too, and the event bubbles, so a listener on an outer pane
+  should check `event.target`. The pane open when the page loads raises nothing: load that one from the
+  page's ready handler, as with an accordion's open panel.
+- A column always has one panel open -- the first marked `expanded`, or its first -- so an accordion list
+  with every panel closed, or several open, opens one here. The open panels live in the page: a reload of the
+  rail over ajax opens the server's choice again. A rail does not fold (`collapsed=` raises); put it in a
+  collapsible region or an accordion panel instead.
 - Up/Down, Home and End move along a column, as in a vertical tab list.
 - Colours are custom properties a theme can set: `--django-card-rail-bg`, `--django-card-rail-nested-bg`,
   `--django-card-rail-icon`, `--django-card-rail-icon-active`, `--django-card-rail-active-bg`,

@@ -154,9 +154,10 @@ class TestTheRail(SimpleTestCase):
         self.assertIn('<span>&lt;b&gt;Bold&lt;/b&gt; &amp; co</span>', html)
         page = _Page(html)
         self.assertEqual(len(page.find('i', **{'class': 'mine'})), 1)  # the pane's title, as given
-        # a tooltip is text: a title marked safe gives its words, not markup that would end the attribute
-        self.assertEqual([b['title'] for b in _buttons(page)], ['Bold & co', 'Mine'])
-        self.assertEqual([b['aria-label'] for b in _buttons(page)], ['Bold & co', 'Mine'])
+        # a tooltip is text: a plain title reads as written, as its pane title does, and a title
+        # marked safe gives its words, not markup that would end the attribute
+        self.assertEqual([b['title'] for b in _buttons(page)], ['<b>Bold</b> & co', 'Mine'])
+        self.assertEqual([b['aria-label'] for b in _buttons(page)], ['<b>Bold</b> & co', 'Mine'])
 
     def test_the_pane_title_and_the_cards_own_header(self):
         for pack in PACKS:
@@ -199,10 +200,31 @@ class TestTheRail(SimpleTestCase):
         with self.assertRaisesMessage(ValueError, 'a list of dicts'):
             _rail(view, panels=[_body(view, 'loose', 'x')]).render()
 
+    def test_a_safe_titles_entities_are_read_once_in_the_tooltip(self):
+        view = _view()
+        page = _Page(_rail(view, panels=[{'title': mark_safe('Doors &amp; <b>Frames</b> "x"'),
+                                          'card': _body(view, 'a', 'x')}]).render())
+        self.assertEqual(_buttons(page)[0]['title'], 'Doors & Frames "x"')
+
+    def test_a_rail_does_not_fold(self):
+        with self.assertRaisesMessage(ValueError, 'does not fold'):
+            _rail(_view(), collapsed=True)
+
+    def test_panels_that_are_not_a_list_give_the_rails_own_error(self):
+        from cards.base import _panel_cards
+        view = _view()
+        stray = _body(view, 'stray', 'x')
+        with self.assertRaisesMessage(ValueError, 'a list of dicts'):
+            view.add_rail_card(card_name='odd', panels=[{'title': 'X', 'panels': stray}])
+        # and the placement check, which walks the same lists, passes over them rather than failing first
+        self.assertEqual(list(_panel_cards([{'title': 'X', 'panels': stray}, {'card': stray}])), [stray])
+        self.assertEqual(list(_panel_cards({'title': 'X'})), [])
+
     def test_the_shown_event_names_the_panes_own_button(self):
         """Opening a column shows a pane two buttons from the one clicked: the event names the pane's."""
         html = _rail(_view()).render()
         self.assertIn("var detail = {button: p.getAttribute('aria-labelledby')};", html)
+        self.assertIn('return el.getClientRects().length > 0;', html)
         self.assertIn("pane.querySelectorAll('.django-card-rail__pane')", html)
 
 
@@ -253,6 +275,11 @@ class TestWhereARailGoes(SimpleTestCase):
                 page = _Page(str(layout.render().render()))
                 for card_id in ('tools_card', 'tabbed_card'):
                     self.assertIn('django-card-rail', page.find('div', id=card_id)[0]['class'].split())
+
+    def test_a_height_of_its_own_is_kept_in_a_scroll_cards_region(self):
+        view = _view()
+        self.assertFalse(_rail(view, card_name='short', height='320px').fills_region)
+        self.assertTrue(_rail(view, card_name='full').fills_region)
 
     def test_in_an_accordion_panel(self):
         view = _view()
