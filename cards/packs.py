@@ -33,8 +33,29 @@ override one version only puts its file at the pack path instead.
 
 ``pack_template`` therefore resolves the pack path alone. Trying the flat path first, the way
 menus does, would find the forwarder and recurse.
+
+Cards' own renders swap the name instead
+----------------------------------------
+The forwarders are for callers outside cards. Cards itself skips them: ``CardBase.render``
+passes its template name through ``resolve_template``, and every include inside a pack
+template (and in ``panel_layout.html``) is written
+
+    {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
+
+``resolve_template`` swaps ``cards/standard/`` for ``cards/<pack>/standard/`` when the file
+Django finds at the flat path is cards' own forwarder, and leaves the name alone when it is a
+project's override (or not a pack template at all), so overrides win exactly as before. It
+saves a forwarder's second lookup and context copy per template -- around 20 microseconds
+each with the cached loader, five of them in a plain card. Which file owns a flat name is
+remembered per name, and forgotten when ``TEMPLATES`` changes -- except under ``DEBUG``,
+where it is checked on every render, so an override added while the server runs shows at once.
 """
+import os
+
 from django.conf import settings
+from django.core.signals import setting_changed
+from django.dispatch import receiver
+from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 from django.utils.module_loading import import_string
 
@@ -104,3 +125,79 @@ def pack_template(name, request=None):
 
 def render_pack_template(name, context, request=None):
     return pack_template(name, request).render(context)
+
+
+# Cards' own template folder, to tell its forwarders from a project's override at the same path.
+_TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+_FLAT_PREFIX = 'cards/standard/'
+
+
+def _same_file(a, b):
+    """Whether two paths name one file, however each is spelled (case, separators, links)."""
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
+# What the swap needs to know, worked out once per name: whether the file Django loads at a
+# flat name is cards' own (it depends on the template folders and the installed apps, not the
+# request), and whether a pack folder of cards' holds a copy. Cleared when TEMPLATES or
+# INSTALLED_APPS change, as Django resets its own engines then. Not kept under DEBUG, where an
+# override added while the server runs must show on the next render, as it did when every
+# render went through the forwarder.
+_OWN_FILE = {}
+_PACK_COPY = {}
+
+
+@receiver(setting_changed)
+def _forget_forwarders(setting, **kwargs):
+    if setting in ('TEMPLATES', 'INSTALLED_APPS'):
+        _OWN_FILE.clear()
+        _PACK_COPY.clear()
+
+
+def _remembered(memo, key, work):
+    if settings.DEBUG:
+        return work()
+    try:
+        return memo[key]
+    except KeyError:
+        memo[key] = verdict = work()
+        return verdict
+
+
+def _has_pack_copy(pack, parts):
+    """Whether cards ships ``parts`` in ``pack``'s folder. A pack a project supplies itself has
+    no folder here, so its names stay flat and go through the forwarder, which finds it."""
+    return _remembered(_PACK_COPY, (pack, parts),
+                       lambda: os.path.isfile(os.path.join(_TEMPLATES_DIR, 'cards', pack, *parts)))
+
+
+def _is_own_file(name, parts):
+    """Whether the file Django loads at the flat ``name`` is cards' own, not a project's."""
+    def work():
+        try:
+            origin = get_template(name).origin.name
+        except TemplateDoesNotExist:
+            return False
+        # An origin that is not a file (a locmem or database loader) is not ours.
+        return (bool(origin) and os.path.isabs(origin)
+                and _same_file(origin, os.path.join(_TEMPLATES_DIR, 'cards', *parts)))
+    return _remembered(_OWN_FILE, name, work)
+
+
+def resolve_template(name, request=None):
+    """The template to render for ``name``: its pack copy, unless something else owns the name.
+
+    A ``cards/standard/`` name whose file is cards' own forwarder becomes the request's pack
+    path, so the card renders the pack's markup directly -- no forwarder is loaded, and no
+    second render copies the context. A name a project overrides at the flat path, any name
+    that is not a pack template, and anything but a single name (a list for select_template,
+    a Template object) comes back unchanged: the override wins on both packs, as it did when
+    every render went through the forwarder.
+    """
+    if not isinstance(name, str) or not name.startswith(_FLAT_PREFIX):
+        return name
+    pack = template_pack(request)
+    parts = tuple(name[len('cards/'):].split('/'))
+    if _has_pack_copy(pack, parts) and _is_own_file(name, parts):
+        return '/'.join(('cards', pack) + parts)
+    return name

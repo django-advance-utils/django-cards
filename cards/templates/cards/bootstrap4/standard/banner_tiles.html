@@ -1,4 +1,4 @@
-{# A master card whose body is a grid or slider of banner tiles, built by add_banner_tiles(). #}
+{% load django_cards_tags %}{# A master card whose body is a grid or slider of banner tiles, built by add_banner_tiles(). #}
 {# The tiles are in standard/_banner_tiles_body.html, shared by both packs; this file is      #}
 {# only the card around them. Chrome is in cards/css/cards.css (.django-card__banner-tile-*). #}
 <div class="{{ card_css_class }}" id="{{ card.code }}" data-title=""{% if card_css_style %} style="{{ card_css_style }}"{% endif %}>
@@ -7,7 +7,7 @@
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
-                {% include 'cards/standard/_reload_button.html' %}
+                {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
                 {% if card.enable_collapse %}
                 <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-target="#{{ card.code }}_body" data-toggle="collapse">
                     <i class="expandicon"></i>

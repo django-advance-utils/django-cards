@@ -6,7 +6,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
-from cards.packs import pack_classes, pack_template, template_pack
+from cards.packs import pack_classes, pack_template, resolve_template, template_pack
 from cards.render_scope import get_render_scope
 
 register = template.Library()
@@ -24,6 +24,16 @@ def pack_source(context, name):
     path they override -- and this picks the version behind it. See cards.packs.
     """
     return mark_safe(pack_template(name, context.get('request')).render(context.flatten()))
+
+
+@register.simple_tag(takes_context=True)
+def pack_path(context, name):
+    """The template an {% include %} of the flat ``name`` should load: the pack's copy, or a
+    project's override at the flat path. Used as ``{% pack_path '...' as t %}{% include t %}``
+    so the include stays Django's own -- ``with`` and recursion work as before -- while
+    skipping the forwarder. See cards.packs.resolve_template.
+    """
+    return resolve_template(name, context.get('request'))
 
 
 @register.simple_tag(takes_context=True)

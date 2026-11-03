@@ -6,7 +6,7 @@
         <div class="d-flex align-items-center">
             <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
-            {% include 'cards/standard/_reload_button.html' %}
+            {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
         </div>
     </div>
     {% endif %}
