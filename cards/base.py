@@ -572,6 +572,7 @@ class CardSection:
             menu = HtmlMenu(card.request, card.button_menu_type).add_items(*menu)
         self._menu = menu
         self._folded = folded
+        self.owner = None  # the card whose stack this is, set by add_sections()
 
     @classmethod
     def build(cls, entry):
@@ -618,22 +619,26 @@ class CardSection:
         """Every DOM id the section writes, checked against the view's card names."""
         return {self.id, f'{self.id}-header', f'{self.id}-body', f'{self.id}-toggle'}
 
+    #: The card templates that draw the search and export controls and load the scripts behind them
+    #: (``_search_script.html``, ``_export_script.html``). A section over any other card offers its
+    #: reload button alone, as the card's own header did: a search box or export button there would
+    #: have nothing behind it.
+    CONTROL_TEMPLATES = frozenset({'default', 'table'})
+
     @property
-    def has_menu(self):
-        """Whether the menu will draw anything: its items counted as django-menus draws them."""
-        menu = self.menu
-        if not menu:
-            return False
-        if getattr(menu, 'menu_items', None) is None:
-            return True
-        return bool(visible_menu_items(menu))
+    def full_controls(self):
+        """Whether the card's own template carries search and export (`CONTROL_TEMPLATES`)."""
+        card = self.card
+        name = card.template_name or card.template_defaults.get(card.group_type)
+        return name in self.CONTROL_TEMPLATES
 
     @property
     def has_controls(self):
-        """Whether the card has header controls besides its menu (``_header_controls.html``)."""
+        """Whether the card has header controls besides its menu: what the section header draws."""
         card = self.card
-        return bool(getattr(card, 'ajax_reload', False) or getattr(card, 'searchable', False)
-                    or getattr(card, 'exportable', False))
+        if getattr(card, 'ajax_reload', False):
+            return True
+        return self.full_controls and bool(getattr(card, 'searchable', False) or getattr(card, 'exportable', False))
 
 
     def render_body(self):
@@ -656,7 +661,8 @@ class CardSection:
         has_menu = bool(str(menu_html).strip())
         return mark_safe(render_to_string('cards/standard/_section_header.html', {
             'section': self, 'card': self.card, 'request': self.card.request, 'redraw': redraw,
-            'menu_html': menu_html, 'has_actions': has_menu or self.has_controls}))
+            'menu_html': menu_html, 'has_actions': has_menu or self.has_controls,
+            'full_controls': self.full_controls}))
 
 
 def build_sections(entries, claim=True):
@@ -665,8 +671,11 @@ def build_sections(entries, claim=True):
     A builder that decided it had nothing to add can hand back ``None`` in its place; it is left
     out, as a card group leaves one out. Every entry is checked before any card is claimed, so one
     bad entry leaves every card as it was. For a template of an application's own that wants the
-    sections without a card around them: include ``cards/standard/_section_stack_body.html`` with
-    ``sections=build_sections(cards)``.
+    sections without a card around them: build them here and include
+    ``cards/standard/_section_stack_body.html`` with ``sections=`` them. Build them in
+    ``setup_cards()`` (keeping them on the view), not ``get_context_data()``: an ajax reload of a
+    section's card rebuilds the cards through ``setup_cards()``, and only a card claimed there comes
+    back as its section's, without a header of its own.
     """
     sections = [section for section in (CardSection.build(entry) for entry in entries or ()) if section is not None]
     if claim:
@@ -676,6 +685,20 @@ def build_sections(entries, claim=True):
 
 
 SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
+
+
+def _in_live_stack(card, stack):
+    """Whether ``card`` is already in a section stack on this page: ``stack``'s own, or one still
+    on the view -- not one a rebuild has thrown away, so a card a view keeps between builds (an
+    ajax reload rebuilds the cards) can go into the new stack."""
+    section = getattr(card, 'section', None)
+    owner = getattr(section, 'owner', None)
+    if owner is None:
+        return False
+    if owner is stack:
+        return True
+    cards = getattr(getattr(stack, 'view', None), 'cards', None) or {}
+    return cards.get(owner.code) is owner
 
 
 def _refuse_if_stack(card):
@@ -692,8 +715,12 @@ def stack_id(card):
 
 
 def _check_section_ids(card, sections):
-    """Raise if an id the stack or one of its ``sections`` writes is a card name on the view."""
-    taken = set(getattr(card.view, 'cards', None) or {})
+    """Raise if an id the stack or one of its ``sections`` writes is a card name on the view, or a
+    datatable's id there."""
+    view = card.view
+    taken = set(getattr(view, 'cards', None) or {})
+    for key, table in (getattr(view, 'tables', None) or {}).items():
+        taken.update({key, getattr(table, 'table_id', key)})
     ids = {stack_id(card)}.union(*(section.ids for section in sections))
     clash = ids & taken
     if clash:
@@ -2795,12 +2822,13 @@ class CardBase:
             stacked = section.card
             if stacked is self or _stack_holds(stacked, self):
                 raise ValueError(f'Card {self.code!r} cannot hold a stack that holds itself')
-            if id(stacked) in seen or getattr(stacked, 'section', None) is not None:
+            if id(stacked) in seen or _in_live_stack(stacked, self):
                 raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
                                  f'place on a page, or its DOM ids are there twice')
             seen.add(id(stacked))
         _check_section_ids(self, sections)
         for section in sections:
+            section.owner = self
             section.claim()
         self.extra_card_info.setdefault('sections', []).extend(sections)
         # Read (and called) by the html card template, so the sections' cards are drawn when

@@ -19,13 +19,18 @@
         }
         section.dispatchEvent(new CustomEvent('django-cards:section-toggle', {bubbles: true, detail: {folded: folded}}));
     };
-    window.djangoCardsApplySectionFolds = window.djangoCardsApplySectionFolds || function (root) {
+    // `serverFolded` is a redrawn section header's: the fold the server now gives the section (its
+    // card has just been emptied, say), taken where the reader has not chosen one. Without it --
+    // a fresh stack -- the markup's own fold stands.
+    window.djangoCardsApplySectionFolds = window.djangoCardsApplySectionFolds || function (root, serverFolded) {
         if (!root) { return; }
         var sections = root.classList && root.classList.contains('django-card__section')
             ? [root] : root.querySelectorAll('.django-card__section');
         Array.prototype.forEach.call(sections, function (section) {
             var folded = window.djangoCardsSectionFolds[section.id];
-            if (folded === undefined) { folded = section.classList.contains('django-card__section--folded'); }
+            if (folded === undefined) {
+                folded = serverFolded !== undefined ? serverFolded : section.classList.contains('django-card__section--folded');
+            }
             section.classList.toggle('django-card__section--folded', folded);
             var toggle = section.querySelector('.django-card__section-toggle');
             if (toggle) { toggle.setAttribute('aria-expanded', folded ? 'false' : 'true'); }

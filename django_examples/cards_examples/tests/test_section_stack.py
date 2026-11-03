@@ -469,7 +469,7 @@ class TestSectionThirdReviewFixes(SimpleTestCase):
         view = _view()
         contact, _tags, _site = _cards(view)
         view.add_card('customer', title='Customer').add_sections([contact])
-        self.assertIn(f"djangoCardsApplySectionFolds(document.getElementById('{escapejs('contact-section')}'))",
+        self.assertIn(f"djangoCardsApplySectionFolds(document.getElementById('{escapejs('contact-section')}'), false)",
                       contact.section.render_header(redraw=True))
 
     def test_a_page_load_draws_no_script_per_header(self):
@@ -548,3 +548,72 @@ class TestSectionFourthReviewFixes(SimpleTestCase):
     def test_opening_skips_datatables_in_folded_sections_further_in(self):
         _card, html = TestAddSections().render()
         self.assertIn("parentsUntil(section, '.django-card__section--folded')", html)
+
+
+class TestSectionFifthReviewFixes(SimpleTestCase):
+
+    def test_search_and_export_only_where_the_cards_template_has_their_scripts(self):
+        view = _view()
+        notes = view.add_html_data_card(card_name='notes', title='Notes', html='<p>n</p>',
+                                        searchable=True, exportable=True, ajax_reload=True)
+        rows = view.add_card('rows', title='Rows', searchable=True, exportable=True)
+        rows.add_entry(value='one', label='First')
+        html = view.add_card('customer', title='Customer').add_sections([notes, rows]).render()
+        notes_header = html[html.index('id="notes-section-header"'):html.index('id="notes-section-body"')]
+        rows_header = html[html.index('id="rows-section-header"'):html.index('id="rows-section-body"')]
+        self.assertNotIn('notes_search', notes_header)
+        self.assertNotIn('exportCard', notes_header)
+        self.assertIn("reload_card('notes')", notes_header)
+        self.assertIn('id="rows_search"', rows_header)
+        self.assertIn("exportCard('rows','csv')", rows_header)
+
+    def test_a_card_kept_between_builds_goes_into_the_rebuilt_stack(self):
+        """An ajax reload throws the cards away and builds them again; a card the view kept is
+        claimed by the old stack, which is no longer on the view."""
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact])
+        view.cards = {'contact': contact}  # rebuild_cards() starts the view's cards again
+        rebuilt = view.add_card('customer', title='Customer').add_sections([contact])
+        self.assertIs(contact.section.owner, rebuilt)
+        # while the first stack is still on the view, a second one is refused
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            view.add_card('other', title='Other').add_sections([contact])
+
+    def test_a_redraw_follows_the_servers_fold_where_the_reader_chose_none(self):
+        view = _view()
+        contact, tags, _site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact, tags])
+        self.assertIn(f"getElementById('{escapejs('tags-section')}'), true)", tags.section.render_header(redraw=True))
+        script = render_to_string('cards/standard/_section_stack_script.html')
+        self.assertIn('serverFolded !== undefined ? serverFolded', script)
+
+    def test_a_stack_of_your_own_has_an_id_of_its_own(self):
+        view = _view()
+        html = render_to_string('cards/standard/_section_stack_body.html',
+                                {'sections': build_sections(_cards(view)), 'request': view.request})
+        self.assertIn('id="contact-section-stack"', html)
+        self.assertIn(f"getElementById('{escapejs('contact-section-stack')}')", html)
+        self.assertNotIn('djangoCardsApplySectionFolds(document)', html)
+
+    def test_section_ids_are_checked_against_datatable_ids(self):
+        class _Table:
+            table_id = 'contact-section-body'
+
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.tables['listing'] = _Table()
+        with self.assertRaisesMessage(ValueError, 'contact-section-body'):
+            view.add_card('customer', title='Customer').add_sections([contact])
+
+    def test_a_menu_of_hidden_items_draws_nothing_through_django_menus(self):
+        """django-menus' HtmlMenu.render() answers '' when no item is visible, so its markup is a
+        sound test of whether there is a menu (no empty button group is drawn)."""
+        from django_menus.menu import HtmlMenu, MenuItem
+        view = _view()
+        menu = HtmlMenu(view.request, 'button_group').add_items(MenuItem('cards_examples:hello_modal', menu_display='Edit', visible=False))
+        self.assertEqual(menu.render(), '')
+        card = view.add_card('locked', title='Locked', menu=menu)
+        card.add_entry(value='x', label='X')
+        html = view.add_card('customer', title='Customer').add_sections([card]).render()
+        self.assertNotIn('django-card__section-menu', html)

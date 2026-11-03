@@ -1164,9 +1164,15 @@ self.add_card('customer', title='Customer').add_sections([contact, site_card, ta
 - A card is in one stack, once: a card listed twice, already in a stack, or a stack that would hold
   itself raises, as do section ids that another card on the view is named (checked again when the
   stack renders).
-- For a template of your own, include `cards/standard/_section_stack_body.html` with
-  `sections=build_sections(cards)` (`from cards.standard import build_sections`); the card
-  stylesheet and the toggle's script come with it, each once per request.
+- For a template of your own, build the sections with `build_sections(cards)`
+  (`from cards.standard import build_sections`) in `setup_cards()`, keep them on the view, and
+  include `cards/standard/_section_stack_body.html` with `sections=` them. Build them in
+  `setup_cards()`, not `get_context_data()`: a reload of a section's card rebuilds the cards there.
+  The card stylesheet and the toggle's script come with the stack, each once per request.
+- A section header offers search and export only for a card whose own template has them (the
+  default and table templates); for any other card it offers its reload button alone.
+- `card_group`, `list_selection`, `tree_selection` and `image_gallery` cards now honour
+  `show_header=False` as the other card templates do; before, they drew their header regardless.
 
 Chrome is in `cards/css/cards.css` (`.django-card__section*`); retint the titles with
 `--django-card-section-title-color`. The example app's Groups page has one.
