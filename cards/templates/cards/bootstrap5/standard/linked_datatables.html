@@ -1,11 +1,11 @@
-{% load datatable_tags %}
+{% load django_cards_tags %}{% load datatable_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
     {% if show_header %}
     <div class="card-header {{ card.header_css_class }}">
         <div class="d-flex align-items-center">
             <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
-            {% include 'cards/standard/_reload_button.html' %}
+            {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
             {% if card.enable_collapse %}
             <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-bs-target="#{{ card.code }}_body" data-bs-toggle="collapse">
                 <i class="expandicon"></i>

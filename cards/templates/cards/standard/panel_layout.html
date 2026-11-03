@@ -1,10 +1,10 @@
-{% load ajax_helpers %}
+{% load django_cards_tags %}{% load ajax_helpers %}
 <div id="{{ layout_id }}"
      class="panel-layout {{ css_class }}"
      style="{% if full_height %}min-height: {{ min_height }};{% endif %} {{ css_style }}"
      data-panel-layout="true"
      {% if full_height %}data-full-height="true" data-min-height="{{ min_height }}"{% endif %}>
-    {% include "cards/standard/_panel_split.html" with split=root panel_card_context=panel_card_context panel_no_header_context=panel_no_header_context %}
+    {% pack_path 'cards/standard/_panel_split.html' as pack_include %}{% include pack_include with split=root panel_card_context=panel_card_context panel_no_header_context=panel_no_header_context %}
 </div>
 {% lib_include 'panel_layout' module='cards.includes' %}
 <script>document.addEventListener('DOMContentLoaded', function() { PanelLayout.init('{{ layout_id }}', {persist: {{ persist|yesno:'true,false' }}}); });</script>

@@ -21,7 +21,7 @@ from django_datatables.plugins.reorder import Reorder
 from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
-from cards.packs import pack_class
+from cards.packs import pack_class, resolve_template
 from cards.render_scope import get_render_scope
 
 
@@ -2319,7 +2319,9 @@ class CardBase:
             border_class = CARD_BORDER_CSS_CLASSES[self.border]
             context['card_css_class'] = f"{context.get('card_css_class', '')} {border_class}".strip()
 
-        html = render_to_string(template, context)
+        # Straight to the pack's copy where the flat name is cards' own forwarder; see
+        # cards.packs.resolve_template.
+        html = render_to_string(resolve_template(template, self.request), context)
         if self.border or self.requires_card_css:
             html = card_css_once(self.request) + html
         return mark_safe(html)

@@ -27,11 +27,15 @@ from pathlib import Path, PureWindowsPath
 from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.utils.safestring import mark_safe
+from django.views.generic import TemplateView
+from unittest import mock
 
 import cards
 from cards.card_list.base import CardListBaseMixin
 from cards.panel_layout import PanelLayout
-from cards.packs import DEFAULT_PACK, PACK_CLASSES, pack_class, template_pack
+from cards.packs import DEFAULT_PACK, PACK_CLASSES, pack_class, resolve_template, template_pack
+from cards.standard import CardMixin
+import cards.templatetags.django_cards_tags as card_tags
 
 TEMPLATE_ROOT = os.path.join(os.path.dirname(os.path.abspath(cards.__file__)), 'templates', 'cards')
 PACKS = ('bootstrap4', 'bootstrap5')
@@ -441,15 +445,15 @@ def pack_five(_request):
     return 'bootstrap5'
 
 
-class TestPanelSplitThroughTheForwarder(SimpleTestCase):
+class TestPanelSplit(SimpleTestCase):
     """The panel layout is the awkward path: a flat template includes a pack one, which
     includes itself.
 
     cards/standard/panel_layout.html stays outside the packs and reaches _panel_split.html
-    through its forwarder with {% include ... with split=root %}, and the split includes
-    itself the same way for a nested one. So this covers three things at once: variables
-    pushed by {% include ... with %} surviving the forwarder's context, the recursion, and
-    the request that panel_layout.py puts in the context arriving where the pack is chosen.
+    with {% pack_path ... as pack_include %}{% include pack_include with split=root %}, and the
+    split includes itself the same way for a nested one. So this covers three things at once:
+    variables pushed by {% include ... with %} reaching the pack copy, the recursion, and the
+    request that panel_layout.py puts in the context arriving where the pack is chosen.
     """
 
     TAB = {'name': 'one', 'title': 'One', 'active': True}
@@ -474,7 +478,7 @@ class TestPanelSplitThroughTheForwarder(SimpleTestCase):
         self.assertIn('data-bs-toggle="tab"', bs5)
         self.assertNotIn('data-toggle="tab"', bs5)
 
-    def test_the_nested_split_renders_through_the_forwarder_too(self):
+    def test_the_nested_split_renders_too(self):
         for pack in PACKS:
             self.assertIn('id="panel_region_inner"', self._render(pack))
 
@@ -588,3 +592,127 @@ class TestAccordionRaisesBootstrapCollapseEvents(SimpleTestCase):
             script = _read(pack, 'standard/accordion.html')
             self.assertIn("if (emit(collapseEl, expanded ? 'show' : 'hide')) return false;", script, pack)
             self.assertIn('if (!setExpanded(collapseEl, true)) return;', script, pack)
+
+
+class _CardView(CardMixin, TemplateView):
+    pass
+
+
+def _render_card(request=None):
+    """A real card, rendered by CardBase.render: a default card with search, export and
+    reload, so its includes are exercised as well as its own template."""
+    view = _CardView()
+    view.request = request or RequestFactory().get('/')
+    card = view.add_card('probe', title='Probe', ajax_reload=True, collapsed=False)
+    card.add_entry('one', label='Label')
+    return card.render()
+
+
+class TestNameSwap(SimpleTestCase):
+    """A card renders its pack's templates by name, not through the forwarders.
+
+    The forwarder at each flat path costs a second template lookup and a copy of the whole
+    context per render. CardBase.render and the {% pack_path %} beside each include swap the
+    flat name for the pack's instead, whenever the flat file is cards' own forwarder.
+    """
+
+    def _forwarded(self, render):
+        with mock.patch.object(card_tags, 'pack_template', wraps=card_tags.pack_template) as spy:
+            html = render()
+        return html, [call.args[0] for call in spy.call_args_list]
+
+    def test_a_card_goes_through_no_forwarder(self):
+        for pack in PACKS:
+            with self.subTest(pack), override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                html, forwarded = self._forwarded(_render_card)
+                self.assertEqual(forwarded, [])
+                self.assertIn('card-header', html)
+
+    def test_a_panel_layout_goes_through_no_forwarder(self):
+        split = {'direction': 'horizontal', 'resizable': True, 'children': [
+            {'type': 'split', 'split': {'direction': 'vertical', 'resizable': False, 'children': [
+                {'type': 'region', 'name': 'inner', 'collapsible': True, 'cards': []}]}}]}
+        html, forwarded = self._forwarded(lambda: render_to_string(
+            'cards/standard/panel_layout.html', {'layout_id': 'p', 'root': split, 'persist': False}))
+        self.assertEqual(forwarded, [])
+        self.assertIn('id="panel_region_inner"', html)
+
+    def test_the_swapped_card_matches_the_forwarded_one(self):
+        """The same markup either way, bar the whitespace the forwarder's own line added."""
+        squash = lambda html: re.sub(r'\s+', ' ', html).strip()
+        for pack in PACKS:
+            with self.subTest(pack), override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                swapped = _render_card()
+                with mock.patch('cards.base.resolve_template', side_effect=lambda name, request=None: name), \
+                        mock.patch.object(card_tags, 'resolve_template',
+                                          side_effect=lambda name, request=None: name):
+                    forwarded = _render_card()
+                self.assertEqual(squash(swapped), squash(forwarded))
+
+    def test_a_per_request_pack_switches_the_includes_too(self):
+        """The reload button is an include inside the card's template: it follows the request."""
+        with override_settings(DJANGO_CARDS_TEMPLATE_PACK=lambda request: (
+                'bootstrap5' if request is not None and request.GET.get('bs') == '5' else 'bootstrap4')):
+            bs5 = _render_card(RequestFactory().get('/', {'bs': '5'}))
+            bs4 = _render_card(RequestFactory().get('/'))
+        self.assertIn('data-bs-toggle="collapse"', bs5)
+        self.assertIn('ms-2', bs5)
+        self.assertNotIn(' ml-2', bs5)
+        self.assertIn('ml-2', bs4)
+        self.assertNotIn('data-bs-toggle', bs4)
+
+    def test_only_cards_own_pack_templates_are_swapped(self):
+        self.assertEqual(resolve_template('cards/standard/default.html'), f'cards/{DEFAULT_PACK}/standard/default.html')
+        with override_settings(DJANGO_CARDS_TEMPLATE_PACK='bootstrap5'):
+            self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                             'cards/bootstrap5/standard/_reload_button.html')
+        # Flat-only templates, project templates and names that do not exist are left alone.
+        for name in ('cards/standard/_reload_script.html', 'cards/standard/panel_layout.html',
+                     'cards/groups/groups.html', 'myapp/card.html', 'cards/standard/missing.html'):
+            self.assertEqual(resolve_template(name), name)
+
+
+class TestProjectOverrideWinsWithoutTheForwarder(SimpleTestCase):
+    """The name swap must not step past an override: a project's file at the flat path is what
+    renders, both for the card's own template and for one included inside a pack template."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+        os.makedirs(os.path.join(self.dir, 'cards', 'standard'))
+
+    def _override(self, name, markup):
+        with open(os.path.join(self.dir, 'cards', 'standard', name), 'w') as f:
+            f.write(markup)
+
+    def _templates_setting(self):
+        from django.conf import settings
+        engine = dict(settings.TEMPLATES[0])
+        engine['DIRS'] = [self.dir]
+        return [engine]
+
+    def test_an_overridden_include_wins_inside_a_pack_template(self):
+        self._override('_reload_button.html', '<button class="project-reload">reload</button>')
+        with override_settings(TEMPLATES=self._templates_setting()):
+            for pack in PACKS:
+                with self.subTest(pack), override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                    self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                                     'cards/standard/_reload_button.html')
+                    self.assertIn('project-reload', _render_card())
+
+    def test_an_overridden_card_template_wins(self):
+        self._override('default.html', '<div class="project-card">{{ card.title }}</div>')
+        with override_settings(TEMPLATES=self._templates_setting()):
+            for pack in PACKS:
+                with self.subTest(pack), override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                    self.assertIn('<div class="project-card">Probe</div>', _render_card())
+
+    def test_the_verdict_is_forgotten_when_the_template_folders_change(self):
+        resolve_template('cards/standard/_reload_button.html')   # remembered as cards' own
+        self._override('_reload_button.html', 'x')
+        with override_settings(TEMPLATES=self._templates_setting()):
+            self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                             'cards/standard/_reload_button.html')
+        self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
+                         f'cards/{DEFAULT_PACK}/standard/_reload_button.html')
+
