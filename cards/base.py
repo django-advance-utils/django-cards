@@ -162,7 +162,19 @@ class ScrollableTabMenu:
             "r.addEventListener('click',function(){u.scrollBy({left:120,behavior:'smooth'});});"
             "u.addEventListener('scroll',p);"
             "if(window.ResizeObserver)new ResizeObserver(p).observe(w);"
-            "p();}"
+            "p();"
+            # Open showing the active tab. A card re-rendered over ajax gets a new bar scrolled to
+            # the start, so a tab reached by scrolling right was off screen the moment it was
+            # picked. Centred rather than put at an edge, so a button that appears once it
+            # scrolls cannot cover it. Scrolling shows or hides the buttons, which changes the
+            # strip's width, so it is measured again after each move until the tab is in view;
+            # a few passes settle it, as the buttons only go one way at each end. The strip's own
+            # scrollLeft is set rather than scrollIntoView, which would scroll the page and every
+            # scrolling ancestor along with it.
+            "var a=u.querySelector('.nav-link.active,.active>.nav-link');"
+            "for(var n=0;a&&n<3;n++){var ar=a.getBoundingClientRect(),ur=u.getBoundingClientRect();"
+            "if(ar.left>=ur.left-1&&ar.right<=ur.right+1)break;"
+            "u.scrollLeft+=ar.left-ur.left-(u.clientWidth-ar.width)/2;p();}}"
             "if(c)i(c);"
             "else document.addEventListener('DOMContentLoaded',function(){"
             f"var c=document.getElementById('{uid}');if(c)i(c);}});"
@@ -182,6 +194,20 @@ class ScrollableTabMenu:
 
     def __getattr__(self, name):
         return getattr(self._menu, name)
+
+    def __setattr__(self, name, value):
+        """Writes pass through to the wrapped menu too, not just reads.
+
+        Forwarding reads alone makes a drop-in only until something assigns to it: the value lands
+        on the wrapper, reads back off the wrapper, and the menu never sees it. Setting
+        ``compare_full_path`` on a wrapped tab menu was lost that way, and no tab came back active.
+        ``_menu`` is the wrapper's own.
+        """
+        if name == '_menu':
+            super().__setattr__(name, value)
+        else:
+            setattr(self._menu, name, value)
+
 
 CARD_TYPE_STANDARD = 1
 CARD_TYPE_DATATABLE = 2
