@@ -2,7 +2,7 @@
 {# Bootstrap-version-specific). `sections` is a list of cards.base.CardSection; include this  #}
 {# with sections=build_sections(cards) to put a stack inside a template of your own -- the    #}
 {# card stylesheet and the toggle's script come with it, each once per request.              #}
-{% card_css %}{% if section_script is not False %}{% include 'cards/standard/_section_stack_script.html' %}{% endif %}
+{% card_css %}{% section_stack_script %}
 <div class="django-card__sections"{% if stack_id %} id="{{ stack_id }}"{% endif %}>
     {% for section in sections %}
     <div class="django-card__section{% if section.folded %} django-card__section--folded{% endif %}" id="{{ section.id }}">

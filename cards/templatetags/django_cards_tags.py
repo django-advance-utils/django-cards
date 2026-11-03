@@ -162,3 +162,16 @@ def card_css(context):
     card markup -- an add_sections() stack, say -- without a card of its own to bring it."""
     from cards.base import card_css_once
     return mark_safe(card_css_once(context.get('request')))
+
+
+@register.simple_tag(takes_context=True)
+def section_stack_script(context):
+    """The add_sections() toggle script, once per request -- whether the stack came from
+    add_sections() or a template of an application's own including the stack body."""
+    from cards.base import SECTION_SCRIPT_MARK
+    holder = get_render_scope() or context.get('request')
+    if holder is not None:
+        if getattr(holder, SECTION_SCRIPT_MARK, False):
+            return ''
+        setattr(holder, SECTION_SCRIPT_MARK, True)
+    return mark_safe(render_to_string('cards/standard/_section_stack_script.html'))

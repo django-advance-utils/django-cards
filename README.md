@@ -1141,12 +1141,15 @@ tags = self.add_card('tags', title='Tags', is_empty=True, empty_message='No tags
 self.add_card('customer', title='Customer').add_sections([contact, site_card, tags])
 ```
 
-- Each section's header is a toggle holding the card's title and a chevron, with the card's own
-  menu (and reload button, if it reloads) beside it -- outside the button, which may not hold other
-  controls. Its body is the card's.
+- Each section's header is a toggle holding the card's title (and `header_icon`), with the card's
+  own header controls beside it -- its menu, search box, export and reload buttons -- outside the
+  button, which may not hold other controls; then the chevron. Its body is the card's.
+- The stack is the card's body: a card that already has one (rows, tiles, a datatable, a
+  `template_name`) refuses `add_sections()`, and `add_tiles()`, `add_banner_tiles()` or rows added
+  after it raise rather than drop the stack.
 - The card becomes its section's: its own header and collapse are switched off, which holds
   through an ajax reload. Don't show it elsewhere on the page too -- its DOM ids would be there
-  twice. Its export and search controls live in the header, so they are not shown in a section.
+  twice.
 - A card added empty (`is_empty=True`) or `collapsed=True` starts folded. `None` entries are
   skipped, so a builder that had nothing to add can hand one back. Anything else that is not a
   card raises at `add_sections()`; a section with no title raises when it is drawn, so a title

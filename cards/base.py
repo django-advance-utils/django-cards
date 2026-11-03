@@ -635,9 +635,6 @@ class CardSection:
         return bool(getattr(card, 'ajax_reload', False) or getattr(card, 'searchable', False)
                     or getattr(card, 'exportable', False))
 
-    @property
-    def has_actions(self):
-        return self.has_menu or self.has_controls
 
     def render_body(self):
         return self.card.render()
@@ -646,17 +643,20 @@ class CardSection:
         """The section's header, inside its ``-header`` element: what a reload redraws.
 
         Read from the card now, so the title is checked now: one set in ``cards_ready()`` counts,
-        and one cleared there is caught. Whether the menu draws anything is worked out once here,
-        as it asks every item's permissions. ``redraw`` is a reload's: the redrawn header then
-        takes back the fold the reader left the section in.
+        and one cleared there is caught. ``redraw`` is a reload's: the redrawn header then takes
+        back the fold the reader left the section in.
         """
         if not self.title:
             raise ValueError(f'The section for card {self.card.code!r} has no title, and its toggle is '
                              f'named by one: give the card a title, or the section one')
-        has_menu = self.has_menu
+        # The menu drawn once, and its markup what says whether there is one: drawing it is what
+        # asks every item's permissions, so asking first as well would ask twice.
+        menu = self.menu
+        menu_html = menu.render() if menu else ''
+        has_menu = bool(str(menu_html).strip())
         return mark_safe(render_to_string('cards/standard/_section_header.html', {
             'section': self, 'card': self.card, 'request': self.card.request, 'redraw': redraw,
-            'has_menu': has_menu, 'has_actions': has_menu or self.has_controls}))
+            'menu_html': menu_html, 'has_actions': has_menu or self.has_controls}))
 
 
 def build_sections(entries, claim=True):
@@ -676,6 +676,28 @@ def build_sections(entries, claim=True):
 
 
 SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
+
+
+def _refuse_if_stack(card):
+    """Raise if ``card`` holds a section stack: another body would drop the stack, and the cards
+    claimed for it would be drawn nowhere."""
+    if card.template_name == 'section_stack':
+        raise ValueError(f'Card {card.code!r} holds a section stack, which is its body; give the '
+                         f'other content a card of its own in the stack')
+
+
+def stack_id(card):
+    """The DOM id of ``card``'s section stack, around its sections."""
+    return f'{card.code}-sections'
+
+
+def _check_section_ids(card, sections):
+    """Raise if an id the stack or one of its ``sections`` writes is a card name on the view."""
+    taken = set(getattr(card.view, 'cards', None) or {})
+    ids = {stack_id(card)}.union(*(section.ids for section in sections))
+    clash = ids & taken
+    if clash:
+        raise ValueError(f'Section ids {sorted(clash)} are card names on this view')
 
 
 def _stack_holds(card, target, _seen=None):
@@ -722,20 +744,16 @@ class _SectionsHtml:
     def _render(self):
         card = self.card
         sections = card.extra_card_info.get('sections', [])
+        if card.rows:
+            # add_entry() and add_rows() after add_sections(): the stack is the body, and the html
+            # template that draws it has no place for rows.
+            raise ValueError(f'Card {card.code!r} holds a section stack, and rows were added to it too; '
+                             f'put the rows in a card of their own in the stack')
         # Again now, against every card the view ended up with: one added after add_sections(),
         # later in setup_cards() or in cards_ready(), could take a section's id.
-        taken = set(getattr(card.view, 'cards', None) or {})
-        for section in sections:
-            clash = section.ids & taken
-            if clash:
-                raise ValueError(f'Section ids {sorted(clash)} are card names on this view')
-        holder = get_render_scope() or card.request
-        script = holder is None or not getattr(holder, SECTION_SCRIPT_MARK, False)
-        if script and holder is not None:
-            setattr(holder, SECTION_SCRIPT_MARK, True)
+        _check_section_ids(card, sections)
         return mark_safe(render_to_string('cards/standard/_section_stack_body.html', {
-            'sections': sections, 'request': card.request, 'section_script': script,
-            'stack_id': f'{card.code}-sections'}))
+            'sections': sections, 'request': card.request, 'stack_id': stack_id(card)}))
 
 
 @dataclass
@@ -2667,6 +2685,7 @@ class CardBase:
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
+        _refuse_if_stack(self)
         self.extra_card_info.setdefault('tiles', []).extend(Tile.build(tile) for tile in tiles)
         if empty_message is not None:
             self.extra_card_info['tiles_empty_message'] = empty_message
@@ -2717,6 +2736,7 @@ class CardBase:
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
+        _refuse_if_stack(self)
         # Build them all before changing anything, so one bad tile leaves the card as it was.
         tiles = [BannerTile.build(tile) for tile in tiles]
         if slider is not None:
@@ -2763,13 +2783,13 @@ class CardBase:
         """
         if self.template_name != 'section_stack':
             # What the card already is would be dropped for the stack without a word: an empty
-            # card's message, a datatable registered on the view but never drawn, its own rows.
-            if self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows:
+            # card's message, a datatable registered on the view but never drawn, its own rows,
+            # or a body another method set its template for (tiles, banner tiles, a template_name).
+            if self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows or self.template_name:
                 raise ValueError(f'add_sections() makes a card\'s body its stack, and card {self.code!r} '
                                  f'already has one (empty, rows, or not a standard card)')
         # Built and checked before any card is claimed, so a bad entry or a clash changes nothing.
         sections = build_sections(cards, claim=False)
-        taken = set(getattr(self.view, 'cards', None) or {})
         seen = set()
         for section in sections:
             stacked = section.card
@@ -2779,9 +2799,7 @@ class CardBase:
                 raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
                                  f'place on a page, or its DOM ids are there twice')
             seen.add(id(stacked))
-            clash = section.ids & taken
-            if clash:
-                raise ValueError(f'Section ids {sorted(clash)} are card names on this view')
+        _check_section_ids(self, sections)
         for section in sections:
             section.claim()
         self.extra_card_info.setdefault('sections', []).extend(sections)

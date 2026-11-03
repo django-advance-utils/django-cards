@@ -11,7 +11,7 @@
         {% if card.header_icon %}<i class="{{ card.header_icon }}" aria-hidden="true"></i>{% endif %}
         <span class="django-card__section-title">{{ section.title }}</span>
     </button>
-    {% if has_actions %}<span class="django-card__section-menu">{% if has_menu %}{{ section.menu.render }}{% endif %}{% pack_path 'cards/standard/_header_controls.html' as pack_include %}{% include pack_include %}</span>{% endif %}
+    {% if has_actions %}<span class="django-card__section-menu">{{ menu_html }}{% pack_path 'cards/standard/_header_controls.html' as pack_include %}{% include pack_include %}</span>{% endif %}
     <button type="button" class="django-card__section-chevron-button" tabindex="-1" aria-hidden="true"
             onclick="djangoCardsToggleSection(document.getElementById('{{ section.id|escapejs }}-toggle'))">
         <i class="fas fa-chevron-down django-card__section-chevron"></i>

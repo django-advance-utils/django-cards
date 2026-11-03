@@ -490,11 +490,61 @@ class TestSectionThirdReviewFixes(SimpleTestCase):
         stack = view.add_card('customer', title='Customer').add_sections([card])
         asked.clear()
         stack.render()
-        # once to decide whether the menu draws, once as django-menus draws it
-        self.assertEqual(len(asked), 2)
+        # once, as django-menus draws it: that drawing is what says whether there is a menu
+        self.assertEqual(len(asked), 1)
 
     def test_the_body_is_a_plain_callable_the_template_calls(self):
         view = _view()
         contact, _tags, _site = _cards(view)
         card = view.add_card('customer', title='Customer').add_sections([contact])
         self.assertTrue(callable(card.extra_card_info['html']))
+
+
+class TestSectionFourthReviewFixes(SimpleTestCase):
+
+    def test_a_card_with_another_body_refuses_a_stack(self):
+        from cards.base import Tile, BannerTile
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        tiles = view.add_card('tiles', title='Tiles').add_tiles([Tile(key='t1', heading='One')])
+        banners = view.add_card('banners', title='Banners').add_banner_tiles([BannerTile(key='b1', title='One')])
+        templated = view.add_card('templated', title='Templated', template_name='table')
+        for card in (tiles, banners, templated):
+            with self.subTest(card=card.code):
+                with self.assertRaisesMessage(ValueError, 'already has one'):
+                    card.add_sections([contact])
+        self.assertTrue(contact.show_header)
+
+    def test_another_body_after_the_stack_raises_rather_than_drop_it(self):
+        from cards.base import Tile, BannerTile
+        view = _view()
+        contact, tags, site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'holds a section stack'):
+            stack.add_tiles([Tile(key='t1', heading='One')])
+        with self.assertRaisesMessage(ValueError, 'holds a section stack'):
+            stack.add_banner_tiles([BannerTile(key='b1', title='One')])
+        stack.add_entry(value='lost', label='Row')
+        with self.assertRaisesMessage(ValueError, 'rows were added'):
+            stack.render()
+
+    def test_a_stack_in_your_own_templates_brings_its_script_once(self):
+        with _Request():
+            view = _view()
+            first = render_to_string('cards/standard/_section_stack_body.html',
+                                     {'sections': build_sections(_cards(view)), 'request': view.request})
+            view2 = _view()
+            second = render_to_string('cards/standard/_section_stack_body.html',
+                                      {'sections': build_sections(_cards(view2)), 'request': view2.request})
+        self.assertEqual((first + second).count('window.djangoCardsToggleSection ='), 1)
+
+    def test_the_stacks_own_id_is_checked_too(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card('customer-sections', title='Clash')
+        with self.assertRaisesMessage(ValueError, 'customer-sections'):
+            view.add_card('customer', title='Customer').add_sections([contact])
+
+    def test_opening_skips_datatables_in_folded_sections_further_in(self):
+        _card, html = TestAddSections().render()
+        self.assertIn("parentsUntil(section, '.django-card__section--folded')", html)

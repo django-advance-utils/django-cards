@@ -12,7 +12,10 @@
         button.setAttribute('aria-expanded', folded ? 'false' : 'true');
         var $ = window.jQuery;
         if (!folded && $ && $.fn.dataTable) {
-            $(section).find('table.dataTable').each(function () { $(this).DataTable().columns.adjust(); });
+            $(section).find('table.dataTable').filter(function () {
+                // a table still inside a folded section further in is hidden: measured when that opens
+                return !$(this).parentsUntil(section, '.django-card__section--folded').length;
+            }).each(function () { $(this).DataTable().columns.adjust(); });
         }
         section.dispatchEvent(new CustomEvent('django-cards:section-toggle', {bubbles: true, detail: {folded: folded}}));
     };
