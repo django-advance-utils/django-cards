@@ -154,3 +154,11 @@ def panel_layout_around(parser, token):
     nodelist = parser.parse(('endpanel_layout_around',))
     parser.delete_first_token()
     return PanelLayoutAroundNode(parser.compile_filter(bits[1]), nodelist)
+
+
+@register.simple_tag(takes_context=True)
+def card_css(context):
+    """The card stylesheet, once per request: for a template of an application's own that draws
+    card markup -- an add_sections() stack, say -- without a card of its own to bring it."""
+    from cards.base import card_css_once
+    return mark_safe(card_css_once(context.get('request')))

@@ -1,19 +1,20 @@
 {% load django_cards_tags %}{# One add_sections() section's header: the inside of its -header element, which an ajax #}
-{# reload of the card redraws (CardMixin.button_reload_card). The toggle names the section; #}
-{# the card's own header controls sit beside it -- a button may not hold links or buttons. #}
-<div class="django-card__section-bar{% if section.has_actions %} django-card__section-bar--has-menu{% endif %}{% if card.header_css_class %} {{ card.header_css_class }}{% endif %}">
+{# reload of the card redraws (CardMixin.button_reload_card). A row: the toggle naming the  #}
+{# section (its title truncates rather than run under what follows), the card's own header  #}
+{# controls -- outside the toggle, as a button may not hold links or buttons -- and the     #}
+{# chevron, a second, unfocusable way to the same toggle.                                   #}
+<div class="django-card__section-bar{% if card.header_css_class %} {{ card.header_css_class }}{% endif %}">
     <button type="button" class="django-card__section-toggle" id="{{ section.id }}-toggle"
             aria-expanded="{% if section.folded %}false{% else %}true{% endif %}"
             aria-controls="{{ section.id }}-body"
             onclick="djangoCardsToggleSection(this)">
         {% if card.header_icon %}<i class="{{ card.header_icon }}" aria-hidden="true"></i>{% endif %}
         <span class="django-card__section-title">{{ section.title }}</span>
-        <i class="fas fa-chevron-down django-card__section-chevron" aria-hidden="true"></i>
     </button>
-    {% if section.has_actions %}<span class="django-card__section-menu">{% if section.has_menu %}{{ section.menu.render }}{% endif %}{% pack_path 'cards/standard/_search_input.html' as pack_include %}{% include pack_include %}{% pack_path 'cards/standard/_export_button.html' as pack_include %}{% include pack_include %}{% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}</span>{% endif %}
+    {% if has_actions %}<span class="django-card__section-menu">{% if has_menu %}{{ section.menu.render }}{% endif %}{% pack_path 'cards/standard/_header_controls.html' as pack_include %}{% include pack_include %}</span>{% endif %}
+    <button type="button" class="django-card__section-chevron-button" tabindex="-1" aria-hidden="true"
+            onclick="djangoCardsToggleSection(document.getElementById('{{ section.id|escapejs }}-toggle'))">
+        <i class="fas fa-chevron-down django-card__section-chevron"></i>
+    </button>
 </div>
-{# A redrawn header says what the section's fold is now, which the reader may have changed. #}
-<script>(function () {
-    var b = document.getElementById('{{ section.id|escapejs }}-toggle'), s = b && b.closest('.django-card__section');
-    if (s) { b.setAttribute('aria-expanded', s.classList.contains('django-card__section--folded') ? 'false' : 'true'); }
-})();</script>
+{% if redraw %}<script>djangoCardsApplySectionFolds(document.getElementById('{{ section.id|escapejs }}'));</script>{% endif %}

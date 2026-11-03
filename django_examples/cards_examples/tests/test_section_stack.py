@@ -11,7 +11,7 @@ import json
 from ajax_helpers.mixins import AjaxHelpers
 from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase, override_settings
-from django.utils.html import format_html
+from django.utils.html import escapejs, format_html
 from django.views.generic import TemplateView
 from django_menus.menu import HtmlMenuItem
 
@@ -77,7 +77,6 @@ class TestAddSections(SimpleTestCase):
         self.assertNotIn('contact-menu', toggle)
         self.assertIn('django-card__section-menu', section)
         self.assertIn('contact-menu', section)
-        self.assertIn('django-card__section-bar--has-menu', section)
         # a section with no menu has no menu slot
         tags = html[html.index('id="tags-section"'):html.index('id="site-section"')]
         self.assertNotIn('django-card__section-menu', tags)
@@ -189,8 +188,10 @@ class TestAddSections(SimpleTestCase):
             customer.add_sections(['contact'])
         with self.assertRaisesMessage(ValueError, 'needs its card'):
             customer.add_sections([{'title': 'Contact'}])
+        # a title is read when the section is drawn, so a missing one is caught then
+        untitled = view.add_card('customer2', title='Customer').add_sections([view.add_card('untitled')])
         with self.assertRaisesMessage(ValueError, 'has no title'):
-            customer.add_sections([view.add_card('untitled')])
+            untitled.render()
 
     def test_opening_a_section_re_lays_out_datatables_and_says_so(self):
         _card, html = self.render()
@@ -276,8 +277,8 @@ class TestSectionReviewFixes(SimpleTestCase):
         calls = []
         original = contact.render
         contact.render = lambda *a, **k: calls.append(1) or original(*a, **k)
-        html = card.extra_card_info['html']
-        str(html), str(html), bool(html)
+        read = card.extra_card_info['html']
+        read(), read()
         card.render()
         self.assertEqual(len(calls), 1)
 
@@ -349,8 +350,8 @@ class _Request:
 
 class TestTheHeadersHonourShowHeader(SimpleTestCase):
     """card_group, list_selection, tree_selection and image_gallery drew their header whatever
-    show_header said, so in a section one was drawn twice. Rendered with a stand-in card, as
-    test_tab_menu_rendered does: only the header is under test."""
+    show_header said, so in a section one was drawn twice; now they read it as every other card
+    template does. Rendered with a stand-in card, as test_tab_menu_rendered does."""
 
     TEMPLATES = ('card_group', 'list_selection', 'tree_selection', 'image_gallery')
 
@@ -365,9 +366,135 @@ class TestTheHeadersHonourShowHeader(SimpleTestCase):
                 with self.subTest(pack=pack, template=name):
                     self.assertNotIn('card-header', self.render(pack, name, show_header=False))
 
-    def test_unset_or_on_still_draws_it(self):
+    def test_show_header_on_draws_it(self):
+        """As every card template reads it: a card's render always passes show_header."""
         for pack in PACKS:
             for name in self.TEMPLATES:
                 with self.subTest(pack=pack, template=name):
-                    self.assertIn('card-header', self.render(pack, name))
                     self.assertIn('card-header', self.render(pack, name, show_header=True))
+
+
+class TestSectionThirdReviewFixes(SimpleTestCase):
+
+    def test_a_stack_cannot_hold_itself(self):
+        view = _view()
+        a = view.add_card('a', title='A')
+        b = view.add_card('b', title='B')
+        with self.assertRaisesMessage(ValueError, 'holds itself'):
+            a.add_sections([a])
+        b.add_sections([view.add_card('leaf', title='Leaf')])
+        a.add_sections([b])
+        with self.assertRaisesMessage(ValueError, 'holds itself'):
+            b.add_sections([a])
+
+    def test_a_cycle_made_another_way_fails_cleanly_not_by_recursion(self):
+        view = _view()
+        a = view.add_card('a', title='A').add_sections([view.add_card('leaf', title='Leaf')])
+        a.extra_card_info['sections'].append(CardSection(a))
+        with self.assertRaisesMessage(ValueError, 'contains itself'):
+            a.render()
+
+    def test_a_card_is_in_one_stack_once(self):
+        view = _view()
+        contact, tags, site = _cards(view)
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            view.add_card('one', title='One').add_sections([contact, contact])
+        stack = view.add_card('two', title='Two').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            stack.add_sections([contact, site])
+        with self.assertRaisesMessage(ValueError, 'in a section stack already'):
+            view.add_card('three', title='Three').add_sections([contact])
+
+    def test_every_id_a_section_writes_is_checked_and_again_at_render(self):
+        view = _view()
+        contact, _tags, site = _cards(view)
+        view.add_card('contact-section-toggle', title='Clash')
+        with self.assertRaisesMessage(ValueError, 'contact-section-toggle'):
+            view.add_card('one', title='One').add_sections([contact])
+        stack = view.add_card('two', title='Two').add_sections([site])
+        view.add_card('site-section-body', title='Added later')
+        with self.assertRaisesMessage(ValueError, 'site-section-body'):
+            stack.render()
+
+    def test_the_header_is_a_row_title_controls_then_chevron(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        html = view.add_card('customer', title='Customer').add_sections([contact]).render()
+        header = html[html.index('id="contact-section-header"'):html.index('id="contact-section-body"')]
+        toggle_at = header.index('class="django-card__section-toggle"')
+        menu_at = header.index('class="django-card__section-menu"')
+        chevron_at = header.index('class="django-card__section-chevron-button"')
+        self.assertLess(toggle_at, menu_at)
+        self.assertLess(menu_at, chevron_at)
+        chevron = [b for b in _Page(header).find('button')
+                   if b.get('class') == 'django-card__section-chevron-button'][0]
+        self.assertEqual(chevron.get('tabindex'), '-1')
+        self.assertEqual(chevron.get('aria-hidden'), 'true')
+        self.assertIn(f"getElementById('{escapejs('contact-section')}-toggle')", chevron.get('onclick'))
+
+    def test_the_card_templates_and_the_section_share_their_header_controls(self):
+        for pack in PACKS:
+            with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                for template_name in ('default', 'table'):
+                    with self.subTest(pack=pack, template=template_name):
+                        card = _view().add_card('rows', title='Rows', template_name=template_name,
+                                                searchable=True, exportable=True, ajax_reload=True)
+                        card.add_entry(value='one', label='First')
+                        html = card.render()
+                        self.assertIn('id="rows_search"', html)
+                        self.assertIn("exportCard('rows','csv')", html)
+                        self.assertIn("reload_card('rows')", html)
+
+    def test_a_title_set_after_add_sections_counts(self):
+        view = _view()
+        late = view.add_card('late')
+        late.add_entry(value='x', label='X')
+        card = view.add_card('customer', title='Customer').add_sections([late])
+        late.title = 'Set in cards_ready'
+        self.assertIn('>Set in cards_ready<', card.render())
+
+    def test_a_stack_in_a_template_of_your_own_brings_the_stylesheet(self):
+        view = _view()
+        html = render_to_string('cards/standard/_section_stack_body.html',
+                                {'sections': build_sections(_cards(view)), 'request': view.request})
+        self.assertIn('cards/css/cards.css', html)
+        again = render_to_string('cards/standard/_section_stack_body.html',
+                                 {'sections': [], 'request': view.request})
+        self.assertNotIn('cards/css/cards.css', again)
+
+    def test_the_readers_folds_are_put_back_after_a_redraw(self):
+        _card, html = TestAddSections().render()
+        self.assertIn('window.djangoCardsSectionFolds[section.id] = folded', html)
+        self.assertIn(f"djangoCardsApplySectionFolds(document.getElementById('{escapejs('customer-sections')}'))", html)
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact])
+        self.assertIn(f"djangoCardsApplySectionFolds(document.getElementById('{escapejs('contact-section')}'))",
+                      contact.section.render_header(redraw=True))
+
+    def test_a_page_load_draws_no_script_per_header(self):
+        _card, html = TestAddSections().render()
+        self.assertEqual(html.count('djangoCardsApplySectionFolds(document.getElementById('), 1)
+
+    def test_a_menus_items_are_asked_once_per_header(self):
+        asked = []
+
+        class Counted(HtmlMenuItem):
+            def test_visible(self, request):
+                asked.append(1)
+                return super().test_visible(request)
+
+        view = _view()
+        card = view.add_card('counted', title='Counted', menu=[Counted('<b>Edit</b>')])
+        card.add_entry(value='x', label='X')
+        stack = view.add_card('customer', title='Customer').add_sections([card])
+        asked.clear()
+        stack.render()
+        # once to decide whether the menu draws, once as django-menus draws it
+        self.assertEqual(len(asked), 2)
+
+    def test_the_body_is_a_plain_callable_the_template_calls(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        card = view.add_card('customer', title='Customer').add_sections([contact])
+        self.assertTrue(callable(card.extra_card_info['html']))

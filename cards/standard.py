@@ -1237,7 +1237,7 @@ class CardMixin:
             if section is not None:
                 # A card in an add_sections() stack: its header is the section's, outside the
                 # card, so it is redrawn too -- the title, menu and actions may have changed.
-                self.add_command('html', selector=f'#{section.id}-header', html=section.render_header())
+                self.add_command('html', selector=f'#{section.id}-header', html=section.render_header(redraw=True))
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 

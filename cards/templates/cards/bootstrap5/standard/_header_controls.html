@@ -1,0 +1,3 @@
+{% load django_cards_tags %}{# A card header's own controls, after its menu: the search box, export and reload buttons. #}
+{# Shared by the card templates and an add_sections() section's header, so the two keep in step. #}
+{% pack_path 'cards/standard/_search_input.html' as pack_include %}{% include pack_include %}{% pack_path 'cards/standard/_export_button.html' as pack_include %}{% include pack_include %}{% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}

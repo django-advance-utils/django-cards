@@ -11,10 +11,9 @@ from ajax_helpers.html_include import pip_version
 from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
-from django.utils.functional import lazy
 from django.templatetags.static import static
 from django.utils.html import conditional_escape, strip_tags
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
 from django_datatables.columns import ColumnBase
@@ -573,9 +572,6 @@ class CardSection:
             menu = HtmlMenu(card.request, card.button_menu_type).add_items(*menu)
         self._menu = menu
         self._folded = folded
-        if not self.title:
-            raise ValueError(f'The section for card {card.code!r} has no title, and its toggle is named '
-                             f'by one: give the card a title, or the section one')
 
     @classmethod
     def build(cls, entry):
@@ -619,7 +615,8 @@ class CardSection:
 
     @property
     def ids(self):
-        return {self.id, f'{self.id}-header', f'{self.id}-body'}
+        """Every DOM id the section writes, checked against the view's card names."""
+        return {self.id, f'{self.id}-header', f'{self.id}-body', f'{self.id}-toggle'}
 
     @property
     def has_menu(self):
@@ -632,18 +629,34 @@ class CardSection:
         return bool(visible_menu_items(menu))
 
     @property
-    def has_actions(self):
+    def has_controls(self):
+        """Whether the card has header controls besides its menu (``_header_controls.html``)."""
         card = self.card
-        return bool(self.has_menu or getattr(card, 'ajax_reload', False)
-                    or getattr(card, 'searchable', False) or getattr(card, 'exportable', False))
+        return bool(getattr(card, 'ajax_reload', False) or getattr(card, 'searchable', False)
+                    or getattr(card, 'exportable', False))
+
+    @property
+    def has_actions(self):
+        return self.has_menu or self.has_controls
 
     def render_body(self):
         return self.card.render()
 
-    def render_header(self):
-        """The section's header, inside its ``-header`` element: what a reload redraws."""
-        return mark_safe(render_to_string('cards/standard/_section_header.html',
-                                          {'section': self, 'card': self.card, 'request': self.card.request}))
+    def render_header(self, redraw=False):
+        """The section's header, inside its ``-header`` element: what a reload redraws.
+
+        Read from the card now, so the title is checked now: one set in ``cards_ready()`` counts,
+        and one cleared there is caught. Whether the menu draws anything is worked out once here,
+        as it asks every item's permissions. ``redraw`` is a reload's: the redrawn header then
+        takes back the fold the reader left the section in.
+        """
+        if not self.title:
+            raise ValueError(f'The section for card {self.card.code!r} has no title, and its toggle is '
+                             f'named by one: give the card a title, or the section one')
+        has_menu = self.has_menu
+        return mark_safe(render_to_string('cards/standard/_section_header.html', {
+            'section': self, 'card': self.card, 'request': self.card.request, 'redraw': redraw,
+            'has_menu': has_menu, 'has_actions': has_menu or self.has_controls}))
 
 
 def build_sections(entries, claim=True):
@@ -665,33 +678,64 @@ def build_sections(entries, claim=True):
 SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
 
 
+def _stack_holds(card, target, _seen=None):
+    """Whether ``card``'s own section stack holds ``target``, at any depth."""
+    _seen = _seen if _seen is not None else set()
+    if id(card) in _seen:
+        return False
+    _seen.add(id(card))
+    info = getattr(card, 'extra_card_info', None) or {}
+    for section in info.get('sections', ()):
+        if section.card is target or _stack_holds(section.card, target, _seen):
+            return True
+    return False
+
+
 class _SectionsHtml:
     """An add_sections() card's body, rendered the first time the card's template reads it.
 
-    So the sections' cards are drawn after ``cards_ready()``, as any card is, and once: a second
-    read returns the same markup. ``add_sections()`` makes a new one each call, so a later call's
-    sections are in it. The toggle's script comes once per request, as the card stylesheet does.
+    The card's html template prints ``extra_card_info.html``, and Django calls a callable it is
+    handed there, so this is stored as the bound `render`: the sections' cards are drawn when the
+    card is, after ``cards_ready()``, and once -- a second read returns the same markup.
+    ``add_sections()`` makes a new one each call, so a later call's sections are in it. The
+    toggle's script and the card stylesheet come once per request.
     """
 
     def __init__(self, card):
         self.card = card
         self.rendered = None
+        self.rendering = False
 
     def render(self):
         if self.rendered is None:
-            card = self.card
-            holder = get_render_scope() or card.request
-            script = holder is None or not getattr(holder, SECTION_SCRIPT_MARK, False)
-            if script and holder is not None:
-                setattr(holder, SECTION_SCRIPT_MARK, True)
-            self.rendered = mark_safe(render_to_string(
-                'cards/standard/_section_stack_body.html',
-                {'sections': card.extra_card_info.get('sections', []), 'request': card.request,
-                 'section_script': script}))
+            if self.rendering:
+                # add_sections() refuses a stack inside itself; this is the backstop, for one made
+                # some other way, rather than recursing until Python gives up.
+                raise ValueError(f'The section stack of card {self.card.code!r} contains itself')
+            self.rendering = True
+            try:
+                self.rendered = self._render()
+            finally:
+                self.rendering = False
         return self.rendered
 
-
-_lazy_sections_html = lazy(_SectionsHtml.render, SafeString)
+    def _render(self):
+        card = self.card
+        sections = card.extra_card_info.get('sections', [])
+        # Again now, against every card the view ended up with: one added after add_sections(),
+        # later in setup_cards() or in cards_ready(), could take a section's id.
+        taken = set(getattr(card.view, 'cards', None) or {})
+        for section in sections:
+            clash = section.ids & taken
+            if clash:
+                raise ValueError(f'Section ids {sorted(clash)} are card names on this view')
+        holder = get_render_scope() or card.request
+        script = holder is None or not getattr(holder, SECTION_SCRIPT_MARK, False)
+        if script and holder is not None:
+            setattr(holder, SECTION_SCRIPT_MARK, True)
+        return mark_safe(render_to_string('cards/standard/_section_stack_body.html', {
+            'sections': sections, 'request': card.request, 'section_script': script,
+            'stack_id': f'{card.code}-sections'}))
 
 
 @dataclass
@@ -2726,16 +2770,24 @@ class CardBase:
         # Built and checked before any card is claimed, so a bad entry or a clash changes nothing.
         sections = build_sections(cards, claim=False)
         taken = set(getattr(self.view, 'cards', None) or {})
+        seen = set()
         for section in sections:
+            stacked = section.card
+            if stacked is self or _stack_holds(stacked, self):
+                raise ValueError(f'Card {self.code!r} cannot hold a stack that holds itself')
+            if id(stacked) in seen or getattr(stacked, 'section', None) is not None:
+                raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
+                                 f'place on a page, or its DOM ids are there twice')
+            seen.add(id(stacked))
             clash = section.ids & taken
             if clash:
                 raise ValueError(f'Section ids {sorted(clash)} are card names on this view')
         for section in sections:
             section.claim()
         self.extra_card_info.setdefault('sections', []).extend(sections)
-        # Read by the html card template; rendered when it is read, so the sections' cards are
-        # drawn after cards_ready(), and once.
-        self.extra_card_info['html'] = _lazy_sections_html(_SectionsHtml(self))
+        # Read (and called) by the html card template, so the sections' cards are drawn when
+        # this card is, after cards_ready(), and once.
+        self.extra_card_info['html'] = _SectionsHtml(self).render
         self.template_name = 'section_stack'
         self.requires_card_css = True
         return self

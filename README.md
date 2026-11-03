@@ -1149,15 +1149,21 @@ self.add_card('customer', title='Customer').add_sections([contact, site_card, ta
   twice. Its export and search controls live in the header, so they are not shown in a section.
 - A card added empty (`is_empty=True`) or `collapsed=True` starts folded. `None` entries are
   skipped, so a builder that had nothing to add can hand one back. Anything else that is not a
-  card, or a section with no title, raises at `add_sections()`.
+  card raises at `add_sections()`; a section with no title raises when it is drawn, so a title
+  set in `cards_ready()` counts.
 - Opening a section re-measures the datatables in view (they were laid out hidden) and fires a
   bubbling `django-cards:section-toggle` event, with `detail.folded`, for anything else that sizes
   itself.
 - A dict sets a section by hand: `{'card': card, 'title': 'Contact', 'menu': [...], 'folded': True}`;
   a menu given as a list is made a button group, as `add_card(menu=[...])` does.
-- The sections fold in the browser and do not remember it across page loads.
+- The sections fold in the browser. A fold the reader makes is remembered for the page, so an ajax
+  redraw of the stack or of one section's card puts it back; it is not kept across page loads.
+- A card is in one stack, once: a card listed twice, already in a stack, or a stack that would hold
+  itself raises, as do section ids that another card on the view is named (checked again when the
+  stack renders).
 - For a template of your own, include `cards/standard/_section_stack_body.html` with
-  `sections=build_sections(cards)` (`from cards.standard import build_sections`).
+  `sections=build_sections(cards)` (`from cards.standard import build_sections`); the card
+  stylesheet and the toggle's script come with it, each once per request.
 
 Chrome is in `cards/css/cards.css` (`.django-card__section*`); retint the titles with
 `--django-card-section-title-color`. The example app's Groups page has one.
