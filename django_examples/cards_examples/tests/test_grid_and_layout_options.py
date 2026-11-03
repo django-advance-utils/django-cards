@@ -61,7 +61,9 @@ class TestATreegridsWidth(SimpleTestCase):
         tab = layout.root.add_region('main', size='1fr').add_tab('one', title='One')
         tab.add_card(_grid(view, name='tabbed'))
         tab.add_card(_grid(view, name='given', treegrid_min_width='900px'))
+        tab.add_card(_grid(view, name='blank', treegrid_min_width=''))
         html = str(layout.render().render())
+        self.assertEqual(_table(html, 'blank')['style'], 'min-width:100%')
         self.assertEqual(_table(html, 'side')['style'], 'min-width:100%')
         self.assertEqual(_table(html, 'tabbed')['style'], 'min-width:100%')
         self.assertEqual(_table(html, 'given')['style'], 'min-width:900px')
@@ -84,9 +86,11 @@ class TestRowHover(SimpleTestCase):
 
     def test_the_row_lights_and_an_editable_cell_keeps_its_cue(self):
         css = (CSS / 'templates/cards/standard/_treegrid_css.html').read_text()
-        self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody td:hover {\n        background-color: transparent;', css)
         self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {', css)
-        self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td:has(.treegrid-edit-icon):hover {', css)
+        self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {', css)
+        # every editable cell is marked, whether or not its column draws the pencil
+        script = (CSS / 'templates/cards/standard/_treegrid_script.html').read_text()
+        self.assertIn("$td.toggleClass('treegrid-editable', !!(!READ_ONLY && editInfo && !disabled));", script)
 
 
 class TestScrollCards(SimpleTestCase):
@@ -101,9 +105,19 @@ class TestScrollCards(SimpleTestCase):
         container = _Page(str(scrolling.render().render())).find('div', id='panel_layout_scrolling')[0]
         self.assertEqual(container['class'].split(), ['panel-layout', 'mine', 'panel-layout--scroll-cards'])
 
-    def test_a_region_card_fills_its_region_and_scrolls_its_body(self):
+    def test_a_lone_region_card_fills_its_region_and_scrolls_its_body_but_not_a_grids(self):
         css = (CSS / 'static/cards/panel_layout/css/panel_layout.css').read_text()
-        card = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card {'):]
+        # :only-child -- several cards in a region keep the region's scroll, not an even split
+        card = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card:only-child {'):]
         self.assertIn('flex: 1;', card[:card.index('}')])
-        body = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card > .card-body {'):]
+        # a treegrid card scrolls its own grid: its body is left alone
+        body = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card:only-child > '
+                             '.card-body:not(:has(.fancytree-ext-table)) {'):]
         self.assertIn('overflow: auto;', body[:body.index('}')])
+
+    def test_css_class_none_draws_no_stray_class(self):
+        view = _view()
+        layout = view.add_panel_layout(card_name='bare', css_class=None, persist=False, scroll_cards=True)
+        layout.root.add_region('main', size='1fr')
+        container = _Page(str(layout.render().render())).find('div', id='panel_layout_bare')[0]
+        self.assertEqual(container['class'].split(), ['panel-layout', 'panel-layout--scroll-cards'])

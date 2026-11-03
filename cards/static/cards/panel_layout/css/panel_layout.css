@@ -431,9 +431,12 @@
     z-index: 100;
 }
 
-/* add_panel_layout(scroll_cards=True): a region card fills its region and scrolls its own body,
-   so a card longer than the window keeps its header and tab bar in view. */
-.panel-layout--scroll-cards .panel-region__content > .card {
+/* add_panel_layout(scroll_cards=True): a region's lone card fills its region and scrolls its own
+   body, so a card longer than the window keeps its header and tab bar in view. Only a lone card:
+   several in a region would share its height evenly, so they keep the region's scroll. A card
+   holding a treegrid sizes itself and scrolls its own grid, so its body is left alone -- scrolling
+   it too would take the grid's toolbar away and draw two scrollbars. */
+.panel-layout--scroll-cards .panel-region__content > .card:only-child {
     flex: 1;
     min-height: 0;
     margin-top: 0;
@@ -442,7 +445,7 @@
     flex-direction: column;
 }
 
-.panel-layout--scroll-cards .panel-region__content > .card > .card-body {
+.panel-layout--scroll-cards .panel-region__content > .card:only-child > .card-body:not(:has(.fancytree-ext-table)) {
     flex: 1;
     min-height: 0;
     overflow: auto;

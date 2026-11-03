@@ -737,6 +737,9 @@ window._treegridInit = window._treegridInit || function(CFG) {
 
             var disabled = !!(node.data.disableEdit);
 
+            // Says the cell can be edited, whether or not its column draws the pencil -- what a
+            // treegrid_hover='row' grid keys the cell's own cue on.
+            $td.toggleClass('treegrid-editable', !!(!READ_ONLY && editInfo && !disabled));
             // --- Editable widgets ---
             if (!READ_ONLY && editInfo && editInfo.type === 'checkbox' && editInfo.inline && !disabled) {
                 if (!$td.find('input[type="checkbox"]').length) {

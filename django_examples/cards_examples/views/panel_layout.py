@@ -953,4 +953,12 @@ class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
         notes.add_rows(*[{'label': f'Note {i}', 'value': 'A long card: its header stays put while its body scrolls.'}
                          for i in range(1, 31)])
         root.add_region('notes', size='1fr', min_size=200).add_card(notes)
+        # Two cards in one region: neither is stretched; the region scrolls them as it would.
+        summary = self.add_card(title='Summary')
+        summary.add_rows({'label': 'Departments', 'value': '5'}, {'label': 'Teams', 'value': '20'})
+        more = self.add_card(title='More notes')
+        more.add_rows(*[{'label': f'Item {i}', 'value': 'Under the summary, in the same region.'} for i in range(1, 16)])
+        both = root.add_region('both', size='320px', min_size=200)
+        both.add_card(summary)
+        both.add_card(more)
         self.add_card_group(layout.render(), div_css_class='col-12')

@@ -589,9 +589,10 @@ class PanelLayout:
         self.root = PanelSplit(direction=direction, resizable=resizable)
         self.full_height = full_height
         self.min_height = min_height
-        # scroll_cards: every region card fills its region and scrolls its own body, so a long card
-        # keeps its header and tab bar in view rather than the region scrolling them away.
-        self.css_class = f'{css_class} panel-layout--scroll-cards'.strip() if scroll_cards else css_class
+        self.css_class = css_class or ''
+        # A region's lone card fills it and scrolls its own body, so a long card keeps its header and
+        # tab bar in view rather than the region scrolling them away (the template adds the class).
+        self.scroll_cards = bool(scroll_cards)
         self.css_style = css_style
         self.linked_tables = None
         self.persist = persist
@@ -641,6 +642,7 @@ class PanelLayout:
             'full_height': self.full_height,
             'min_height': self.min_height,
             'css_class': self.css_class,
+            'scroll_cards': self.scroll_cards,
             'css_style': self.css_style,
             'panel_card_context': {'card_css_class': 'card panel-card'},
             'panel_no_header_context': {'card_css_class': 'card panel-card panel-card--no-header',
@@ -679,7 +681,7 @@ class PanelLayout:
             refuse_if_stacked(self.view, card, 'a panel layout region')
             info = getattr(card, 'extra_card_info', None)
             if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
-                    and info.get('treegrid_min_width') is None:
+                    and not info.get('treegrid_min_width'):
                 # A region can be dragged narrower than the 600px a treegrid otherwise keeps, and
                 # the grid would scroll sideways with its last column under the splitter.
                 info['treegrid_min_width'] = '100%'
