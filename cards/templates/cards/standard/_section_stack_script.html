@@ -1,0 +1,15 @@
+<script>
+    // Folds or opens an add_sections() section. Its datatables were laid out while it was hidden,
+    // at no width, so an opened section's own are measured again; and the section says it changed,
+    // for anything else inside it that sizes itself (a treegrid, a chart).
+    window.djangoCardsToggleSection = window.djangoCardsToggleSection || function (button) {
+        var section = button.closest('.django-card__section');
+        var folded = section.classList.toggle('django-card__section--folded');
+        button.setAttribute('aria-expanded', folded ? 'false' : 'true');
+        var $ = window.jQuery;
+        if (!folded && $ && $.fn.dataTable) {
+            $(section).find('table.dataTable').each(function () { $(this).DataTable().columns.adjust(); });
+        }
+        section.dispatchEvent(new CustomEvent('django-cards:section-toggle', {bubbles: true, detail: {folded: folded}}));
+    };
+</script>

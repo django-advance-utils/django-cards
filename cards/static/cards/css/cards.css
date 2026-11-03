@@ -1082,7 +1082,7 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     border-top: 1px solid var(--django-card-border-color, #dee2e6);
 }
 
-.django-card__section-header {
+.django-card__section-bar {
     position: relative;
 }
 
@@ -1114,7 +1114,7 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
 }
 
 /* Room for the menu, which sits over the toggle's right end just before the chevron. */
-.django-card__section-header--has-menu .django-card__section-title {
+.django-card__section-bar--has-menu .django-card__section-title {
     margin-right: 2.5rem;
 }
 

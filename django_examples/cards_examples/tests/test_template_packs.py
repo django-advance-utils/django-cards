@@ -121,6 +121,10 @@ FLAT_TEMPLATES = {
     'standard/_section_stack_body.html': 'the folding sections inside an add_sections() card, '
                                          'shared by both packs; its classes are the sections\' '
                                          'own, with no Bootstrap name in it',
+    'standard/_section_header.html': 'one section\'s header, shared by both packs; its classes are '
+                                     'the sections\' own, and its controls come from the pack\'s '
+                                     'own partials',
+    'standard/_section_stack_script.html': 'script',
     'standard/_search_script.html': 'script',
     'standard/_treegrid_css.html': 'stylesheet',
     'standard/_treegrid_init.html': 'a card\'s treegrid config, which carries the pack\'s '

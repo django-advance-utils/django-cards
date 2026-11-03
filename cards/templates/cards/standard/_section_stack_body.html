@@ -1,36 +1,13 @@
-{% load django_cards_tags %}
-{# The folding sections of an add_sections() card, shared by both packs (none of it is   #}
+{# The folding sections of an add_sections() card, shared by both packs (none of it is      #}
 {# Bootstrap-version-specific). `sections` is a list of cards.base.CardSection; include this #}
-{# with sections=build_sections(cards) to put a stack inside a template of your own.        #}
-{# The menu sits beside the toggle, not inside it: a button may not hold links or buttons. #}
-<script>
-    // Folds or opens a section. An opened section's datatables were laid out while hidden, at
-    // no width, so the visible ones are measured again; and the section says it changed, for
-    // anything else inside it that sizes itself (a treegrid, a chart).
-    window.djangoCardsToggleSection = window.djangoCardsToggleSection || function (button) {
-        var section = button.closest('.django-card__section');
-        var folded = section.classList.toggle('django-card__section--folded');
-        button.setAttribute('aria-expanded', folded ? 'false' : 'true');
-        if (!folded && window.jQuery && window.jQuery.fn.dataTable) {
-            window.jQuery.fn.dataTable.tables({visible: true, api: true}).columns.adjust();
-        }
-        section.dispatchEvent(new CustomEvent('django-cards:section-toggle', {bubbles: true, detail: {folded: folded}}));
-    };
-</script>
+{# with sections=build_sections(cards) to put a stack inside a template of your own. The     #}
+{# toggle's script comes once per request (`section_script`), and whenever it is not given.  #}
+{% if section_script is not False %}{% include 'cards/standard/_section_stack_script.html' %}{% endif %}
 <div class="django-card__sections">
     {% for section in sections %}
     <div class="django-card__section{% if section.folded %} django-card__section--folded{% endif %}" id="{{ section.id }}">
-        <div class="django-card__section-header{% if section.has_actions %} django-card__section-header--has-menu{% endif %}">
-            <button type="button" class="django-card__section-toggle"
-                    aria-expanded="{% if section.folded %}false{% else %}true{% endif %}"
-                    aria-controls="{{ section.id }}_body"
-                    onclick="djangoCardsToggleSection(this)">
-                <span class="django-card__section-title">{{ section.title }}</span>
-                <i class="fas fa-chevron-down django-card__section-chevron" aria-hidden="true"></i>
-            </button>
-            {% if section.has_actions %}<span class="django-card__section-menu">{% if section.has_menu %}{{ section.menu.render }}{% endif %}{% pack_path 'cards/standard/_reload_button.html' as reload_include %}{% include reload_include with card=section.card %}</span>{% endif %}
-        </div>
-        <div class="django-card__section-body" id="{{ section.id }}_body">{{ section.render_body }}</div>
+        <div class="django-card__section-header" id="{{ section.id }}-header">{{ section.render_header }}</div>
+        <div class="django-card__section-body" id="{{ section.id }}-body">{{ section.render_body }}</div>
     </div>
     {% endfor %}
 </div>
