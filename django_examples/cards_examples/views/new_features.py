@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 from django.utils.html import format_html
 
-from cards.standard import CardMixin, Tile, CourseTile
+from cards.standard import CardMixin, Tile, BannerTile
 from django_menus.menu import MenuItem
 from cards_examples.bootstrap import col
 
@@ -951,26 +951,26 @@ class TilesIndex(MainMenu, CardMixin, TemplateView):
         card.add_tiles([], empty_message='No tiles yet. Use Add above to add one.')
 
 
-class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
-    """add_course_tiles(): larger tiles with a banner, progress and an action, in a master card."""
+class BannerTilesIndex(MainMenu, CardMixin, TemplateView):
+    """add_banner_tiles(): larger tiles with a banner, progress and an action, in a master card."""
     template_name = 'cards_examples/cards.html'
 
     def setup_cards(self):
         # Promotions in a slider, with no box around them: layout='feature' is the wide slide,
         # and one with no banner_icon is the plain grey one.
         promotions = self.add_card('promotions', border='none')
-        promotions.add_course_tiles([
-            CourseTile(key='promo_path', layout='feature',
+        promotions.add_banner_tiles([
+            BannerTile(key='promo_path', layout='feature',
                        banner_icon='fas fa-drafting-compass',
                        title='Your path as an Estimator',
                        description='0 of 2 steps done. Up next: Getting Started.',
                        action_label='Continue your path', action_url='javascript:alert("Path")'),
-            CourseTile(key='promo_crm', layout='feature',
+            BannerTile(key='promo_crm', layout='feature',
                        title='New: CRM: Know every Customer',
                        description='The CRM keeps all contacts, conversations, leads, projects, '
                                    'invoices, and files in one place.',
                        action_label='Take a look', action_url='javascript:alert("CRM")'),
-            CourseTile(key='promo_webinar', layout='feature',
+            BannerTile(key='promo_webinar', layout='feature',
                        banner_icon='fas fa-video',
                        banner_background='#e6f0fb',
                        title='Live webinar: Quoting faster',
@@ -980,8 +980,8 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
 
         # A wide dark panel with a list of points and a mosaic of panels on the right.
         system_map = self.add_card('system_map', border='none')
-        system_map.add_course_tiles([
-            CourseTile(key='system_map_1', layout='showcase',
+        system_map.add_banner_tiles([
+            BannerTile(key='system_map_1', layout='showcase',
                        title='See how it all fits together',
                        description='One map of the whole system, drawn from how it really works.',
                        points=[('fas fa-cubes', 'Every area of the system'),
@@ -995,10 +995,10 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
         ])
 
         card = self.add_card('training', title='Your training', header_icon='fas fa-graduation-cap')
-        card.add_course_tiles([
+        card.add_banner_tiles([
             # The learning path the courses belong to, filled rather than bannered, first in
             # the grid so it reads as the heading of the row.
-            CourseTile(key='path_estimator', layout='highlight',
+            BannerTile(key='path_estimator', layout='highlight',
                        banner_label='Your learning path', banner_icon='fas fa-drafting-compass',
                        title='Estimator',
                        description='Customers, enquiries, quotes and projects, from the first '
@@ -1006,7 +1006,7 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
                        status='0 of 2 steps done', progress=0,
                        action_label='Continue: Getting Started',
                        action_url='javascript:alert("Continue")'),
-            CourseTile(key='course_1',
+            BannerTile(key='course_1',
                        title='Getting Started',
                        description='This course covers the first steps, from setting up '
                                    'your initial user through to creating your first project.',
@@ -1017,7 +1017,7 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
                        progress=0, status='Not started',
                        footer_label='Projects', footer_icon='fas fa-folder-open',
                        action_label='Start', action_url='javascript:alert("Start")'),
-            CourseTile(key='course_2',
+            BannerTile(key='course_2',
                        title='Quoting and Estimating',
                        description='Build a quote from a drawing, price it and send it.',
                        banner_label='Sales', banner_icon='fas fa-file-invoice',
@@ -1028,7 +1028,7 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
                        progress=45, status='45% complete',
                        footer_label='Sales', footer_icon='fas fa-file-invoice',
                        action_label='Continue', action_url='javascript:alert("Continue")'),
-            CourseTile(key='course_3',
+            BannerTile(key='course_3',
                        title='Reporting basics',
                        stats=['3 lessons'],
                        progress=100, status='Completed',
@@ -1037,13 +1037,13 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
         ], empty_message='No courses assigned yet.')
 
         empty = self.add_card('no_training', title='Empty')
-        empty.add_course_tiles([], empty_message='No courses assigned yet.')
+        empty.add_banner_tiles([], empty_message='No courses assigned yet.')
 
         # The detail layout: one course, as the sidebar on its own page. border='none' drops
         # the master card's box so the tile is the only frame.
         sidebar = self.add_card('course_sidebar', border='none')
-        sidebar.add_course_tiles([
-            CourseTile(key='course_detail_1', layout='detail',
+        sidebar.add_banner_tiles([
+            BannerTile(key='course_detail_1', layout='detail',
                        banner_icon='fas fa-folder-open',
                        banner_url='javascript:alert("Preview")',
                        banner_caption='Preview this course',
@@ -1065,12 +1065,12 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
         # A plain tile introducing the grid after it: no box, just a title (markup, for the
         # italic word -- format_html, though here there is nothing to escape) and a line of text.
         stages = self.add_card('stages', border='none')
-        stages.add_course_tiles(
-            [CourseTile(key='stages_intro', layout='plain',
+        stages.add_banner_tiles(
+            [BannerTile(key='stages_intro', layout='plain',
                         title_html=format_html('Learn <em>every</em> part of {}', 'the system'),
                         description='From the first enquiry to the last invoice: pick a stage of '
                                     'your work to see the courses that teach it.')]
-            + [CourseTile(key=f'stage_{n}', title=name, banner_label=name, banner_icon=icon,
+            + [BannerTile(key=f'stage_{n}', title=name, banner_label=name, banner_icon=icon,
                           banner_background=background,
                           stats=[('far fa-play-circle', f'{courses} courses')],
                           action_label='See courses', action_url=f'javascript:alert("{name}")')
@@ -1082,8 +1082,8 @@ class CourseTilesIndex(MainMenu, CardMixin, TemplateView):
                ])])
 
         more = self.add_card('more_courses', title='More courses (any tile in a slider)')
-        more.add_course_tiles([
-            CourseTile(key=f'more_{n}', title=name, description='A short course.',
+        more.add_banner_tiles([
+            BannerTile(key=f'more_{n}', title=name, description='A short course.',
                        banner_label=label, banner_icon=icon,
                        stats=[('far fa-play-circle', f'{lessons} lessons')],
                        footer_label=label, footer_icon=icon,

@@ -316,14 +316,14 @@ class Tile:
 
 
 @dataclass
-class CourseTile:
-    """One card in an :meth:`CardBase.add_course_tiles` grid -- a large tile with a banner.
+class BannerTile:
+    """One card in an :meth:`CardBase.add_banner_tiles` grid -- a large tile with a banner.
 
-    Built for a course or lesson list (a coloured banner, a title, a short description, a
-    few stats, a progress bar and an action button), but nothing in it is course-specific:
+    For a list of courses, products or articles (a coloured banner, a title, a short
+    description, a few stats, a progress bar and an action button), but nothing is fixed:
     every field but ``key`` is optional, and a tile draws only what it was given::
 
-        CourseTile(key='course_12', title='Getting Started',
+        BannerTile(key='course_12', title='Getting Started',
                    description='This course covers the first steps, from setting up...',
                    banner_label='Projects', banner_icon='fas fa-folder-open',
                    step='Step 1 of 2', badge='Required for your role',
@@ -368,7 +368,7 @@ class CourseTile:
             ``'btn btn-primary'`` (full width) in the detail one.
         css_class (str, optional): Extra classes on the tile.
         layout (str, optional): ``'compact'`` (the default) is the grid tile: stats in a row,
-            the button in the footer. ``'detail'`` is the one-course sidebar: stats one per
+            the button in the footer. ``'detail'`` is the single-item sidebar: stats one per
             line, a full-width button under them, then ``secondary_label`` and ``note``.
             ``'highlight'`` is a tile filled with ``banner_background`` (a purple gradient by
             default) in place of a banner: ``banner_icon``/``banner_label`` as a small
@@ -377,7 +377,7 @@ class CourseTile:
             ``'feature'`` is a wide promotional slide: title, description and button on the
             left over a ``banner_background`` tint, and on the right decorative shapes with
             ``banner_icon`` in a white tile (no icon draws a single grey shape). Meant for a
-            slider (``add_course_tiles(slider=True)``); in a grid it takes the whole row.
+            slider (``add_banner_tiles(slider=True)``); in a grid it takes the whole row.
             ``'plain'`` is text only, with no box: a large title and a quieter description (and
             an optional link), to introduce the tiles after it in a grid.
             ``'showcase'`` is a wide dark panel: title, description, ``points`` in two columns
@@ -414,7 +414,7 @@ class CourseTile:
 
     The detail layout, as a sidebar on a course's own page::
 
-        CourseTile(key='course_12', title=None, layout='detail',
+        BannerTile(key='course_12', title=None, layout='detail',
                    banner_icon='fas fa-folder-open', banner_url=course.preview_url,
                    banner_caption='Preview this course',
                    callout_icon='fas fa-route', callout_title='On your Estimator path',
@@ -469,13 +469,13 @@ class CourseTile:
 
     def __post_init__(self):
         if self.layout not in self.LAYOUTS:
-            raise ValueError(f'CourseTile layout is one of {self.LAYOUTS}; got {self.layout!r}')
+            raise ValueError(f'BannerTile layout is one of {self.LAYOUTS}; got {self.layout!r}')
         if self.action_css_class is None:
             self.action_css_class = {'detail': 'btn btn-primary',
-                                     'highlight': 'btn django-card__course-highlight-action',
-                                     'feature': 'btn django-card__course-feature-action',
-                                     'plain': 'django-card__course-plain-action',
-                                     'showcase': 'btn django-card__course-showcase-action',
+                                     'highlight': 'btn django-card__banner-tile-highlight-action',
+                                     'feature': 'btn django-card__banner-tile-feature-action',
+                                     'plain': 'django-card__banner-tile-plain-action',
+                                     'showcase': 'btn django-card__banner-tile-showcase-action',
                                      }.get(self.layout, 'btn btn-sm btn-outline-primary')
 
     @property
@@ -525,12 +525,12 @@ class CourseTile:
 
     @classmethod
     def build(cls, tile):
-        """Return `tile` as a CourseTile, accepting a dict of the same fields; see Tile.build."""
+        """Return `tile` as a BannerTile, accepting a dict of the same fields; see Tile.build."""
         if isinstance(tile, cls):
             return tile
         if isinstance(tile, dict):
             return cls(**tile)
-        raise TypeError(f'add_course_tiles() takes CourseTile objects or dicts of CourseTile '
+        raise TypeError(f'add_banner_tiles() takes BannerTile objects or dicts of BannerTile '
                         f'fields, not {type(tile).__name__}')
 
     @property
@@ -663,7 +663,7 @@ class CardBase:
                  'tiles': {'name': 'cards/standard/tiles.html',
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list'}},
-                 'course_tiles': {'name': 'cards/standard/course_tiles.html',
+                 'banner_tiles': {'name': 'cards/standard/banner_tiles.html',
                                   'context': {'card_css_class': 'card django-card',
                                               'card_body_css_class': 'card-body cards-list'}},
                  'message': {'name': 'cards/standard/message.html',
@@ -2155,15 +2155,15 @@ class CardBase:
         self.requires_card_css = True
         return self
 
-    def add_course_tiles(self, tiles, empty_message=None, width=None, slider=False):
-        """Render the card's body as a grid of :class:`CourseTile` cards.
+    def add_banner_tiles(self, tiles, empty_message=None, width=None, slider=False):
+        """Render the card's body as a grid of :class:`BannerTile` cards.
 
         The card it is called on is the master card -- its header, menu and footer stay as
         they are -- and each tile is a card of its own inside it::
 
             card = self.add_card('training', title='Your training')
-            card.add_course_tiles(
-                [CourseTile(key=f'course_{c.pk}', title=c.name, description=c.summary,
+            card.add_banner_tiles(
+                [BannerTile(key=f'course_{c.pk}', title=c.name, description=c.summary,
                             banner_label=c.category.name, banner_icon=c.category.icon,
                             step=f'Step {n} of {len(courses)}',
                             stats=[('fas fa-play-circle', f'{c.lessons} lessons')],
@@ -2177,7 +2177,7 @@ class CardBase:
         with prev/next arrows and a dot per tile -- the shape for ``layout='feature'``
         promotions, though any layout can be a slide.
 
-        A learning path at the head of the grid is a ``CourseTile(layout='highlight')`` first
+        A learning path at the head of the grid is a ``BannerTile(layout='highlight')`` first
         in the list. A single course on its own is the same call with one tile; pass ``border='none'`` to
         add_card() as well to drop the master card's box around it.
 
@@ -2185,7 +2185,7 @@ class CardBase:
         add_card()), and called more than once it adds to the grid.
 
         Args:
-            tiles (list): :class:`CourseTile` objects, or dicts of the same fields.
+            tiles (list): :class:`BannerTile` objects, or dicts of the same fields.
             empty_message (str, optional): Shown in place of the grid when there are no tiles.
             width (str, optional): The width of one tile, as a CSS length. Defaults to the
                 stylesheet's 260px. A feature tile's width is set by the stylesheet instead.
@@ -2195,14 +2195,14 @@ class CardBase:
             CardBase: The card, so the call can be chained onto add_card().
         """
         if slider:
-            self.extra_card_info['course_tiles_slider'] = True
-        self.extra_card_info.setdefault('course_tiles', []).extend(
-            CourseTile.build(tile) for tile in tiles)
+            self.extra_card_info['banner_tiles_slider'] = True
+        self.extra_card_info.setdefault('banner_tiles', []).extend(
+            BannerTile.build(tile) for tile in tiles)
         if empty_message is not None:
-            self.extra_card_info['course_tiles_empty_message'] = empty_message
+            self.extra_card_info['banner_tiles_empty_message'] = empty_message
         if width is not None:
-            self.extra_card_info['course_tiles_width'] = width
-        self.template_name = 'course_tiles'
+            self.extra_card_info['banner_tiles_width'] = width
+        self.template_name = 'banner_tiles'
         self.requires_card_css = True
         return self
 

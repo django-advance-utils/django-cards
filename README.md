@@ -1127,20 +1127,20 @@ optional ones, both shapes above, and the empty state.
 
 ---
 
-## Course Tiles
+## Banner Tiles
 
-`add_course_tiles()` makes a card a master card whose body is a set of larger cards: courses,
+`add_banner_tiles()` makes a card a master card whose body is a set of larger cards: courses,
 learning paths, promotions. The master card keeps its own header, menu and footer; each
-`CourseTile` is a card of its own inside it, laid out as a grid or, with `slider=True`, as a
+`BannerTile` is a card of its own inside it, laid out as a grid or, with `slider=True`, as a
 swipeable row.
 
 ```python
-from cards.standard import CardMixin, CourseTile
+from cards.standard import CardMixin, BannerTile
 
 card = self.add_card('training', title='Your training')
-card.add_course_tiles(
+card.add_banner_tiles(
     [
-        CourseTile(
+        BannerTile(
             key=f'course_{course.pk}',            # stable id -> the tile's DOM id
             title=course.name,                    # escaped
             description=course.summary,           # cut to two lines; full text in the title attribute
@@ -1163,11 +1163,11 @@ card.add_course_tiles(
 )
 ```
 
-`add_course_tiles()` parameters:
+`add_banner_tiles()` parameters:
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `tiles` | list | required | `CourseTile` objects, or dicts of the same fields |
+| `tiles` | list | required | `BannerTile` objects, or dicts of the same fields |
 | `empty_message` | str | `None` | Shown in place of the tiles when there are none. Nothing is drawn without one |
 | `width` | str | `260px` | The width of one grid tile, as a CSS length |
 | `slider` | bool | `False` | Lay the tiles out as a slider rather than a grid |
@@ -1178,13 +1178,13 @@ around it, give `add_card()` `border='none'`.
 
 ### Layouts
 
-`CourseTile(layout=...)` picks one of six shapes. Every field but `key` is optional, and a tile
+`BannerTile(layout=...)` picks one of six shapes. Every field but `key` is optional, and a tile
 draws only the parts it was given.
 
 | Layout | Use | Fields it draws |
 | --- | --- | --- |
-| `'compact'` (default) | A course in a grid | `banner_*`, `image_url`, `step`, `title`, `description`, `badge`, `stats` in a row, `progress`, `status`, `footer_*`, action in the footer |
-| `'detail'` | One course in a sidebar | `banner_url` (a play button over the banner) with `banner_caption`, `callout_*`, `stats` one per line, a full-width action, `secondary_*`, `note` |
+| `'compact'` (default) | An item in a grid | `banner_*`, `image_url`, `step`, `title`, `description`, `badge`, `stats` in a row, `progress`, `status`, `footer_*`, action in the footer |
+| `'detail'` | One item in a sidebar | `banner_url` (a play button over the banner) with `banner_caption`, `callout_*`, `stats` one per line, a full-width action, `secondary_*`, `note` |
 | `'highlight'` | A learning path at the head of a grid | A filled tile: `banner_icon`/`banner_label` as a small line, `title`, `description`, then `status`, `progress` and a white action pinned to the bottom |
 | `'feature'` | A wide promotional slide | `title`, `description` and action over a `banner_background` tint; shapes and `banner_icon` in a white tile on the right. No icon draws one grey shape |
 | `'plain'` | Text introducing the tiles after it | `title` (or `title_html`) large, `description`, an optional action as a link. No box |
@@ -1195,7 +1195,7 @@ stretch to the row's height, so they line up with the tiles beside them.
 
 ```python
 # One course as the sidebar on its own page.
-CourseTile(key='course_12', layout='detail',
+BannerTile(key='course_12', layout='detail',
            banner_icon='fas fa-folder-open', banner_url=course.preview_url,
            banner_caption='Preview this course',
            callout_icon='fas fa-route', callout_title='On your Estimator path',
@@ -1208,7 +1208,7 @@ CourseTile(key='course_12', layout='detail',
            secondary_url=save_url, note='Your progress is saved as you go.')
 
 # A dark panel with a list of points and a small diagram.
-CourseTile(key='system_map', layout='showcase',
+BannerTile(key='system_map', layout='showcase',
            title='See how it all fits together',
            description='One map of the whole system, drawn from how it really works.',
            points=[('fas fa-cubes', 'Every area of the system'),
@@ -1219,7 +1219,7 @@ CourseTile(key='system_map', layout='showcase',
            action_label='Open the map', action_url=map_url)
 ```
 
-`CourseTile` fields:
+`BannerTile` fields:
 
 | Field | Purpose |
 | --- | --- |
@@ -1254,7 +1254,7 @@ rather than quietly drawing a tile with a part missing.
 
 ```python
 promotions = self.add_card('promotions', border='none')
-promotions.add_course_tiles([...], slider=True)
+promotions.add_banner_tiles([...], slider=True)
 ```
 
 The track is a native horizontal scroller with snap points, so swiping and trackpads need no
@@ -1271,7 +1271,7 @@ Everything a tile shows is escaped **except `title_html`**, named for it in the 
 ```python
 from django.utils.html import format_html
 
-CourseTile(key='intro', layout='plain',
+BannerTile(key='intro', layout='plain',
            title_html=format_html('Learn <em>every</em> part of {}', product_name),
            description='Pick a stage of your work to see the courses that teach it.')
 ```
@@ -1281,15 +1281,15 @@ come from your code, never from a form or a model field.
 
 ### Styling
 
-The chrome is in `cards/css/cards.css` under `.django-card__course-*`, injected once per request.
+The chrome is in `cards/css/cards.css` under `.django-card__banner-tile-*`, injected once per request.
 On narrow screens the decorative shapes and panels hide and the showcase's points drop to one
 column. Colours are custom properties, so a project can retint them without out-specifying
-anything: `--django-card-course-accent`, `--django-card-course-banner-bg`,
-`--django-card-course-highlight-bg`, `--django-card-course-feature-bg`,
-`--django-card-course-showcase-bg`, `--django-card-course-progress-bg`,
-`--django-card-course-badge-bg`, `--django-card-course-muted-color`, among others.
+anything: `--django-card-banner-tile-accent`, `--django-card-banner-tile-banner-bg`,
+`--django-card-banner-tile-highlight-bg`, `--django-card-banner-tile-feature-bg`,
+`--django-card-banner-tile-showcase-bg`, `--django-card-banner-tile-progress-bg`,
+`--django-card-banner-tile-badge-bg`, `--django-card-banner-tile-muted-color`, among others.
 
-See the `/course-tiles/` page in `django_examples` for every layout, both sliders and the empty
+See the `/banner-tiles/` page in `django_examples` for every layout, both sliders and the empty
 state.
 
 ---
@@ -1600,7 +1600,7 @@ Any card type can be placed inside an accordion panel. The panel automatically h
 - HTML cards
 - Image gallery cards
 - Tile cards
-- Course tile cards
+- Banner tile cards
 - Other card types
 
 ### Layout Example — Accordion with Side Panel

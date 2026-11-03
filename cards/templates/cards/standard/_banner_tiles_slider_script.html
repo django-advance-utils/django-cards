@@ -1,14 +1,14 @@
-{# Arrows and dots for add_course_tiles(slider=True). The track scrolls natively, so touch and trackpads need nothing here; #}
+{# Arrows and dots for add_banner_tiles(slider=True). The track scrolls natively, so touch and trackpads need nothing here; #}
 {# this only moves it a slide at a time and keeps the dots and the arrows' disabled state in step with where it is.      #}
 <script>
 (function () {
     var slider = document.getElementById('{{ card.code|escapejs }}_slider');
     if (!slider) { return; }
-    var track = slider.querySelector('.django-card__course-tiles');
-    var prev = slider.querySelector('.django-card__course-slider-arrow--prev');
-    var next = slider.querySelector('.django-card__course-slider-arrow--next');
-    var dots = slider.querySelectorAll('.django-card__course-slider-dots button');
-    var slides = function () { return track.querySelectorAll(':scope > .django-card__course-tile'); };
+    var track = slider.querySelector('.django-card__banner-tiles');
+    var prev = slider.querySelector('.django-card__banner-tile-slider-arrow--prev');
+    var next = slider.querySelector('.django-card__banner-tile-slider-arrow--next');
+    var dots = slider.querySelectorAll('.django-card__banner-tile-slider-dots button');
+    var slides = function () { return track.querySelectorAll(':scope > .django-card__banner-tile'); };
     // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft less that.
     var restingLeft = function (slide) { return slide.offsetLeft - parseFloat(getComputedStyle(track).paddingLeft); };
 

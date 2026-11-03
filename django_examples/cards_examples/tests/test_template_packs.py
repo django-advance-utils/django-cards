@@ -110,7 +110,7 @@ FLAT_TEMPLATES = {
     'standard/_column_search_script.html': 'script',
     'standard/_export_script.html': 'script',
     'standard/_reload_script.html': 'script',
-    'standard/_course_slider_script.html': 'script',
+    'standard/_banner_tiles_slider_script.html': 'script',
     'standard/_search_script.html': 'script',
     'standard/_treegrid_css.html': 'stylesheet',
     'standard/_treegrid_init.html': 'a card\'s treegrid config, which carries the pack\'s '
