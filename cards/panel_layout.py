@@ -1,14 +1,13 @@
-import hashlib
-import hmac
+import secrets
 from typing import NamedTuple
 
 from ajax_helpers.utils import random_string
-from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
 
 from cards.base import json_for_script
+from cards.render_scope import get_render_scope
 
 
 class DeferredLayoutHtml:
@@ -30,9 +29,7 @@ class DeferredLayoutHtml:
 
     def render(self):
         if self.rendered is None:
-            # A layout rendered as a card is not being split, so a slot in it is dropped rather
-            # than left in the page, where the marker could be read and copied into stored text.
-            self.rendered = mark_safe(str(self.layout._render_html()).replace(slot_marker(), ''))
+            self.rendered = self.layout._render_html()
         return self.rendered
 
 
@@ -43,21 +40,33 @@ class DeferredLayoutHtml:
 lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
 
 
+#: The slot's nonce outside a request cycle (a test, a management command), where no page is
+#: served: random per process, so still nothing stored text could know.
+_PROCESS_SLOT_NONCE = secrets.token_hex(12)
+
+
 def slot_marker():
-    """Where a panel layout leaves room for the page's own content.
+    """Where a panel layout leaves room for the page's own content, in the request being served.
 
     Written by `PanelSlot` (a region's or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a
     card's own template, and found by `PanelLayout.render_around`, which splits the rendered layout
-    there. An html comment, so it draws nothing; named by an HMAC of ``SECRET_KEY`` so that no
-    stored text can carry it. A card printing stored rich text marked safe could otherwise hold the
-    marker -- raising "2 slots" on every page that shows it, or, beside a layout with no slot of its
-    own, taking the page's content into that card. The same in every worker of one site, since a
-    card's html can be built in one process and split in another (a cache); it never reaches a
-    page, as the layout strips it wherever it renders without splitting.
+    there. An html comment, so it draws nothing, named by a random nonce made once per request
+    (kept on the request's render scope, `cards.render_scope`). The split searches html that can
+    hold stored rich text printed safe; a fixed marker in that text would raise "2 slots" on every
+    page showing it, or take the page's content into its card. A nonce of this request cannot be
+    in text stored before it -- and one read off a page, or an ajax reply, is useless to the next.
+
+    So the slot is good for the request that made it: html holding one cannot be cached and
+    split in a later request.
     """
-    key = str(getattr(settings, 'SECRET_KEY', '') or '').encode()
-    digest = hmac.new(key, b'django-cards panel layout slot', hashlib.sha256).hexdigest()[:24]
-    return f'<!--django-cards-panel-slot-{digest}-->'
+    scope = get_render_scope()
+    if scope is None:
+        nonce = _PROCESS_SLOT_NONCE
+    else:
+        nonce = getattr(scope, 'panel_slot_nonce', None)
+        if nonce is None:
+            nonce = scope.panel_slot_nonce = secrets.token_hex(12)
+    return f'<!--django-cards-panel-slot-{nonce}-->'
 
 
 class PanelSlot:
