@@ -1037,3 +1037,38 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
         grid-template-columns: 1fr;
     }
 }
+
+/* add_card(sub_tab_menu=...): a second, quieter row of tabs under the card's tab bar -- the
+ * pages under the top tab in view. Underlined rather than boxed, smaller, so it reads as a
+ * level below the bar it sits under rather than as the bar wrapping onto a second line.
+ * Retint with --django-card-sub-tab-color / --django-card-sub-tab-active-color. */
+.django-card__sub-tabs {
+    padding: 0 0.5rem;
+    border-bottom: 1px solid var(--django-card-border-color, #dee2e6);
+}
+
+.django-card__sub-tabs .nav-tabs {
+    border-bottom: 0;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+}
+
+.django-card__sub-tabs .nav-tabs .nav-link {
+    padding: 0.4rem 0.75rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    color: var(--django-card-sub-tab-color, #6c757d);
+}
+
+.django-card__sub-tabs .nav-tabs .nav-link:hover,
+.django-card__sub-tabs .nav-tabs .nav-link:focus {
+    color: var(--django-card-sub-tab-active-color, #212529);
+}
+
+.django-card__sub-tabs .nav-tabs .nav-link.active {
+    color: var(--django-card-sub-tab-active-color, #212529);
+    border-bottom-color: currentColor;
+    background: none;
+}
