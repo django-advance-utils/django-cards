@@ -1,4 +1,4 @@
-{% load django_cards_tags %}{% load datatable_tags %}
+{% load datatable_tags django_cards_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}_card" data-title="">
     {% if show_header %}
     <div class="card-header {{ card.header_css_class }}">

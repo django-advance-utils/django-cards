@@ -137,38 +137,51 @@ def _same_file(a, b):
     return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
 
 
-# Flat name -> whether what Django loads there is cards' own forwarder. It depends on the
-# template folders, not the request, so it is worked out once per name; a change to TEMPLATES
-# (an override_settings in a test, say) clears it, as it resets Django's own engines. Not
-# kept under DEBUG, where an override added while the server runs must show on the next
-# render, as it did when every render went through the forwarder.
-_OWN_FORWARDER = {}
+# What the swap needs to know, worked out once per name: whether the file Django loads at a
+# flat name is cards' own (it depends on the template folders and the installed apps, not the
+# request), and whether a pack folder of cards' holds a copy. Cleared when TEMPLATES or
+# INSTALLED_APPS change, as Django resets its own engines then. Not kept under DEBUG, where an
+# override added while the server runs must show on the next render, as it did when every
+# render went through the forwarder.
+_OWN_FILE = {}
+_PACK_COPY = {}
 
 
 @receiver(setting_changed)
 def _forget_forwarders(setting, **kwargs):
-    if setting == 'TEMPLATES':
-        _OWN_FORWARDER.clear()
+    if setting in ('TEMPLATES', 'INSTALLED_APPS'):
+        _OWN_FILE.clear()
+        _PACK_COPY.clear()
 
 
-def _is_own_forwarder(name):
-    remember = not settings.DEBUG
-    if remember and name in _OWN_FORWARDER:
-        return _OWN_FORWARDER[name]
-    rest = name[len('cards/'):]
-    own_path = os.path.join(_TEMPLATES_DIR, 'cards', *rest.split('/'))
-    has_pack_copy = os.path.exists(os.path.join(_TEMPLATES_DIR, 'cards', DEFAULT_PACK, *rest.split('/')))
-    verdict = False
-    if has_pack_copy:
+def _remembered(memo, key, work):
+    if settings.DEBUG:
+        return work()
+    try:
+        return memo[key]
+    except KeyError:
+        memo[key] = verdict = work()
+        return verdict
+
+
+def _has_pack_copy(pack, parts):
+    """Whether cards ships ``parts`` in ``pack``'s folder. A pack a project supplies itself has
+    no folder here, so its names stay flat and go through the forwarder, which finds it."""
+    return _remembered(_PACK_COPY, (pack, parts),
+                       lambda: os.path.isfile(os.path.join(_TEMPLATES_DIR, 'cards', pack, *parts)))
+
+
+def _is_own_file(name, parts):
+    """Whether the file Django loads at the flat ``name`` is cards' own, not a project's."""
+    def work():
         try:
             origin = get_template(name).origin.name
         except TemplateDoesNotExist:
-            origin = None
+            return False
         # An origin that is not a file (a locmem or database loader) is not ours.
-        verdict = bool(origin) and os.path.isabs(origin) and _same_file(origin, own_path)
-    if remember:
-        _OWN_FORWARDER[name] = verdict
-    return verdict
+        return (bool(origin) and os.path.isabs(origin)
+                and _same_file(origin, os.path.join(_TEMPLATES_DIR, 'cards', *parts)))
+    return _remembered(_OWN_FILE, name, work)
 
 
 def resolve_template(name, request=None):
@@ -176,11 +189,15 @@ def resolve_template(name, request=None):
 
     A ``cards/standard/`` name whose file is cards' own forwarder becomes the request's pack
     path, so the card renders the pack's markup directly -- no forwarder is loaded, and no
-    second render copies the context. A name a project overrides at the flat path, and any
-    name that is not a pack template, comes back unchanged: the override wins on both packs,
-    as it did when every render went through the forwarder.
+    second render copies the context. A name a project overrides at the flat path, any name
+    that is not a pack template, and anything but a single name (a list for select_template,
+    a Template object) comes back unchanged: the override wins on both packs, as it did when
+    every render went through the forwarder.
     """
-    if name.startswith(_FLAT_PREFIX) and _is_own_forwarder(name):
-        return f'cards/{template_pack(request)}/{name[len("cards/"):]}'
+    if not isinstance(name, str) or not name.startswith(_FLAT_PREFIX):
+        return name
+    pack = template_pack(request)
+    parts = tuple(name[len('cards/'):].split('/'))
+    if _has_pack_copy(pack, parts) and _is_own_file(name, parts):
+        return '/'.join(('cards', pack) + parts)
     return name
-

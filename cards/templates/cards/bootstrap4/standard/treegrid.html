@@ -1,4 +1,4 @@
-{% load django_cards_tags %}{% load i18n django_cards_tags %}
+{% load i18n django_cards_tags %}
 <div class="{{ card_css_class }}" id="{{ card.code }}_card" {% if card_css_style %}style="{{ card_css_style }}"{% endif %} data-title="">
     {% if show_header %}{% if card.title or card.menu %}{# nested: `and` binds tighter than `or` #}
     <div class="card-header {{ card.header_css_class }}">

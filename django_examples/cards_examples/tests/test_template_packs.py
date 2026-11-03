@@ -661,6 +661,30 @@ class TestNameSwap(SimpleTestCase):
         self.assertIn('ml-2', bs4)
         self.assertNotIn('data-bs-toggle', bs4)
 
+    def test_anything_but_a_single_name_is_left_alone(self):
+        """render_to_string takes a list of names too, and picks the first that exists."""
+        names = ['myapp/missing.html', 'cards/standard/default.html']
+        self.assertIs(resolve_template(names), names)
+        view = _CardView()
+        view.request = RequestFactory().get('/')
+        card = view.add_card('probe', title='Probe')
+        card.add_entry('one', label='Label')
+        card.templates = {**card.templates, 'probe_list': {'name': names}}   # as a CardBase.templates entry
+        card.template_name = 'probe_list'
+        self.assertIn('card-header', card.render())
+
+    def test_a_pack_cards_does_not_ship_stays_flat(self):
+        """A project-supplied pack has no folder in cards, so the forwarder goes on finding it."""
+        with override_settings(DJANGO_CARDS_TEMPLATE_PACK='mypack'):
+            self.assertEqual(resolve_template('cards/standard/default.html'), 'cards/standard/default.html')
+
+    def test_installed_apps_changing_forgets_what_was_remembered(self):
+        from cards import packs
+        resolve_template('cards/standard/default.html')
+        self.assertTrue(packs._OWN_FILE)
+        packs._forget_forwarders(setting='INSTALLED_APPS')
+        self.assertEqual((packs._OWN_FILE, packs._PACK_COPY), ({}, {}))
+
     def test_only_cards_own_pack_templates_are_swapped(self):
         self.assertEqual(resolve_template('cards/standard/default.html'), f'cards/{DEFAULT_PACK}/standard/default.html')
         with override_settings(DJANGO_CARDS_TEMPLATE_PACK='bootstrap5'):
@@ -718,7 +742,12 @@ class TestProjectOverrideWinsWithoutTheForwarder(SimpleTestCase):
 
     def test_under_debug_an_override_added_while_running_shows_at_once(self):
         """With DEBUG on, nothing is remembered: a file added at the flat path wins on the next
-        render, as it did when every render went through the forwarder."""
+        render, as it did when every render went through the forwarder.
+
+        This leans on Django 3.2, the version requirements.txt pins, leaving the cached loader
+        out under DEBUG. From 4.1 the cached loader is always on and runserver's autoreload
+        resets it when a template changes, so this test would need to reset it too.
+        """
         with override_settings(TEMPLATES=self._templates_setting()), override_settings(DEBUG=True):
             self.assertEqual(resolve_template('cards/standard/_reload_button.html'),
                              f'cards/{DEFAULT_PACK}/standard/_reload_button.html')
