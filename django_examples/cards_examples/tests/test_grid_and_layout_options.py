@@ -103,7 +103,9 @@ class TestRowHover(SimpleTestCase):
         row = css[css.index('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {'):]
         self.assertIn('background-image: linear-gradient(', row[:row.index('}')])
         self.assertNotIn('background-color', row[:row.index('}')])
-        self.assertIn('.fancytree-ext-table:not(.treegrid--row-hover) tbody td:hover {', css)
+        # the default cell rule is left as it was, so a project's own overrides still win
+        self.assertIn('    .fancytree-ext-table tbody td:hover {', css)
+        self.assertNotIn(':not(.treegrid--row-hover)', css)
         self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {', css)
         # every editable cell is marked, whether or not its column draws the pencil
         script = (CSS / 'templates/cards/standard/_treegrid_script.html').read_text()
@@ -148,9 +150,12 @@ class TestScrollCards(SimpleTestCase):
 
     def test_the_lone_card_fills_and_scrolls_in_a_region_a_tab_and_a_reload_wrapper(self):
         css = (CSS / 'static/cards/panel_layout/css/panel_layout.css').read_text()
-        flex = css[css.index('.panel-layout--scroll-cards .panel-region__content--single,'):]
-        # out-ranks .panel-region__content.tab-content > .tab-pane.active { display: block }
-        self.assertIn('.panel-region__content.tab-content > .tab-pane.active.panel-region__content--single', flex[:flex.index('{')])
+        scroll = css[css.index('add_panel_layout(scroll_cards=True)'):]
+        # only a tab pane is made a flex column (out-ranking the active pane's display: block); a
+        # region's display is never set, so a collapsed region's display: none stands
+        self.assertIn('.panel-region__content.tab-content > .tab-pane.active.panel-region__content--single {', scroll)
+        self.assertNotIn('.panel-layout--scroll-cards .panel-region__content--single {', scroll)
+        self.assertNotIn('.panel-layout--scroll-cards .panel-region__content--single,', scroll)
         card = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card,'):]
         self.assertIn('> .django-card__ajax > .card', card[:card.index('{')])
         body = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card > .card-body,'):]

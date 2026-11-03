@@ -118,8 +118,9 @@
         background-color: rgba(0, 0, 0, 0.06);
     }
 
-    /* Cell hover highlight matching datatable (treegrid_hover='cell', the default) */
-    .fancytree-ext-table:not(.treegrid--row-hover) tbody td:hover {
+    /* Cell hover highlight matching datatable (treegrid_hover='cell', the default; in a row-hover
+       grid the hovered cell keeps it too, a shade under the row's overlay) */
+    .fancytree-ext-table tbody td:hover {
         background-color: #a2bbd333;
     }
 
@@ -133,7 +134,8 @@
     .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {
         background-image: linear-gradient(#a2bbd366, #a2bbd366);
     }
-    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-active:hover > td {
+    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-active:hover > td,
+    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-active:hover > td.treegrid-editable:hover {
         background-image: none;
     }
 

@@ -785,6 +785,7 @@ class CardMixin:
                           treegrid_nowrap: bool = False,
                           treegrid_current_node: str = '',
                           treegrid_min_width: str = None,
+                          treegrid_hover: str = 'cell',
                           **kwargs) -> CardBase:
         """
         Adds a treegrid card using Fancytree for hierarchical data display.
@@ -849,8 +850,7 @@ class CardMixin:
                 dragged narrower than 600px. '' sets no floor at all.
             treegrid_hover (str): 'cell' (the default) lights the cell under the pointer, the
                 cue for a grid edited in place; 'row' lights the whole row, for one read a row
-                at a time (an editable cell in it keeps the cell cue too). Passed through
-                ``**kwargs``.
+                at a time (an editable cell in it keeps the cell cue too).
             **kwargs: Additional keyword arguments passed to `add_card`.
 
         Returns:
@@ -929,6 +929,7 @@ class CardMixin:
             treegrid_nowrap=treegrid_nowrap,
             treegrid_current_node=treegrid_current_node,
             treegrid_min_width=treegrid_min_width,
+            treegrid_hover=treegrid_hover,
             show_header=show_header,
             **kwargs,
         )

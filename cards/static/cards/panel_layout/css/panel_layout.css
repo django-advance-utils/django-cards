@@ -437,13 +437,19 @@
    fills_region), and only in a scroll_cards layout -- counted there, as a card's own <script>
    siblings and its ajax-reload wrapper would defeat a CSS count, and a slot is not a card; and
    only where asked, so a layout nested in one is not swept in. Several cards keep the region's
-   scroll rather than sharing its height evenly. A self-sizing card (treegrid, accordion, iframe,
-   panel layout) or a collapsible one is not marked. The tab rule out-ranks the active tab pane's
-   display: block. */
-.panel-layout--scroll-cards .panel-region__content--single,
+   scroll rather than sharing its height evenly; a card that sizes itself is not marked.
+
+   A region's content is a flex column already, so only a tab pane is made one -- out-ranking the
+   active pane's display: block. Nothing here sets a region's display, so a collapsed region stays
+   hidden. The ajax-reload wrapper takes no box (display: contents), so its card is laid out as
+   the region's own. */
 .panel-layout--scroll-cards .panel-region__content.tab-content > .tab-pane.active.panel-region__content--single {
     display: flex;
     flex-direction: column;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .django-card__ajax {
+    display: contents;
 }
 
 .panel-layout--scroll-cards .panel-region__content--single > .card,
@@ -452,13 +458,6 @@
     min-height: 0;
     margin-top: 0;
     margin-bottom: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.panel-layout--scroll-cards .panel-region__content--single > .django-card__ajax {
-    flex: 1;
-    min-height: 0;
     display: flex;
     flex-direction: column;
 }

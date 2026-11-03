@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
 
-from cards.base import json_for_script
+from cards.base import CARD_TYPE_TREEGRID, json_for_script
 from cards.render_scope import get_render_scope
 
 
@@ -76,7 +76,6 @@ def _fill_region_width(card):
     scroll sideways with its last column under the splitter. Set as the card is placed, so an ajax
     reload -- which rebuilds the cards, and the layout with them -- draws it the same way.
     """
-    from cards.base import CARD_TYPE_TREEGRID
     info = getattr(card, 'extra_card_info', None)
     if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
             and info.get('treegrid_min_width') is None:

@@ -3017,12 +3017,15 @@ class CardBase:
     @property
     def fills_region(self):
         """Whether, alone in a panel region or tab under ``scroll_cards``, the card fills it and
-        scrolls its own body: drawn by one of `REGION_FILLING_TEMPLATES`, and not collapsible (it
-        would fill the region folded)."""
+        scrolls its own body: drawn by the template file of one of `REGION_FILLING_TEMPLATES` --
+        by key or by path, and not a subclass's entry pointing that key at a template of its own --
+        and not collapsible (it would fill the region folded)."""
         if self.enable_collapse:
             return False
         name = self.template_name or self.template_defaults.get(self.group_type)
-        return name in self.REGION_FILLING_TEMPLATES
+        entry = self.templates.get(name)
+        path = entry['name'] if entry is not None else name
+        return path in {CardBase.templates[key]['name'] for key in self.REGION_FILLING_TEMPLATES}
 
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the
