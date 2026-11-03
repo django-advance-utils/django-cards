@@ -1918,7 +1918,10 @@ def setup_cards(self):
   `cards_ready()` has run on the region cards; from Python, call it from `get_context_data`, not
   `setup_cards`.
 - A layout with no slot, or more than one, raises `ValueError`: the content would be lost or drawn
-  twice. Don't also add the layout to a card group -- it would render a second time.
+  twice. A second `add_slot()` on one region or tab raises as it is called. Don't also add the
+  layout to a card group -- it would render a second time.
+- Keep `{% panel_slot %}` out of a card that reloads over ajax (`ajax_reload`,
+  `reload_interval`): the reload replaces the card's body, and the page's content with it.
 
 See `/panel-layout/slot/` in the example app.
 

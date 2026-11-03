@@ -119,6 +119,7 @@ def panel_slot():
 
     For a slot that is not a region or tab of its own -- the page's content inside a card's body,
     under something the card draws itself. ``PanelLayout.render_around`` splits the layout here.
+    Not in a card that reloads over ajax: its reload would replace the page's content too.
     """
     return mark_safe(SLOT_MARKER)
 
@@ -131,7 +132,11 @@ class PanelLayoutAroundNode(template.Node):
         self.nodelist = nodelist
 
     def render(self, context):
-        parts = self.layout.resolve(context).render_around()
+        layout = self.layout.resolve(context)
+        if not hasattr(layout, 'render_around'):
+            raise template.TemplateSyntaxError(
+                f'panel_layout_around needs a PanelLayout; {self.layout.token!r} is {layout!r}')
+        parts = layout.render_around()
         return mark_safe(f'{parts.before}{self.nodelist.render(context)}{parts.after}')
 
 

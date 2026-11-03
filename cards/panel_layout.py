@@ -51,12 +51,27 @@ class PanelSlot:
     `PanelLayout.render_around` splits the layout there, so the page's template can put its own
     content -- a ``{% block %}`` it renders as usual -- inside the layout without the layout knowing
     what that content is.
+
+    The content is the page's, printed once, so nothing that re-renders a card over ajax can put
+    it back: keep ``{% panel_slot %}`` out of a card with ``ajax_reload`` or ``reload_interval``,
+    whose reload would replace the card's body and the content with it.
     """
 
     code = 'panel_slot'
 
     def render(self, override_card_context=None):
         return mark_safe(SLOT_MARKER)
+
+
+def _add_slot(holder):
+    """Add a `PanelSlot` to a region or tab, refusing a second one there and then.
+
+    A layout takes one slot; `PanelLayout.render_around` would refuse two as well, but only once
+    the page renders, far from the line that added it.
+    """
+    if any(isinstance(card, PanelSlot) for card in holder.cards):
+        raise ValueError(f'{holder.name!r} already holds a slot; a panel layout takes one')
+    return holder.add_card(PanelSlot())
 
 
 class PanelLayoutParts(NamedTuple):
@@ -110,7 +125,7 @@ class PanelTab:
 
     def add_slot(self):
         """Leave room in this tab pane for the page's own content (see `PanelLayout.render_around`)."""
-        return self.add_card(PanelSlot())
+        return _add_slot(self)
 
 
 class PanelRegion:
@@ -212,7 +227,7 @@ class PanelRegion:
 
     def add_slot(self):
         """Leave room in this region for the page's own content (see `PanelLayout.render_around`)."""
-        return self.add_card(PanelSlot())
+        return _add_slot(self)
 
     def add_tab(self, name, title, icon=None, active=False, menu=None):
         """
@@ -639,7 +654,10 @@ class PanelLayout:
         Raises ``ValueError`` when the layout has no slot, or more than one: either way the page's
         content would be lost or drawn twice, and nothing on the page would say why.
         """
-        html = str(self.render().render())
+        # The layout's own html, not the card `render()` wraps it in: that card would be
+        # registered in the view's cards while the page renders, and there is nothing for its
+        # chrome to do here. So this needs no view, either.
+        html = str(self._render_html())
         count = html.count(SLOT_MARKER)
         if count != 1:
             where = 'no slot' if count == 0 else f'{count} slots'

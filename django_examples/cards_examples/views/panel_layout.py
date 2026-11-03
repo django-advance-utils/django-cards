@@ -898,6 +898,7 @@ class PanelLayoutDetailDatatablesExample(MainMenu, CardMixin, TemplateView):
     def button_hello_there(self, pk: int, **_kwargs):
         return self.command_response('message', text=f'Hello there! ({pk})')
 
+
 class PanelLayoutSlotExample(MainMenu, CardMixin, TemplateView):
     """A layout with a slot: the page's own template content in the main region.
 

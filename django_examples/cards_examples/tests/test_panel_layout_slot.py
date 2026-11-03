@@ -88,12 +88,42 @@ class TestRenderAround(SimpleTestCase):
             layout.render_around()
 
     def test_two_slots_raise(self):
-        def main(region):
-            region.add_slot()
-            region.add_slot()
-
+        """In two regions: caught when the page renders."""
+        view = _view()
+        layout = view.add_panel_layout(card_name='shell', persist=False)
+        layout.root.add_region('a', size='1fr').add_slot()
+        layout.root.add_region('b', size='1fr').add_slot()
         with self.assertRaisesMessage(ValueError, '2 slots'):
-            _layout(_view(), main).render_around()
+            layout.render_around()
+
+    def test_a_second_slot_in_one_region_or_tab_raises_as_it_is_added(self):
+        view = _view()
+        layout = view.add_panel_layout(card_name='shell', persist=False)
+        region = layout.root.add_region('main', size='1fr')
+        region.add_slot()
+        with self.assertRaisesMessage(ValueError, "'main' already holds a slot"):
+            region.add_slot()
+        tab = layout.root.add_region('side', size='1fr').add_tab('one', title='One')
+        tab.add_slot()
+        with self.assertRaises(ValueError):
+            tab.add_slot()
+
+    def test_it_registers_no_card_on_the_view(self):
+        """It renders while the page does: adding to the view's cards then would change a dict the
+        template may be reading, and could replace a card of the same name."""
+        view = _view()
+        layout = _region_slot(view)
+        before = dict(view.cards)
+        layout.render_around()
+        layout.render_around()
+        self.assertEqual(view.cards, before)
+
+    def test_it_needs_no_view(self):
+        from cards.panel_layout import PanelLayout
+        layout = PanelLayout(card_name='bare')
+        layout.root.add_region('main', size='1fr').add_slot()
+        parts = layout.render_around()
+        self.assertIn('panel_layout_bare', parts.before)
 
 
 class TestPanelLayoutAroundTag(SimpleTestCase):
@@ -123,6 +153,12 @@ class TestPanelLayoutAroundTag(SimpleTestCase):
         self.assertEqual(len(_Page(html).find('p', **{'class': 'child'})), 1, html)
         self.assertNotIn('>base<', html)
         self.assertIn('side text', html)
+
+    def test_a_missing_layout_says_so(self):
+        from django.template import TemplateSyntaxError
+        t = Template('{% load django_cards_tags %}{% panel_layout_around view.layuot %}x{% endpanel_layout_around %}')
+        with self.assertRaisesMessage(TemplateSyntaxError, "needs a PanelLayout; 'view.layuot'"):
+            t.render(Context({'view': object()}))
 
     def test_it_takes_one_argument(self):
         from django.template import TemplateSyntaxError
