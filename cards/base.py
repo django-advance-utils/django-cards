@@ -11,9 +11,10 @@ from ajax_helpers.html_include import pip_version
 from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
+from django.utils.functional import lazy
 from django.templatetags.static import static
 from django.utils.html import conditional_escape, strip_tags
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
 from django_datatables.columns import ColumnBase
@@ -541,18 +542,22 @@ class Tile:
 class CardSection:
     """One folding section of an :meth:`CardBase.add_sections` stack: a card under a header.
 
-    The header is a toggle holding the section's title and a chevron, with the card's own menu
-    beside it -- never inside it, as a button may not hold links or other buttons. The card's own
-    header is switched off for its body (``show_header=False`` in the render, not on the card), so
-    the section's is the only one it shows.
+    The header is a toggle holding the section's title and a chevron, with the card's own menu --
+    and its reload button, if it reloads -- beside it, never inside it, as a button may not hold
+    links or other buttons. The card becomes the section's: its own header and its own collapse
+    are switched off (``show_header``, ``enable_collapse``), so the section's header is the only
+    one and the section's fold the only one. Set on the card, they hold through an ajax reload,
+    which rebuilds the cards and so the stack. A card in a stack is not shown anywhere else on the
+    page as well: its DOM ids would be there twice.
 
     Args:
         card (CardBase): The card whose body is the section's.
-        title (str, optional): The header's text. Defaults to the card's title. Escaped unless
-            marked safe.
-        menu (HtmlMenu, optional): Buttons beside the toggle. Defaults to the card's own menu.
+        title (str, optional): The header's text. Defaults to the card's title; one of the two is
+            needed, as the toggle is named by it. Escaped unless marked safe.
+        menu (HtmlMenu or list, optional): Buttons beside the toggle; a list is made a button
+            group, as ``add_card(menu=[...])`` makes one. Defaults to the card's own menu.
         folded (bool, optional): Whether it starts folded. Defaults to whether the card is empty
-            (``add_card(is_empty=True)``), so a section with nothing in it starts out of the way.
+            (``add_card(is_empty=True)``) or was built ``collapsed=True``.
     """
 
     card: object
@@ -561,14 +566,24 @@ class CardSection:
     folded: bool = None
 
     def __post_init__(self):
+        card = self.card
         # A title given here is escaped by the template's {{ }} unless marked safe; the card's own
         # was made text-unless-marked-safe when the card was built.
         if self.title is None:
-            self.title = getattr(self.card, 'title', None)
+            self.title = getattr(card, 'title', None)
+        if not self.title:
+            raise ValueError(f'The section for card {getattr(card, "code", card)!r} has no title, and its '
+                             f'toggle is named by one: give the card a title, or the section one')
         if self.menu is None:
-            self.menu = getattr(self.card, 'menu', None)
+            self.menu = getattr(card, 'menu', None)
+        elif isinstance(self.menu, (list, tuple)):
+            self.menu = HtmlMenu(card.request, card.button_menu_type).add_items(*self.menu)
         if self.folded is None:
-            self.folded = bool(getattr(self.card, 'is_empty', False))
+            self.folded = bool(getattr(card, 'is_empty', False) or getattr(card, 'collapsed', None) is True)
+        # The section's header and fold stand in for the card's: with its header off, the card's
+        # own collapse toggle would be gone and a collapsed body out of reach.
+        card.show_header = False
+        card.enable_collapse = False
 
     @classmethod
     def build(cls, entry):
@@ -576,7 +591,12 @@ class CardSection:
         if entry is None or isinstance(entry, cls):
             return entry
         if isinstance(entry, dict):
+            if 'card' not in entry:
+                raise ValueError(f'A section dict needs its card: {entry!r}')
             return cls(**entry)
+        if not (hasattr(entry, 'render') and hasattr(entry, 'code')):
+            raise TypeError(f'A section is a card, a dict of CardSection fields or a CardSection; '
+                            f'got {entry!r}')
         return cls(card=entry)
 
     @property
@@ -585,11 +605,30 @@ class CardSection:
 
     @property
     def has_menu(self):
-        items = getattr(self.menu, 'menu_items', None)
-        return bool(self.menu) and (items is None or bool(items))
+        """Whether the menu will draw anything: its items counted as django-menus draws them."""
+        if not self.menu:
+            return False
+        if getattr(self.menu, 'menu_items', None) is None:
+            return True
+        return bool(visible_menu_items(self.menu))
+
+    @property
+    def has_actions(self):
+        return self.has_menu or bool(getattr(self.card, 'ajax_reload', False))
 
     def render_body(self):
-        return self.card.render({'show_header': False})
+        return self.card.render()
+
+
+def _sections_html(card):
+    """An add_sections() card's body: its stack, in the shared ``_section_stack_body.html``."""
+    return mark_safe(render_to_string('cards/standard/_section_stack_body.html',
+                                      {'sections': card.extra_card_info.get('sections', []),
+                                       'request': card.request}))
+
+
+#: `_sections_html` as a `SafeString` promise, rendered each time the card's template reads it.
+_lazy_sections_html = lazy(_sections_html, SafeString)
 
 
 def build_sections(entries):
@@ -1018,7 +1057,9 @@ class CardBase:
                  'tiles': {'name': 'cards/standard/tiles.html',
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list'}},
-                 'section_stack': {'name': 'cards/standard/section_stack.html',
+                 # add_sections(): the pack's own html card, its body the stack (`_sections_html`),
+                 # so the stack needs no card template of its own in either pack.
+                 'section_stack': {'name': 'cards/standard/html.html',
                                    'context': {'card_css_class': 'card django-card',
                                                'card_body_css_class': 'card-body p-0'}},
                  'banner_tiles': {'name': 'cards/standard/banner_tiles.html',
@@ -2607,19 +2648,26 @@ class CardBase:
             card = self.add_card('customer', title='Customer')
             card.add_sections([contact_card, site_card, tags_card])
 
-        A card added empty (``add_card(is_empty=True)``) starts folded. ``None`` entries are
-        skipped, and a dict of :class:`CardSection` fields (``{'card': c, 'folded': True}``) sets
-        a section's title, menu or folding by hand. The sections fold in the browser and do not
-        remember it across page loads.
+        A card added empty (``add_card(is_empty=True)``) or ``collapsed=True`` starts folded.
+        ``None`` entries are skipped, and a dict of :class:`CardSection` fields
+        (``{'card': c, 'folded': True}``) sets a section's title, menu or folding by hand. A card
+        that is not one, or a section with no title to name its toggle, raises here. Each card
+        becomes its section's: its own header and collapse are switched off, so it is not shown
+        elsewhere on the page too. The sections fold in the browser and do not remember it across
+        page loads; opening one re-measures the datatables in view and fires a bubbling
+        ``django-cards:section-toggle`` event on the section.
 
         Like add_banner_tiles, this sets the card's template (replacing any template_name given to
-        add_card()), and called more than once it adds to the stack. Chrome is in
-        ``cards/css/cards.css`` (``.django-card__section*``).
+        add_card()) -- the pack's html card, its body the stack -- and called more than once it
+        adds to the stack. Chrome is in ``cards/css/cards.css`` (``.django-card__section*``).
 
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
         self.extra_card_info.setdefault('sections', []).extend(build_sections(cards))
+        # Read by the html card template; rendered when it is read, so the sections' cards are
+        # drawn after cards_ready(), and with every add_sections() call's sections.
+        self.extra_card_info['html'] = _lazy_sections_html(self)
         self.template_name = 'section_stack'
         self.requires_card_css = True
         return self

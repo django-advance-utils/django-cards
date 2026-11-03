@@ -1142,11 +1142,19 @@ self.add_card('customer', title='Customer').add_sections([contact, site_card, ta
 ```
 
 - Each section's header is a toggle holding the card's title and a chevron, with the card's own
-  menu beside it (outside the button, which may not hold other controls). Its body is the card
-  rendered without its own header; the card itself is not changed, so it can be shown elsewhere too.
-- A card added empty (`is_empty=True`) starts folded. `None` entries are skipped, so a builder that
-  had nothing to add can hand one back.
-- A dict sets a section by hand: `{'card': card, 'title': 'Contact', 'menu': menu, 'folded': True}`.
+  menu (and reload button, if it reloads) beside it -- outside the button, which may not hold other
+  controls. Its body is the card's.
+- The card becomes its section's: its own header and collapse are switched off, which holds
+  through an ajax reload. Don't show it elsewhere on the page too -- its DOM ids would be there
+  twice. Its export and search controls live in the header, so they are not shown in a section.
+- A card added empty (`is_empty=True`) or `collapsed=True` starts folded. `None` entries are
+  skipped, so a builder that had nothing to add can hand one back. Anything else that is not a
+  card, or a section with no title, raises at `add_sections()`.
+- Opening a section re-measures the datatables in view (they were laid out hidden) and fires a
+  bubbling `django-cards:section-toggle` event, with `detail.folded`, for anything else that sizes
+  itself.
+- A dict sets a section by hand: `{'card': card, 'title': 'Contact', 'menu': [...], 'folded': True}`;
+  a menu given as a list is made a button group, as `add_card(menu=[...])` does.
 - The sections fold in the browser and do not remember it across page loads.
 - For a template of your own, include `cards/standard/_section_stack_body.html` with
   `sections=build_sections(cards)` (`from cards.standard import build_sections`).

@@ -105,6 +105,17 @@ class TestAddSections(SimpleTestCase):
         folded = {a['id'] for a in page.find('div') if 'django-card__section--folded' in (a.get('class') or '')}
         self.assertEqual(folded, {'contact_section'})
 
+    def test_the_stack_is_drawn_when_the_card_is_rendered(self):
+        """After cards_ready(): a row added to a section's card after add_sections() is drawn."""
+        view = _view()
+        contact, tags, site = _cards(view)
+        card = view.add_card('customer', title='Customer').add_sections([contact])
+        contact.add_entry(value='added late', label='Late')
+        card.add_sections([site])
+        html = card.render()
+        self.assertIn('added late', html)
+        self.assertIn('id="site_section"', html)
+
     def test_called_twice_it_adds_to_the_stack(self):
         view = _view()
         contact, tags, site = _cards(view)
@@ -112,13 +123,76 @@ class TestAddSections(SimpleTestCase):
         card.add_sections([contact]).add_sections([tags, site])
         self.assertEqual([s.card.code for s in card.extra_card_info['sections']], ['contact', 'tags', 'site'])
 
-    def test_the_section_card_is_not_changed(self):
-        """Its header is switched off for this render, not on the card, which may be shown elsewhere."""
+    def test_the_card_becomes_the_sections_and_an_ajax_reload_keeps_it_so(self):
+        """Its header is off on the card, so the reload's re-render (`_render_template`, which
+        `button_reload_card` answers with) draws it without one too."""
         view = _view()
         contact, _tags, _site = _cards(view)
-        view.add_card('customer', title='Customer').add_sections([contact]).render()
-        self.assertTrue(contact.show_header)
-        self.assertIn('card-header', contact.render())
+        view.add_card('customer', title='Customer').add_sections([contact])
+        self.assertFalse(contact.show_header)
+        self.assertNotIn('card-header', contact._render_template())
+
+    def test_a_collapsed_card_starts_folded_and_its_body_can_be_opened(self):
+        view = _view()
+        notes = view.add_card('notes', title='Notes', collapsed=True)
+        notes.add_entry(value='inside', label='Note')
+        html = view.add_card('customer', title='Customer').add_sections([notes]).render()
+        page = _Page(html)
+        self.assertEqual(len([a for a in page.find('div', id='notes_section')
+                              if 'django-card__section--folded' in a.get('class', '')]), 1)
+        # the card's own collapse is off: its body is not a .collapse the section cannot open
+        body = [a for a in page.find('div', id='notes_body')]
+        self.assertEqual(len(body), 1)
+        self.assertNotIn('collapse', body[0].get('class', '').split())
+
+    def test_a_reloading_cards_reload_button_moves_to_the_section_header(self):
+        for pack in PACKS:
+            with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                with self.subTest(pack=pack):
+                    view = _view()
+                    live = view.add_card('live', title='Live', ajax_reload=True)
+                    live.add_entry(value='1', label='Count')
+                    html = view.add_card('customer', title='Customer').add_sections([live]).render()
+                    header = html[html.index('id="live_section"'):html.index('id="live_section_body"')]
+                    self.assertIn("reload_card('live')", header)
+                    self.assertIn('id="live_ajax"', html)
+
+    def test_a_menu_whose_items_are_all_hidden_reserves_no_room(self):
+        class Forbidden(HtmlMenuItem):
+            def test_visible(self, request):
+                self.visible = False
+                return False
+
+        view = _view()
+        card = view.add_card('locked', title='Locked', menu=[Forbidden('<b>Edit</b>')])
+        card.add_entry(value='x', label='X')
+        html = view.add_card('customer', title='Customer').add_sections([card]).render()
+        self.assertNotIn('django-card__section-menu', html)
+        self.assertNotIn('--has-menu', html)
+
+    def test_a_menu_given_as_a_list_is_drawn(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        html = view.add_card('customer', title='Customer').add_sections(
+            [{'card': contact, 'menu': [HtmlMenuItem('<b class="listed">Edit</b>')]}]).render()
+        section = html[html.index('id="contact_section"'):html.index('id="contact_section_body"')]
+        self.assertIn('class="listed"', section)
+
+    def test_what_is_not_a_section_raises_at_add_sections(self):
+        view = _view()
+        customer = view.add_card('customer', title='Customer')
+        with self.assertRaises(TypeError):
+            customer.add_sections(['contact'])
+        with self.assertRaisesMessage(ValueError, 'needs its card'):
+            customer.add_sections([{'title': 'Contact'}])
+        with self.assertRaisesMessage(ValueError, 'has no title'):
+            customer.add_sections([view.add_card('untitled')])
+
+    def test_opening_a_section_re_lays_out_datatables_and_says_so(self):
+        _card, html = self.render()
+        self.assertIn('onclick="djangoCardsToggleSection(this)"', html)
+        self.assertIn('columns.adjust()', html)
+        self.assertIn("'django-cards:section-toggle'", html)
 
 
 class TestBuildSectionsInATemplateOfYourOwn(SimpleTestCase):
