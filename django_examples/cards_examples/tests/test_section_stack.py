@@ -714,3 +714,30 @@ class TestReviewTenFixes(SimpleTestCase):
 
         with self.assertRaises(TypeError):
             _view().add_card('customer', title='Customer').add_sections([Lookalike()])
+
+
+class TestReviewElevenFixes(SimpleTestCase):
+
+    def test_a_stacked_card_cannot_go_into_a_layouts_child_group(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'is in a section stack'):
+            view.add_layout_card('layout').add_child_card_group(contact)
+
+    def test_the_header_controls_sit_in_a_block_so_the_export_dropdown_is_valid(self):
+        def entries(view):
+            card = view.add_card('rows', title='Rows', exportable=True)
+            card.add_entry(value='x', label='X')
+            return [card]
+
+        _view_, _card, html = _stack(entries)
+        self.assertIn('<div class="django-card__section-menu">', html)
+        self.assertNotIn('<span class="django-card__section-menu">', html)
+
+    def test_a_body_class_the_caller_chose_is_kept(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        card = view.add_card('customer', title='Customer', extra_card_context={'card_body_css_class': 'card-body bg-light'})
+        card.add_sections([contact])
+        self.assertIn('card-body bg-light', card.render())

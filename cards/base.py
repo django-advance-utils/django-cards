@@ -2922,7 +2922,8 @@ class CardBase:
         if not callable(self.extra_card_info.get('html')):
             self.extra_card_info['html'] = _SectionsHtml(self).render
         self.template_name = 'html'
-        self.extra_card_context = {**(self.extra_card_context or {}), 'card_body_css_class': 'card-body p-0'}
+        # The sections run edge to edge; a body class the caller chose is kept.
+        self.extra_card_context = {'card_body_css_class': 'card-body p-0', **(self.extra_card_context or {})}
         self.requires_card_css = True
         return self
 
@@ -3042,6 +3043,10 @@ class CardBase:
         """
         if self.group_type not in [CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT]:
             raise Exception('This will only work for card group')
+        for card in args:
+            if find_section(self.view, card) is not None:
+                raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
+                                 f'a card in two places has its DOM ids there twice')
         self.child_card_groups.append({'div_css_class': div_css_class,
                                        'div_inner_css_class': div_inner_css_class,
                                        'div_inner_css': div_inner_css,
