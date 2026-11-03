@@ -4,7 +4,6 @@ import copy
 import json
 
 from ajax_helpers.utils import is_ajax
-from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
@@ -1154,6 +1153,11 @@ class CardMixin:
         it builds the card, so the row comes back with the columns and filters the page drew it
         with. The hook is not run a second time: it adds columns, and would add them twice.
 
+        The rows are read from the same query the page's table is: the view's
+        ``get_<table_id>_query`` where it has one, as a ``datatable_data`` load uses, otherwise the
+        table's own. That query is narrowed to the one row, so the table's filters still apply and
+        a row they leave out is not served because it was asked for.
+
         Answers ``null`` rather than raising when there is nothing to repaint: no ``row_no``,
         a table this view does not build, a table with no id column, or a row that is no longer
         in the table (deleted, or filtered out since). The row then waits for the next reload.
@@ -1169,7 +1173,8 @@ class CardMixin:
             JsonResponse: A ``refresh_row`` command for the row, or a ``null`` command.
         """
         row_no = kwargs.get('row_no')
-        if not isinstance(row_no, str) or not row_no[1:].isdigit():
+        # isdecimal() alone also passes other scripts' digits, which int() does not always take.
+        if not isinstance(row_no, str) or not (row_no[1:].isascii() and row_no[1:].isdecimal()):
             return self.command_response('null')
         self.setup_datatable_cards()
         table_id = kwargs.get('table_id') or next(iter(self.tables), None)
@@ -1179,12 +1184,17 @@ class CardMixin:
         id_column = table.setup_column_id()
         if id_column is None:
             return self.command_response('null')
-        # Narrowed here rather than through the table's own `refresh_row_command`, which writes
-        # the id into `filter` as a dict key and so raises on a table whose filter is a Q. ANDed
-        # on, never merged: a table already filtering on the same lookup keeps its own filter.
-        current = table.filter if isinstance(table.filter, Q) else Q(**table.filter)
-        table.filter = current & Q(**{id_column.field: int(row_no[1:])})
-        rows = table.get_table_array(self.request, table.get_query())
+        # Narrowed on the queryset rather than through the table's own `refresh_row_command`,
+        # which writes the id into `table.filter` as a dict key -- raising on a table whose
+        # filter is a Q -- and skips a view's `get_<table_id>_query`.
+        view_kwargs = getattr(self, 'kwargs', None) or {}
+        field_query = f'get_{table_id}_query'
+        if hasattr(self, field_query):
+            query = getattr(self, field_query)(table, **view_kwargs)
+        else:
+            query = table.get_query(**view_kwargs)
+        query = query.filter(**{id_column.field: int(row_no[1:])})
+        rows = table.get_table_array(self.request, query)
         if not rows:
             return self.command_response('null')
         command = {'function': 'refresh_row', 'row_no': row_no, 'data': rows[0], 'table_id': table.table_id}

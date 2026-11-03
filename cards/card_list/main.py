@@ -225,7 +225,8 @@ class CardListMixin(CardListBaseMixin):
            entry_object (object): The model instance representing a list entry.
 
         Returns:
-           str or None: A colour name (e.g., 'green', 'red') or None for no colour.
+           str or None: A hex colour ('90EE90' or '#90EE90') or None for no colour. Anything
+           that is not a hex colour draws no swatch (`list_colour_digits`).
         """
         return None
 

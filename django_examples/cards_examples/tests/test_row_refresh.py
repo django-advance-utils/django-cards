@@ -94,6 +94,17 @@ class TestRowRefresh(TestCase):
         self.assertEqual(_refresh(OnlyBrass, table_id='companies', row_no=f'i{self.copper.pk}'),
                          [{'function': 'null'}])
 
+    def test_the_views_own_query_is_the_one_read(self):
+        """A `get_<table_id>_query` is what the page's table was drawn from; a refresh reads it too."""
+        class OwnQuery(_TableView):
+            def get_companies_query(self, table, **kwargs):
+                return table.get_query(**kwargs).exclude(name='Brass')
+
+        self.assertEqual(_refresh(OwnQuery, table_id='companies', row_no=f'i{self.brass.pk}'),
+                         [{'function': 'null'}])
+        command, = _refresh(OwnQuery, table_id='companies', row_no=f'i{self.copper.pk}')
+        self.assertEqual(command['data'], [self.copper.pk, 'Copper'])
+
     def test_nothing_to_repaint_answers_null(self):
         gone = Company.objects.create(name='Gone')
         gone_pk = gone.pk
@@ -101,6 +112,8 @@ class TestRowRefresh(TestCase):
         cases = {
             'no row_no': {'table_id': 'companies'},
             'a row_no that is not one': {'table_id': 'companies', 'row_no': 'i'},
+            'a row_no in digits int() will not take': {'table_id': 'companies', 'row_no': 'i\u00b2'},
+            'a row_no in another script\'s digits': {'table_id': 'companies', 'row_no': 'i\u0661'},
             'an unknown table': {'table_id': 'nope', 'row_no': f'i{self.brass.pk}'},
             'a deleted row': {'table_id': 'companies', 'row_no': f'i{gone_pk}'},
         }
