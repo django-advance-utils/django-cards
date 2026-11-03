@@ -42,3 +42,21 @@ def connect_signals():
     """Called from the app's ready(); safe to call more than once."""
     request_started.connect(_open_scope, dispatch_uid='cards_render_scope_open')
     request_finished.connect(_close_scope, dispatch_uid='cards_render_scope_close')
+
+
+def emit_once(mark, request, render):
+    """``render()`` the first time ``mark`` is asked for in this request cycle, '' after that.
+
+    The request cycle is the render scope, falling back to ``request`` where there is none. With
+    neither, there is nothing to mark, so it renders every time: a second copy of a script or
+    stylesheet costs less than a page with none. The mark is set only once ``render()`` has
+    returned, so a template that raises does so on every call instead of raising once and
+    quietly starving the rest of the page.
+    """
+    holder = get_render_scope() or request
+    if holder is not None and getattr(holder, mark, False):
+        return ''
+    html = render()
+    if holder is not None:
+        setattr(holder, mark, True)
+    return html

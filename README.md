@@ -1127,6 +1127,54 @@ optional ones, both shapes above, and the empty state.
 
 ---
 
+## Sections
+
+`card.add_sections(cards)` makes a card's body a stack of folding sections, one per card -- for a
+record's sidebar (contact, site, tags, priority) where each part is a card of its own but a page of
+full cards is too much:
+
+```python
+contact = self.add_card('contact', title='Contact', menu=[MenuItem('contact_edit', menu_display='Edit')])
+contact.add_rows('name', 'phone')
+tags = self.add_card('tags', title='Tags', is_empty=True, empty_message='No tags yet')
+
+self.add_card('customer', title='Customer').add_sections([contact, site_card, tags])
+```
+
+- Each section's header is a toggle holding the card's title (and `header_icon`), the card's own
+  header controls -- its menu, search box, export and reload buttons -- beside it (outside the
+  button, which may not hold other controls), then the chevron. Search and export are offered only
+  where the card's own template has them (the default and table templates); a card whose template
+  carries them some other way sets `section_header_controls = True`.
+- Its body is the card drawn without its own header, for that render only: the card is not
+  changed. Build the cards in `setup_cards()` each build, as cards are, and stack each once -- a card
+  is drawn in its section and nowhere else on the page.
+- A card added empty (`is_empty=True`) starts folded. `None` entries are skipped, so a builder that
+  had nothing to add can hand one back. A dict sets a section by hand:
+  `{'card': card, 'title': 'Contact', 'menu': [...], 'folded': True}`.
+- `add_sections()` raises `TypeError` for an entry that is not a card, and `ValueError`, before
+  anything is changed, for a dict without its card or with a key it does not take, a card
+  already in a stack on the view (named or not), one built `collapsed=` (the section is its fold),
+  a stack that would hold itself, two cards sharing a code, section ids another card or table on the
+  view has (checked again when the stack renders), and a card that already has a body of its own
+  (rows, tiles, a datatable, a `template_name`). Rows or tiles added after it raise too. A section
+  with no title raises when it is drawn, so a title set in `cards_ready()` counts.
+- The sections fold in the browser. Opening one re-measures its own datatables (laid out while
+  hidden) and fires a bubbling `django-cards:section-toggle` event, with `detail.folded`. A fold the
+  reader makes is remembered for the page, so an ajax redraw puts it back; where the reader made
+  none, a redrawn section takes the server's (a card just emptied folds). Not kept across page loads.
+- An ajax reload of a section's card redraws its section's header and its body.
+- For a template of your own, build the sections with `build_sections(cards)`
+  (`from cards.standard import build_sections`) in `setup_cards()`, keep them on the view, and
+  include `cards/standard/_section_stack_body.html` with `sections=` them. The card stylesheet and
+  the toggle's script come with the stack, each once per request.
+- `card_group`, `list_selection`, `tree_selection` and `image_gallery` cards now honour
+  `show_header=False` as the other card templates do; before, they drew their header regardless.
+
+Chrome is in `cards/css/cards.css` (`.django-card__section*`); retint the titles with
+`--django-card-section-title-color`, or with a text class in the card's `header_css_class`. The
+example app's Groups page has one.
+
 ## Banner Tiles
 
 `add_banner_tiles()` makes a card a master card whose body is a set of larger cards: courses,

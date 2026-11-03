@@ -1072,3 +1072,95 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     border-bottom-color: currentColor;
     background: none;
 }
+
+/* card.add_sections(cards): a card whose body is a stack of folding sections, one per card.
+ * Each header is a row: the toggle naming the section (its title truncates rather than run under
+ * what follows), the card's own header controls, then the chevron -- a second way to the same
+ * toggle. The controls sit outside the toggle, as a button may not hold links or buttons.
+ * Retint with --django-card-section-title-color. */
+.django-card__section + .django-card__section {
+    border-top: 1px solid var(--django-card-border-color, #dee2e6);
+}
+
+/* The colour is the bar's, and the toggle and chevron inherit it, so a card's header_css_class
+ * on the bar (text-white over bg-dark, say) colours the title too. */
+.django-card__section-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--django-card-section-title-color, #6c757d);
+}
+
+.django-card__section-toggle,
+.django-card__section-chevron-button {
+    margin: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.django-card__section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.5rem 0 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.django-card__section-toggle:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+}
+
+.django-card__section-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.django-card__section-menu {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    min-width: 0;
+}
+
+.django-card__section-menu .btn {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.django-card__section-chevron-button {
+    flex: 0 0 auto;
+    padding: 0.5rem 0.75rem 0.5rem 0.25rem;
+    font-size: 0.75rem;
+}
+
+.django-card__section-chevron {
+    transition: transform 0.15s ease;
+}
+
+.django-card__section--folded .django-card__section-chevron {
+    transform: rotate(-90deg);
+}
+
+.django-card__section--folded .django-card__section-body {
+    display: none;
+}
+
+/* A section's card is the section's body, not a card of its own: no box around it. */
+.django-card__section-body > .card,
+.django-card__section-body > div > .card {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}

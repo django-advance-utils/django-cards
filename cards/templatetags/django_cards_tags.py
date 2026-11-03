@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 
 from cards.packs import pack_classes, pack_template, resolve_template, template_pack
 from cards.panel_layout import slot_marker
-from cards.render_scope import get_render_scope
+from cards.render_scope import emit_once, get_render_scope
 
 register = template.Library()
 
@@ -104,13 +104,7 @@ def treegrid_shared_assets(context):
     consumes the page's emission, and the grids that do reach the browser then queue their
     configs and report the missing shared half on the console.
     """
-    holder = get_render_scope() or context.get('request')
-    if holder is not None and getattr(holder, TREEGRID_SHARED_ASSETS_MARK, False):
-        return ''
-    html = _shared_assets_html()
-    if holder is not None:
-        setattr(holder, TREEGRID_SHARED_ASSETS_MARK, True)
-    return mark_safe(html)
+    return mark_safe(emit_once(TREEGRID_SHARED_ASSETS_MARK, context.get('request'), _shared_assets_html))
 
 
 @register.simple_tag
@@ -154,3 +148,30 @@ def panel_layout_around(parser, token):
     nodelist = parser.parse(('endpanel_layout_around',))
     parser.delete_first_token()
     return PanelLayoutAroundNode(parser.compile_filter(bits[1]), nodelist)
+
+
+@register.simple_tag(takes_context=True)
+def card_css(context):
+    """The card stylesheet, once per request: for a template of an application's own that draws
+    card markup -- an add_sections() stack, say -- without a card of its own to bring it."""
+    from cards.base import card_css_once
+    return mark_safe(card_css_once(context.get('request')))
+
+
+@register.simple_tag(takes_context=True)
+def section_stack_script(context):
+    """The add_sections() toggle script, once per request -- whether the stack came from
+    add_sections() or a template of an application's own including the stack body."""
+    from cards.base import SECTION_SCRIPT_MARK
+    return mark_safe(emit_once(SECTION_SCRIPT_MARK, context.get('request'),
+                               lambda: render_to_string('cards/standard/_section_stack_script.html')))
+
+
+@register.simple_tag(takes_context=True)
+def section_stack_id(context, sections):
+    """The DOM id of a section stack: its card's (``<code>-sections``, as ``django_cards_stack_id``)
+    or, for one in a template of an application's own, one named for its first section -- checked,
+    with the rest, when built. Read from the context itself under a name of cards' own, so neither
+    a project's ``string_if_invalid`` nor a page's own ``stack_id`` becomes it."""
+    from cards.base import own_stack_id
+    return context.get('django_cards_stack_id') or own_stack_id(sections)

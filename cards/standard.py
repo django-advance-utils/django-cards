@@ -9,7 +9,8 @@ from django.template.loader import render_to_string
 
 from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
 # Re-exported so a view building tiles imports Tile from the same place as CardMixin.
-from cards.base import Tile, BannerTile  # noqa: F401
+from cards.base import Tile, BannerTile, CardSection, build_sections  # noqa: F401
+from cards.base import check_section_ids, find_section, reset_section_stacks
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
@@ -173,10 +174,13 @@ class CardMixin:
         cards = []
         for card in args:
             if isinstance(card, str):
-                if error_if_not_found or card in self.cards:
-                    cards.append(self.cards[card])
-            else:
-                cards.append(card)
+                if not (error_if_not_found or card in self.cards):
+                    continue
+                card = self.cards[card]
+            if find_section(self, card) is not None:
+                raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
+                                 f'a card in two places has its DOM ids there twice')
+            cards.append(card)
 
         if group_code not in self.card_groups:
             self.card_groups[group_code] = []
@@ -511,6 +515,8 @@ class CardMixin:
         to render them runs the hook. Call this, rather than the three steps, from any handler
         that builds the cards itself; `rebuild_cards()` first throws away the ones built so far.
         """
+        # The section stacks are this build's: a second build starts them again.
+        reset_section_stacks(self)
         self.setup_datatable_cards()
         self.setup_cards()
         self.cards_ready()
@@ -1233,6 +1239,19 @@ class CardMixin:
         self.rebuild_cards()
         card = self.cards.get(card_code)
         if card is not None:
+            section = find_section(self, card)
+            if section is not None:
+                # A card in an add_sections() stack of this build: its header is the section's,
+                # outside the card, so it is redrawn too -- the title, menu and actions may have
+                # changed -- and the card is drawn as its section draws it, without a header.
+                check_section_ids(card, [section])
+                # The header first, then the body, which carries the fold script: the body's own
+                # scripts (a search box's) bind to the new header's controls, and a section the
+                # script opens re-measures the new body. The body is the section's -- the card
+                # in its #<code>_ajax wrapper where it reloads -- so one selector serves both.
+                self.add_command('html', selector=f'#{section.id}-header', html=section.render_header())
+                return self.command_response('html', selector=f'#{section.id}-body',
+                                             html=section.render_body(redraw=True))
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 

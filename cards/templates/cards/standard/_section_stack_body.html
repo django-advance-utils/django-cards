@@ -1,0 +1,17 @@
+{% load django_cards_tags %}{# The folding sections of an add_sections() card, shared by both packs (none of it is #}
+{# Bootstrap-version-specific). `sections` is a list of cards.base.CardSection; include this  #}
+{# with sections=build_sections(cards) to put a stack inside a template of your own -- the    #}
+{# card stylesheet and the toggle's script come with it, each once per request.              #}
+{% if sections %}{% card_css %}{% section_stack_script %}
+{% section_stack_id sections as stack_dom_id %}
+<div class="django-card__sections" id="{{ stack_dom_id }}">
+    {% for section in sections %}
+    <div class="django-card__section{% if section.folded %} django-card__section--folded{% endif %}" id="{{ section.id }}">
+        <div class="django-card__section-header" id="{{ section.id }}-header">{{ section.render_header }}</div>
+        <div class="django-card__section-body" id="{{ section.id }}-body">{{ section.render_body }}</div>
+    </div>
+    {% endfor %}
+</div>
+{# Guarded: the script comes with the first stack rendered, which may sit later on the page. A #}
+{# fresh stack's markup already carries its folds; this only matters after a redraw.          #}
+<script>window.djangoCardsApplySectionFolds && djangoCardsApplySectionFolds(document.getElementById('{{ stack_dom_id|escapejs }}'));</script>{% endif %}

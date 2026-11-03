@@ -68,6 +68,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
     def setup_cards(self):
         self.add_welcome_card()
         self.add_sub_tabs_card()
+        self.add_sections_card()
         self.add_split_card()
         self.add_table_multiple_columns()
         self.add_other_card()
@@ -84,7 +85,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_menu_items_card()
         self.add_warning_message_card()
 
-        self.add_card_group('welcome', 'sub_tabs', 'split', 'table_multiple_columns',
+        self.add_card_group('welcome', 'sub_tabs', 'sections', 'split', 'table_multiple_columns',
                             'other', 'person', 'multi_fields_example', collapsed_card,
                             div_css_class=col('col-6', self.request), )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
@@ -113,6 +114,18 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                         ('cards_examples:tiles', 'Tiles')]
         card = self.add_card('sub_tabs', title='Sub tabs', tab_menu=tab_menu, sub_tab_menu=sub_tab_menu)
         card.add_entry(value='A second, quieter row of tabs under the first', label='sub_tab_menu')
+
+    def add_sections_card(self):
+        # A record's sidebar: each part a card of its own, drawn as a folding section.
+        contact = self.add_card('section_contact', title='Contact',
+                                menu=[MenuItem('cards_examples:hello_modal', menu_display='Edit',
+                                               css_classes='btn btn-sm btn-primary')])
+        contact.add_rows({'label': 'Company', 'value': 'Brass & Co'},
+                         {'label': 'Phone', 'value': '01263 666777'})
+        site = self.add_card('section_site', title='Site details')
+        site.add_rows({'label': 'Town', 'value': 'Cromer'}, {'label': 'Postcode', 'value': 'NR27 9AA'})
+        tags = self.add_card('section_tags', title='Tags', is_empty=True, empty_message='No tags yet')
+        self.add_card('sections', title='Customer').add_sections([contact, site, tags])
 
     def add_split_card(self):
         card = self.add_card('split', title='Split Column', collapsed=False)

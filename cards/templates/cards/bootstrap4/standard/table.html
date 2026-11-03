@@ -5,9 +5,7 @@
             <div class="d-flex align-items-center">
                 <h5 class="mr-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
                 {{ card.menu.render }}
-                {% pack_path 'cards/standard/_search_input.html' as pack_include %}{% include pack_include %}
-                {% pack_path 'cards/standard/_export_button.html' as pack_include %}{% include pack_include %}
-                {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
+                {% include 'cards/standard/_header_controls.html' %}
                 {% if card.enable_collapse %}
                     <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}"
                          data-target="#{{ card.code }}_body" data-toggle="collapse">

@@ -1,0 +1,19 @@
+{% load django_cards_tags %}{# One add_sections() section's header: the inside of its -header element, which an ajax #}
+{# reload of the card redraws (CardMixin.button_reload_card). A row: the toggle naming the  #}
+{# section (its title truncates rather than run under what follows), the card's own header  #}
+{# controls -- outside the toggle, as a button may not hold links or buttons -- and the     #}
+{# chevron, a second, unfocusable way to the same toggle.                                   #}
+<div class="django-card__section-bar{% if card.header_css_class %} {{ card.header_css_class }}{% endif %}">
+    <button type="button" class="django-card__section-toggle" id="{{ section.id }}-toggle"
+            aria-expanded="{% if section.folded %}false{% else %}true{% endif %}"
+            aria-controls="{{ section.id }}-body"
+            onclick="djangoCardsToggleSection(this)">
+        {% if card.header_icon %}<i class="{{ card.header_icon }}" aria-hidden="true"></i>{% endif %}
+        <span class="django-card__section-title">{{ section.title }}</span>
+    </button>
+    {% if has_actions %}<div class="django-card__section-menu">{{ menu_html }}{% if full_controls %}{% include 'cards/standard/_header_controls.html' %}{% else %}{% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}{% endif %}</div>{% endif %}
+    <button type="button" class="django-card__section-chevron-button" tabindex="-1" aria-hidden="true"
+            onclick="djangoCardsToggleSection(document.getElementById('{{ section.id|escapejs }}-toggle'))">
+        <i class="fas fa-chevron-down django-card__section-chevron"></i>
+    </button>
+</div>

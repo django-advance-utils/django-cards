@@ -1,0 +1,46 @@
+<script>
+    // add_sections() folding. A section the reader folds or opens is remembered for the page, so a
+    // redraw over ajax -- of the stack card, or of one section's card -- puts the reader's fold
+    // back rather than the server's. Opening a section re-measures its own datatables, laid out
+    // while it was hidden, and fires a bubbling django-cards:section-toggle event for anything else
+    // in it that sizes itself (a treegrid, a chart).
+    window.djangoCardsSectionFolds = window.djangoCardsSectionFolds || {};
+    // What a change of fold does after it is made, however it was made -- a click, or a fold put
+    // back after a redraw: an opened section's datatables are measured again, and it says so.
+    window.djangoCardsSectionFolded = window.djangoCardsSectionFolded || function (section, folded) {
+        var $ = window.jQuery;
+        if (!folded && $ && $.fn.dataTable) {
+            $(section).find('table.dataTable').filter(function () {
+                // a table still inside a folded section further in is hidden: measured when that opens
+                return !$(this).parentsUntil(section, '.django-card__section--folded').length;
+            }).each(function () { $(this).DataTable().columns.adjust(); });
+        }
+        section.dispatchEvent(new CustomEvent('django-cards:section-toggle', {bubbles: true, detail: {folded: folded}}));
+    };
+    window.djangoCardsToggleSection = window.djangoCardsToggleSection || function (button) {
+        var section = button.closest('.django-card__section');
+        var folded = section.classList.toggle('django-card__section--folded');
+        window.djangoCardsSectionFolds[section.id] = folded;
+        button.setAttribute('aria-expanded', folded ? 'false' : 'true');
+        window.djangoCardsSectionFolded(section, folded);
+    };
+    // `serverFolded` is a redrawn section header's: the fold the server now gives the section (its
+    // card has just been emptied, say), taken where the reader has not chosen one. Without it --
+    // a fresh stack -- the markup's own fold stands.
+    window.djangoCardsApplySectionFolds = window.djangoCardsApplySectionFolds || function (root, serverFolded) {
+        if (!root) { return; }
+        var sections = root.classList && root.classList.contains('django-card__section')
+            ? [root] : root.querySelectorAll('.django-card__section');
+        Array.prototype.forEach.call(sections, function (section) {
+            var folded = window.djangoCardsSectionFolds[section.id];
+            if (folded === undefined) {
+                folded = serverFolded !== undefined ? serverFolded : section.classList.contains('django-card__section--folded');
+            }
+            var was = section.classList.contains('django-card__section--folded');
+            section.classList.toggle('django-card__section--folded', folded);
+            var toggle = section.querySelector('.django-card__section-toggle');
+            if (toggle) { toggle.setAttribute('aria-expanded', folded ? 'false' : 'true'); }
+            if (was !== folded) { window.djangoCardsSectionFolded(section, folded); }
+        });
+    };
+</script>

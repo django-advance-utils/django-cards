@@ -118,6 +118,16 @@ FLAT_TEMPLATES = {
                                         'both packs; its classes are the tiles\' own, and '
                                         '`btn` is the same in both versions',
     'standard/_banner_tiles_slider_script.html': 'script',
+    'standard/_section_stack_body.html': 'the folding sections inside an add_sections() card, '
+                                         'shared by both packs; its classes are the sections\' '
+                                         'own, with no Bootstrap name in it',
+    'standard/_section_header.html': 'one section\'s header, shared by both packs; its classes are '
+                                     'the sections\' own, and its controls come from the pack\'s '
+                                     'own partials',
+    'standard/_section_stack_script.html': 'script',
+    'standard/_section_redraw_script.html': 'script',
+    'standard/_header_controls.html': 'a card header\'s search, export and reload controls, shared by '
+                                      'both packs; it only includes the pack\'s own partials',
     'standard/_search_script.html': 'script',
     'standard/_treegrid_css.html': 'stylesheet',
     'standard/_treegrid_init.html': 'a card\'s treegrid config, which carries the pack\'s '
