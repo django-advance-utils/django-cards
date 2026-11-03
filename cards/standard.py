@@ -4,6 +4,7 @@ import copy
 import json
 
 from ajax_helpers.utils import is_ajax
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
@@ -1142,6 +1143,54 @@ class CardMixin:
             getattr(self, field_setup_table_field)(table=table, details_object=self.cards[table_id].details_object)
         table.columns[kwargs['changed'][0]].alter_object(row_object, row_data[kwargs['changed'][0]])
         return table.refresh_row(self.request, kwargs['row_no'])
+
+    def row_refresh(self, **kwargs):
+        """
+        Re-renders a single datatable row: the ``{row: 'refresh'}`` command.
+
+        ajax_helpers' ``refresh_row`` posts it when called without ``data``, so a page can ask
+        for one row to be repainted -- after something else changed it -- without a reload.
+        The table comes from ``setup_datatable_cards``, which runs its ``setup_table_<id>`` hook as
+        it builds the card, so the row comes back with the columns and filters the page drew it
+        with. The hook is not run a second time: it adds columns, and would add them twice.
+
+        Answers ``null`` rather than raising when there is nothing to repaint: no ``row_no``,
+        a table this view does not build, a table with no id column, or a row that is no longer
+        in the table (deleted, or filtered out since). The row then waits for the next reload.
+
+        A ``seq`` the page sent comes back on the command, so a page with two refreshes of one
+        row in flight can tell which reply is the newer.
+
+        Args:
+            **kwargs: ``row_no`` (the row's id as the table writes it, e.g. ``'i12'``), and
+                optionally ``table_id`` (defaults to the view's first table) and ``seq``.
+
+        Returns:
+            JsonResponse: A ``refresh_row`` command for the row, or a ``null`` command.
+        """
+        row_no = kwargs.get('row_no')
+        if not isinstance(row_no, str) or not row_no[1:].isdigit():
+            return self.command_response('null')
+        self.setup_datatable_cards()
+        table_id = kwargs.get('table_id') or next(iter(self.tables), None)
+        table = self.tables.get(table_id)
+        if table is None:
+            return self.command_response('null')
+        id_column = table.setup_column_id()
+        if id_column is None:
+            return self.command_response('null')
+        # Narrowed here rather than through the table's own `refresh_row_command`, which writes
+        # the id into `filter` as a dict key and so raises on a table whose filter is a Q. ANDed
+        # on, never merged: a table already filtering on the same lookup keeps its own filter.
+        current = table.filter if isinstance(table.filter, Q) else Q(**table.filter)
+        table.filter = current & Q(**{id_column.field: int(row_no[1:])})
+        rows = table.get_table_array(self.request, table.get_query())
+        if not rows:
+            return self.command_response('null')
+        command = {'function': 'refresh_row', 'row_no': row_no, 'data': rows[0], 'table_id': table.table_id}
+        if kwargs.get('seq') is not None:
+            command['seq'] = kwargs['seq']
+        return JsonResponse([command], safe=False)
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()
