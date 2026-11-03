@@ -1209,21 +1209,54 @@ class CardMixin:
             return self.command_response('null')
         # Narrowed on the queryset rather than through the table's own `refresh_row_command`,
         # which writes the id into `table.filter` as a dict key -- raising on a table whose
-        # filter is a Q -- and skips a view's `get_<table_id>_query`.
+        # filter is a Q -- and skips a view's `get_<table_id>_query`. `max_records` is off while
+        # it reads: `get_query` slices to it, and a sliced query cannot be narrowed.
         view_kwargs = getattr(self, 'kwargs', None) or {}
         field_query = f'get_{table_id}_query'
-        if hasattr(self, field_query):
-            query = getattr(self, field_query)(table, **view_kwargs)
-        else:
-            query = table.get_query(**view_kwargs)
-        query = query.filter(**{id_column.field: int(row_no[1:])})
-        rows = table.get_table_array(self.request, query)
+        max_records, table.max_records = table.max_records, None
+        try:
+            if hasattr(self, field_query):
+                query = getattr(self, field_query)(table, **view_kwargs)
+            else:
+                query = table.get_query(**view_kwargs)
+            rows = table.get_table_array(self.request, query.filter(**{id_column.field: int(row_no[1:])}))
+        finally:
+            table.max_records = max_records
         if not rows:
             return self.command_response('null')
         command = {'function': 'refresh_row', 'row_no': row_no, 'data': rows[0], 'table_id': table.table_id}
         if kwargs.get('seq') is not None:
             command['seq'] = kwargs['seq']
         return JsonResponse([command], safe=False)
+
+    def row_refresh_many(self, **kwargs):
+        """
+        Re-renders many datatable rows in one request: the ``{row: 'refresh_many'}`` command.
+
+        django-advanced-datatables' ``refresh_rows`` command (1.0.12 and later) posts it when
+        called without ``rows``. ``DatatableView`` answers it there, but a cards view builds its
+        tables in ``setup_datatable_cards``, so this builds them the cards way and hands the
+        reading to the table's own ``refresh_rows``.
+
+        Unlike ``row_refresh``, a view's ``get_<table_id>_query`` is not read: the rows come
+        from the table's own query and filters.
+
+        Args:
+            **kwargs: ``row_nos`` (a list of row ids as the table writes them, e.g. ``'i12'``),
+                and optionally ``table_id`` (defaults to the view's first table).
+
+        Returns:
+            JsonResponse: A ``refresh_rows`` command, or a ``null`` command when ``row_nos`` is
+            not a list or the table is not one this view builds.
+        """
+        row_nos = kwargs.get('row_nos')
+        if not isinstance(row_nos, (list, tuple)):
+            return self.command_response('null')
+        self.setup_datatable_cards()
+        table = self.tables.get(kwargs.get('table_id') or next(iter(self.tables), None))
+        if table is None:
+            return self.command_response('null')
+        return table.refresh_rows(self.request, row_nos)
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()
