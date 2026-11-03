@@ -1127,6 +1127,173 @@ optional ones, both shapes above, and the empty state.
 
 ---
 
+## Course Tiles
+
+`add_course_tiles()` makes a card a master card whose body is a set of larger cards: courses,
+learning paths, promotions. The master card keeps its own header, menu and footer; each
+`CourseTile` is a card of its own inside it, laid out as a grid or, with `slider=True`, as a
+swipeable row.
+
+```python
+from cards.standard import CardMixin, CourseTile
+
+card = self.add_card('training', title='Your training')
+card.add_course_tiles(
+    [
+        CourseTile(
+            key=f'course_{course.pk}',            # stable id -> the tile's DOM id
+            title=course.name,                    # escaped
+            description=course.summary,           # cut to two lines; full text in the title attribute
+            banner_label=course.category.name,
+            banner_icon='fas fa-folder-open',
+            step=f'Step {n} of {len(courses)}',
+            badge='Required for your role' if course.required else None,
+            stats=[('far fa-play-circle', f'{course.lessons} lessons'),
+                   ('far fa-question-circle', f'{course.quizzes} quizzes')],
+            progress=course.progress_for(user),   # 0-100; None for no bar
+            status='Not started',
+            footer_label=course.category.name,
+            footer_icon='fas fa-folder-open',
+            action_label='Start',
+            action_url=course.get_absolute_url(),
+        )
+        for n, course in enumerate(courses, 1)
+    ],
+    empty_message='No courses assigned yet.',
+)
+```
+
+`add_course_tiles()` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `tiles` | list | required | `CourseTile` objects, or dicts of the same fields |
+| `empty_message` | str | `None` | Shown in place of the tiles when there are none. Nothing is drawn without one |
+| `width` | str | `260px` | The width of one grid tile, as a CSS length |
+| `slider` | bool | `False` | Lay the tiles out as a slider rather than a grid |
+
+As with `add_tiles()`, it sets the card's template, adds to the tiles when called more than once,
+and returns the card so the call can be chained onto `add_card()`. For a single tile with no box
+around it, give `add_card()` `border='none'`.
+
+### Layouts
+
+`CourseTile(layout=...)` picks one of six shapes. Every field but `key` is optional, and a tile
+draws only the parts it was given.
+
+| Layout | Use | Fields it draws |
+| --- | --- | --- |
+| `'compact'` (default) | A course in a grid | `banner_*`, `image_url`, `step`, `title`, `description`, `badge`, `stats` in a row, `progress`, `status`, `footer_*`, action in the footer |
+| `'detail'` | One course in a sidebar | `banner_url` (a play button over the banner) with `banner_caption`, `callout_*`, `stats` one per line, a full-width action, `secondary_*`, `note` |
+| `'highlight'` | A learning path at the head of a grid | A filled tile: `banner_icon`/`banner_label` as a small line, `title`, `description`, then `status`, `progress` and a white action pinned to the bottom |
+| `'feature'` | A wide promotional slide | `title`, `description` and action over a `banner_background` tint; shapes and `banner_icon` in a white tile on the right. No icon draws one grey shape |
+| `'plain'` | Text introducing the tiles after it | `title` (or `title_html`) large, `description`, an optional action as a link. No box |
+| `'showcase'` | A wide dark panel | `title`, `description`, `points` in two columns, a white action; on the right a tall `banner_icon` panel, a `flow` diagram and a `panel_icon` panel |
+
+`feature` and `showcase` take the whole row in a grid. `highlight` and `plain` take one cell and
+stretch to the row's height, so they line up with the tiles beside them.
+
+```python
+# One course as the sidebar on its own page.
+CourseTile(key='course_12', layout='detail',
+           banner_icon='fas fa-folder-open', banner_url=course.preview_url,
+           banner_caption='Preview this course',
+           callout_icon='fas fa-route', callout_title='On your Estimator path',
+           callout_text='Step 1 of 2, required for your role.',
+           callout_link_label='See your path', callout_link_url=path_url,
+           stats=[('far fa-play-circle', '13 lessons in 2 sections'),
+                  ('fas fa-award', 'Certificate of completion')],
+           action_label='Start this course', action_url=course.start_url,
+           secondary_label='Save for later', secondary_icon='far fa-bookmark',
+           secondary_url=save_url, note='Your progress is saved as you go.')
+
+# A dark panel with a list of points and a small diagram.
+CourseTile(key='system_map', layout='showcase',
+           title='See how it all fits together',
+           description='One map of the whole system, drawn from how it really works.',
+           points=[('fas fa-cubes', 'Every area of the system'),
+                   ('fas fa-cog', 'The settings behind each one', '#fbe3a1')],
+           banner_icon='fas fa-project-diagram',
+           flow=['CRM', 'Projects', 'Gantt'],
+           panel_icon='fas fa-cog',
+           action_label='Open the map', action_url=map_url)
+```
+
+`CourseTile` fields:
+
+| Field | Purpose |
+| --- | --- |
+| `key` | Stable identifier; becomes the tile's DOM id, so it must be unique on the page |
+| `layout` | `'compact'`, `'detail'`, `'highlight'`, `'feature'`, `'plain'` or `'showcase'` |
+| `title` | The tile's heading. **Escaped** |
+| `title_html` | The heading as markup, for one with a word in italics. **Rendered as-is** -- see below |
+| `description` | A short paragraph under the title. **Escaped** |
+| `banner_label`, `banner_icon` | The banner's caption and icon; the icon is also drawn large and faded |
+| `banner_background` | CSS `background` for the banner (or the whole tile in `highlight`/`feature`). **Code only** |
+| `banner_url`, `banner_caption` | Makes the banner a link with a play button, and a line under it |
+| `image_url` | A banner image, drawn instead of the background and icon |
+| `step` | A flag in the banner's corner (`'Step 1 of 2'`) |
+| `badge` | A pill under the description |
+| `stats` | Short facts: a string or an `(icon_classes, text)` pair |
+| `progress` | 0-100, clamped. `0` draws an empty bar; `None` draws none |
+| `status` | A quiet line under the progress bar |
+| `footer_label`, `footer_icon` | The footer's left side |
+| `action_label`, `action_url`, `action_css_class` | The button. Its classes default per layout |
+| `callout_title`, `callout_text`, `callout_icon`, `callout_link_label`, `callout_link_url` | `detail`'s tinted box |
+| `secondary_label`, `secondary_url`, `secondary_icon` | `detail`'s quiet link under the button |
+| `note` | `detail`'s small line at the bottom |
+| `points` | `showcase`'s list: `(icon_classes, text)` or `(icon_classes, text, colour)`. Text **escaped**; colour **code only** |
+| `flow` | `showcase`'s diagram: names drawn as boxes joined by lines |
+| `panel_icon` | `showcase`'s small icon panel |
+| `css_class` | Extra classes on the tile |
+
+A misspelled field in a dict, an unknown `layout` or a malformed `stats`/`points` entry raises
+rather than quietly drawing a tile with a part missing.
+
+### Slider
+
+```python
+promotions = self.add_card('promotions', border='none')
+promotions.add_course_tiles([...], slider=True)
+```
+
+The track is a native horizontal scroller with snap points, so swiping and trackpads need no
+script. A small script adds prev/next arrows, which hide at each end, and a dot per tile that
+jumps to it; the current tile's dot widens into a pill. Any layout can be a slide: `feature` and
+`showcase` slides are about 88% of the track wide, so the next one peeks in, and the rest keep
+their grid width.
+
+### Escaping
+
+Everything a tile shows is escaped **except `title_html`**, named for it in the same way as
+`Tile.heading_html`. Build it with `format_html`, which still escapes what goes into it:
+
+```python
+from django.utils.html import format_html
+
+CourseTile(key='intro', layout='plain',
+           title_html=format_html('Learn <em>every</em> part of {}', product_name),
+           description='Pick a stage of your work to see the courses that teach it.')
+```
+
+`banner_background` and the `points` colours are written into `style` attributes, so they must
+come from your code, never from a form or a model field.
+
+### Styling
+
+The chrome is in `cards/css/cards.css` under `.django-card__course-*`, injected once per request.
+On narrow screens the decorative shapes and panels hide and the showcase's points drop to one
+column. Colours are custom properties, so a project can retint them without out-specifying
+anything: `--django-card-course-accent`, `--django-card-course-banner-bg`,
+`--django-card-course-highlight-bg`, `--django-card-course-feature-bg`,
+`--django-card-course-showcase-bg`, `--django-card-course-progress-bg`,
+`--django-card-course-badge-bg`, `--django-card-course-muted-color`, among others.
+
+See the `/course-tiles/` page in `django_examples` for every layout, both sliders and the empty
+state.
+
+---
+
 ## Linked Datatables
 
 Display multiple datatables side by side with drill-down filtering. Clicking a row in one table filters the next table in the chain. Supports any number of linked tables.
@@ -1433,6 +1600,7 @@ Any card type can be placed inside an accordion panel. The panel automatically h
 - HTML cards
 - Image gallery cards
 - Tile cards
+- Course tile cards
 - Other card types
 
 ### Layout Example — Accordion with Side Panel
