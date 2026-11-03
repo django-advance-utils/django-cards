@@ -65,6 +65,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:panel_linked_dt', 'Linked Datatables'),
                 ('cards_examples:panel_detail_dt', 'Detail Datatables'),
                 ('cards_examples:panel_tabs', 'Tabs'),
+                ('cards_examples:panel_slot', 'Slot'),
             )),
             MenuItem(menu_display='Display', dropdown=(
                 ('cards_examples:child_cards', 'Child Cards'),

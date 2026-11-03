@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from ajax_helpers.utils import random_string
 from django.template.loader import render_to_string
 from django.utils.functional import lazy
@@ -34,6 +36,48 @@ class DeferredLayoutHtml:
 #: filter and `__html__`, and `JsonResponse` (so `command_response`) through `DjangoJSONEncoder`.
 #: What it is not is an instance of `str`: plain `json.dumps` needs `str()` first.
 lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
+
+
+#: Where a panel layout leaves room for the page's own content. Written by `PanelSlot` (a region's
+#: or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a card's own template, and found by
+#: `PanelLayout.render_around`, which splits the rendered layout there.
+SLOT_MARKER = '<!--django-cards-panel-slot-->'
+
+
+class PanelSlot:
+    """Stands in a region or tab for the page's own content, which the layout is rendered around.
+
+    Added with ``region.add_slot()`` or ``tab.add_slot()``. It renders as `SLOT_MARKER`, and
+    `PanelLayout.render_around` splits the layout there, so the page's template can put its own
+    content -- a ``{% block %}`` it renders as usual -- inside the layout without the layout knowing
+    what that content is.
+
+    The content is the page's, printed once, so nothing that re-renders a card over ajax can put
+    it back: keep ``{% panel_slot %}`` out of a card with ``ajax_reload`` or ``reload_interval``,
+    whose reload would replace the card's body and the content with it.
+    """
+
+    code = 'panel_slot'
+
+    def render(self, override_card_context=None):
+        return mark_safe(SLOT_MARKER)
+
+
+def _add_slot(holder):
+    """Add a `PanelSlot` to a region or tab, refusing a second one there and then.
+
+    A layout takes one slot; `PanelLayout.render_around` would refuse two as well, but only once
+    the page renders, far from the line that added it.
+    """
+    if any(isinstance(card, PanelSlot) for card in holder.cards):
+        raise ValueError(f'{holder.name!r} already holds a slot; a panel layout takes one')
+    return holder.add_card(PanelSlot())
+
+
+class PanelLayoutParts(NamedTuple):
+    """A rendered panel layout, split at its slot: the html before it and the html after it."""
+    before: SafeString
+    after: SafeString
 
 
 class PanelTab:
@@ -78,6 +122,10 @@ class PanelTab:
         """Add a card to this tab pane."""
         self.cards.append(card)
         return self
+
+    def add_slot(self):
+        """Leave room in this tab pane for the page's own content (see `PanelLayout.render_around`)."""
+        return _add_slot(self)
 
 
 class PanelRegion:
@@ -176,6 +224,10 @@ class PanelRegion:
         """
         self.cards.append(card)
         return self
+
+    def add_slot(self):
+        """Leave room in this region for the page's own content (see `PanelLayout.render_around`)."""
+        return _add_slot(self)
 
     def add_tab(self, name, title, icon=None, active=False, menu=None):
         """
@@ -582,6 +634,38 @@ class PanelLayout:
         self._process_menus(self.root)
         context = self.get_render_html_context()
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))
+
+    def render_around(self):
+        """Render the layout and split it at its slot, for a page that puts its own content inside.
+
+        A page whose layout holds content the page renders itself -- a template's ``{% block %}``,
+        which every page using the layout fills differently -- leaves a slot for it: a region's or
+        tab's ``add_slot()``, or ``{% panel_slot %}`` in a card's own template. This renders the
+        layout and returns the html on either side of that slot, to print around the page's
+        content::
+
+            parts = layout.render_around()
+            # in the template: {{ parts.before }}{% block content %}{% endblock %}{{ parts.after }}
+
+        or, in a template, ``{% panel_layout_around layout %}...{% endpanel_layout_around %}``,
+        which calls this. Call it once the cards are built -- from ``get_context_data`` or a
+        template, not ``setup_cards`` -- so ``cards_ready()`` has run on the region cards.
+
+        Raises ``ValueError`` when the layout has no slot, or more than one: either way the page's
+        content would be lost or drawn twice, and nothing on the page would say why.
+        """
+        # The layout's own html, not the card `render()` wraps it in: that card would be
+        # registered in the view's cards while the page renders, and there is nothing for its
+        # chrome to do here. So this needs no view, either.
+        html = str(self._render_html())
+        count = html.count(SLOT_MARKER)
+        if count != 1:
+            where = 'no slot' if count == 0 else f'{count} slots'
+            raise ValueError(
+                f'PanelLayout {self.layout_id!r} has {where}; render_around needs exactly one. Add one '
+                f'with region.add_slot() or tab.add_slot(), or {{% panel_slot %}} in a card template.')
+        before, after = html.split(SLOT_MARKER)
+        return PanelLayoutParts(mark_safe(before), mark_safe(after))
 
     def render(self):
         """Return a card ready for add_card_group() that renders the layout when it is itself rendered.

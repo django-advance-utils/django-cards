@@ -1890,6 +1890,41 @@ class DrilldownView(CardMixin, TemplateView):
 
 Set `linked_tables` on the layout as a list of dicts. Subsequent tables start empty and load when a row is selected in the previous table.
 
+### A Slot for the Page's Own Content
+
+When a region should hold what the page's template renders itself -- a `{% block %}` that each
+page using the layout fills differently -- leave a slot instead of adding a card, and render the
+layout around the template's content:
+
+```python
+def setup_cards(self):
+    self.layout = self.add_panel_layout(card_name='shell', persist=False)
+    self.layout.root.add_region('side', size='300px').add_card(side_card)
+    self.layout.root.add_region('main', size='1fr').add_slot()
+```
+
+```django
+{% load django_cards_tags %}
+{% panel_layout_around view.layout %}
+    {% block page %}{% endblock %}
+{% endpanel_layout_around %}
+```
+
+- `region.add_slot()` and `tab.add_slot()` leave the slot as a region's or tab's content. For a
+  slot inside a card's own template -- the page's content under something the card draws -- put
+  `{% panel_slot %}` in that template instead.
+- `layout.render_around()` returns `(before, after)`, the rendered layout split at the slot, for
+  printing around the content by hand. The tag calls it at template render time, so
+  `cards_ready()` has run on the region cards; from Python, call it from `get_context_data`, not
+  `setup_cards`.
+- A layout with no slot, or more than one, raises `ValueError`: the content would be lost or drawn
+  twice. A second `add_slot()` on one region or tab raises as it is called. Don't also add the
+  layout to a card group -- it would render a second time.
+- Keep `{% panel_slot %}` out of a card that reloads over ajax (`ajax_reload`,
+  `reload_interval`): the reload replaces the card's body, and the page's content with it.
+
+See `/panel-layout/slot/` in the example app.
+
 ### Holy Grail Layout
 
 A classic header/sidebar/content/sidebar/footer layout using nested splits:

@@ -897,3 +897,26 @@ class PanelLayoutDetailDatatablesExample(MainMenu, CardMixin, TemplateView):
 
     def button_hello_there(self, pk: int, **_kwargs):
         return self.command_response('message', text=f'Hello there! ({pk})')
+
+
+class PanelLayoutSlotExample(MainMenu, CardMixin, TemplateView):
+    """A layout with a slot: the page's own template content in the main region.
+
+    The main region holds no card -- ``add_slot()`` leaves room for whatever the template puts
+    between ``{% panel_layout_around %}`` and ``{% endpanel_layout_around %}``. A base template can
+    do that around a ``{% block %}``, so every page using it gets the layout with its own content.
+    """
+    template_name = 'cards_examples/panel_slot.html'
+
+    def setup_cards(self):
+        self.layout = self.add_panel_layout(card_name='slot_example', min_height='500px', persist=False)
+        root = self.layout.root
+        sidebar = root.add_region('sidebar', size='280px', collapsible=True, min_size=150, title='Record')
+        nav_card = self.add_card(title='Record')
+        nav_card.add_rows(
+            {'label': 'Customer', 'value': 'Brass & Co'},
+            {'label': 'Stage', 'value': 'Production'},
+            {'label': 'Tip', 'value': 'The main region is the page\'s own template'},
+        )
+        sidebar.add_card(nav_card)
+        root.add_region('main', size='1fr', min_size=300, title='Page content').add_slot()
