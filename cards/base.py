@@ -1,5 +1,6 @@
 import _string
 import datetime
+import functools
 import json
 import math
 import re
@@ -626,7 +627,7 @@ class CardSection:
         # out, or by path ('cards/standard/table.html'). A subclass entry naming a template of its
         # own is not assumed to.
         path = entry['name'] if entry is not None else name
-        return path in {own_entry['name'] for own_entry in CardBase.templates.values() if own_entry.get('header_controls')}
+        return path in _header_control_templates()
 
     def has_controls(self, full_controls):
         """Whether the card has header controls besides its menu: what the section header draws,
@@ -671,6 +672,12 @@ class CardSection:
             'full_controls': full_controls}))
 
 
+@functools.lru_cache(maxsize=None)
+def _header_control_templates():
+    """The paths of cards' own templates that draw search and export (``'header_controls'``)."""
+    return frozenset(entry['name'] for entry in CardBase.templates.values() if entry.get('header_controls'))
+
+
 def build_sections(entries, register=True):
     """:class:`CardSection` objects for ``entries`` (cards, dicts or sections), skipping ``None``.
 
@@ -697,24 +704,38 @@ SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
 SECTION_STACKS = '_django_cards_section_stacks'
 
 
-def _stacks(view):
-    """This build's stacks on ``view``. Tied to the ``view.cards`` dict they were built in, so a view
-    that starts its cards again by any route -- ``rebuild_cards()``, or a handler of its own setting
-    ``self.cards = {}`` -- starts its stacks again with them."""
+def _this_build(view):
+    """What ``view`` keeps of this build: its section stacks and its panel layouts. Tied to the
+    ``view.cards`` dict they were built in, so a view that starts its cards again by any route --
+    ``rebuild_cards()``, or a handler of its own setting ``self.cards = {}`` -- starts them again."""
     if view is None:
         return None
     kept = getattr(view, SECTION_STACKS, None)
     cards = getattr(view, 'cards', None)
     if kept is None or kept[0] is not cards:
-        kept = (cards, [])
+        kept = (cards, {'stacks': [], 'layouts': []})
         setattr(view, SECTION_STACKS, kept)
     return kept[1]
 
 
+def _stacks(view):
+    """This build's section stacks on ``view``, each a list of sections."""
+    build = _this_build(view)
+    return build['stacks'] if build is not None else None
+
+
+def register_panel_layout(view, layout):
+    """Record a panel layout built on ``view`` this build, so a card in one of its regions is known to
+    be placed there (``CardMixin.add_panel_layout`` does)."""
+    build = _this_build(view)
+    if build is not None:
+        build['layouts'].append(layout)
+
+
 def reset_section_stacks(view):
-    """Start ``view``'s section stacks again: ``CardMixin.build_cards`` does, so building the cards a
-    second time into the same ``cards`` dict does not find the first build's stacks."""
-    setattr(view, SECTION_STACKS, (getattr(view, 'cards', None), []))
+    """Start what ``view`` keeps of the build again: ``CardMixin.build_cards`` does, so building the
+    cards a second time into the same ``cards`` dict does not find the first build's stacks."""
+    setattr(view, SECTION_STACKS, (getattr(view, 'cards', None), {'stacks': [], 'layouts': []}))
 
 
 def _register_stack(view, sections):
@@ -732,20 +753,33 @@ def find_section(view, card):
     return None
 
 
-def placed_in_group(view, card):
-    """Whether ``card`` is placed in one of ``view``'s card groups, or a layout or group card's
-    child groups, this build."""
+def placements(view):
+    """The ids of every card placed on ``view`` this build somewhere other than a section stack:
+    its card groups, a layout or group card's child groups, an accordion's panels, and a panel
+    layout's regions and tabs."""
+    placed = set()
     if view is None:
-        return False
+        return placed
     for groups in (getattr(view, 'card_groups', None) or {}).values():
         for group in groups:
-            if any(placed is card for placed in group.get('cards', ())):
-                return True
+            placed.update(id(card) for card in group.get('cards', ()))
     for holder in (getattr(view, 'cards', None) or {}).values():
         for group in getattr(holder, 'child_card_groups', None) or ():
-            if any(placed is card for placed in group.get('cards', ())):
-                return True
-    return False
+            placed.update(id(card) for card in group.get('cards', ()))
+        for panel in (getattr(holder, 'extra_card_info', None) or {}).get('panels', ()) or ():
+            if isinstance(panel, dict) and panel.get('card') is not None:
+                placed.add(id(panel['card']))
+    for layout in (_this_build(view) or {}).get('layouts', ()):
+        placed.update(id(card) for card in layout.placed_cards())
+    return placed
+
+
+def refuse_if_stacked(view, card, where):
+    """Raise if ``card`` is in a section stack on ``view`` this build: placing it ``where`` too
+    would draw it twice, with its DOM ids there twice."""
+    if card is not None and find_section(view, card) is not None:
+        raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; it cannot go '
+                         f'in {where} too, or its DOM ids are there twice')
 
 
 def _validate_sections(sections, stack=None):
@@ -754,6 +788,7 @@ def _validate_sections(sections, stack=None):
     the page has."""
     view = stack.view if stack is not None else (sections[0].card.view if sections else None)
     existing = [section for built in (_stacks(view) or ()) for section in built]
+    placed = placements(view)
     taken_cards = {id(section.card) for section in existing}
     taken_ids = {section.id for section in existing}
     seen = set()
@@ -768,9 +803,10 @@ def _validate_sections(sections, stack=None):
         if id(stacked) in seen or id(stacked) in taken_cards:
             raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
                              f'place on a page, or its DOM ids are there twice')
-        if placed_in_group(view, stacked):
-            raise ValueError(f'Card {stacked.code!r} is in a card group already, and is drawn there; '
-                             f'a card is in one place on a page, or its DOM ids are there twice')
+        if id(stacked) in placed:
+            raise ValueError(f'Card {stacked.code!r} is placed on the page already (a card group, a layout, '
+                             f'an accordion or a panel region), and is drawn there; a card is in one '
+                             f'place on a page, or its DOM ids are there twice')
         seen.add(id(stacked))
         # By id as well as by card: two cards may share a code (two untitled cards, say), and a
         # section's ids are made from it.
@@ -787,6 +823,15 @@ def _validate_sections(sections, stack=None):
 def own_stack_id(sections):
     """The DOM id of a stack drawn in a template of an application's own, with no card around it."""
     return f'{sections[0].id}-stack' if sections else ''
+
+
+def has_own_body(card):
+    """Whether ``card`` already has a body a section stack would take the place of: an empty card's
+    message, rows, a datatable, tiles or banner tiles, a template it was given, or a type other
+    than a standard card."""
+    info = getattr(card, 'extra_card_info', None) or {}
+    return bool(getattr(card, 'is_empty', False) or card.group_type != CARD_TYPE_STANDARD or card.rows
+                or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles'))
 
 
 def _refuse_if_stack(card):
@@ -857,10 +902,9 @@ class _SectionsHtml:
     def _render(self):
         card = self.card
         sections = card.extra_card_info.get('sections', [])
-        info = card.extra_card_info
-        if card.rows or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles'):
-            # Another body added some way the add_* methods do not guard (add_table, say): the
-            # stack is the body, and the html template that draws it has no place for another.
+        if has_own_body(card):
+            # Another body added some way the add_* methods do not guard: the stack is the body,
+            # and the html template that draws it has no place for another.
             raise ValueError(f'Card {card.code!r} holds a section stack, and rows, a table or tiles were '
                              f'added to it too; put them in a card of their own in the stack')
         # Again now, against every card the view ended up with: one added after add_sections(),
@@ -2567,6 +2611,7 @@ class CardBase:
             header_css_class = panel.get('header_css_class', '')
             ajax_load = panel.get('ajax_load', False)
             card = panel.get('card')
+            refuse_if_stacked(self.view, card, 'an accordion panel')
 
             initialized_panels.append({
                 'id': panel_id,
@@ -2595,6 +2640,7 @@ class CardBase:
         Side Effects:
             - Sets `self.extra_card_info['datatable']` to the new table.
         """
+        _refuse_if_stack(self)
         table = DatatableTable(table_id=table_id, model=model, view=self.view)
         self.extra_card_info['datatable'] = table
         table.ajax_data = False
@@ -2617,6 +2663,7 @@ class CardBase:
             - Sets `self.extra_card_info['datatable']` to the new table.
             - Disables `ajax_data`.
         """
+        _refuse_if_stack(self)
         table = OrderedDatatable(table_id=table_id,
                                  model=model,
                                  view=self.view,
@@ -2904,9 +2951,7 @@ class CardBase:
             # What the card already is would be dropped for the stack without a word: an empty
             # card's message, a datatable registered on the view but never drawn, its own rows,
             # or a body another method set its template for (tiles, banner tiles, a template_name).
-            info = self.extra_card_info
-            if (self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows or self.template_name
-                    or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles')):
+            if has_own_body(self) or self.template_name:
                 raise ValueError(f'add_sections() makes a card\'s body its stack, and card {self.code!r} '
                                  f'already has one (empty, rows, or not a standard card)')
         # Built and checked before anything is changed, so a bad entry or a clash changes nothing.
@@ -3044,9 +3089,7 @@ class CardBase:
         if self.group_type not in [CARD_TYPE_CARD_GROUP, CARD_TYPE_CARD_LAYOUT]:
             raise Exception('This will only work for card group')
         for card in args:
-            if find_section(self.view, card) is not None:
-                raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
-                                 f'a card in two places has its DOM ids there twice')
+            refuse_if_stacked(self.view, card, 'a card group')
         self.child_card_groups.append({'div_css_class': div_css_class,
                                        'div_inner_css_class': div_inner_css_class,
                                        'div_inner_css': div_inner_css,

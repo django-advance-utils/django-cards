@@ -173,5 +173,13 @@ def section_stack_id(context, sections):
     or, for one in a template of an application's own, one named for its first section -- checked,
     with the rest, when built. Read from the context itself under a name of cards' own, so neither
     a project's ``string_if_invalid`` nor a page's own ``stack_id`` becomes it."""
-    from cards.base import own_stack_id
-    return context.get('django_cards_stack_id') or own_stack_id(sections)
+    from cards.base import check_section_ids, own_stack_id
+    stack_id = context.get('django_cards_stack_id')
+    if stack_id:
+        return stack_id
+    # A stack of an application's own: its ids checked again now, as add_sections() stacks are, for
+    # a card added after build_sections() -- later in setup_cards(), or in cards_ready().
+    own = own_stack_id(sections)
+    if sections:
+        check_section_ids(sections[0].card, sections, {own})
+    return own
