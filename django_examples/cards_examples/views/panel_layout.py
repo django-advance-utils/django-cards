@@ -961,4 +961,12 @@ class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
         both = root.add_region('both', size='320px', min_size=200)
         both.add_card(summary)
         both.add_card(more)
+        # A tab whose lone card scrolls inside itself, as a region's does.
+        tabbed = root.add_region('tabbed', size='320px', min_size=200)
+        long_tab = self.add_card(title='Long tab card')
+        long_tab.add_rows(*[{'label': f'Row {i}', 'value': 'In a tab, scrolling inside its card.'} for i in range(1, 26)])
+        tabbed.add_tab('long', title='Long').add_card(long_tab)
+        short_tab = self.add_card(title='Short tab card')
+        short_tab.add_rows({'label': 'Only', 'value': 'one row'})
+        tabbed.add_tab('short', title='Short').add_card(short_tab)
         self.add_card_group(layout.render(), div_css_class='col-12')

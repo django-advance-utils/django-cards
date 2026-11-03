@@ -3007,6 +3007,13 @@ class CardBase:
                 data.append({'label': label or '', 'value': value})
         return data
 
+    @property
+    def fills_region(self):
+        """Whether, alone in a panel region or tab under ``scroll_cards``, the card fills it and
+        scrolls its own body. A treegrid does not: it sizes itself (``treegrid_height``) and scrolls
+        its own grid, and shrinking it to the region would spill the grid past its border."""
+        return self.group_type != CARD_TYPE_TREEGRID
+
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the
         card's button group unless given), anything else (an HtmlMenu, None) as it is."""
@@ -3064,7 +3071,7 @@ class CardBase:
         """
         html = self._render_template(override_card_context)
         if self.ajax_reload:
-            return mark_safe(f'<div id="{self.code}_ajax">{html}</div>')
+            return mark_safe(f'<div id="{self.code}_ajax" class="django-card__ajax">{html}</div>')
         return html
 
     def add_child_card_group(self, *args, div_css_class='', div_inner_css_class='',

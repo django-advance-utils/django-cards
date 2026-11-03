@@ -136,6 +136,10 @@
     .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-folder:hover > td {
         background-color: rgba(0, 0, 0, 0.06);
     }
+    /* The active row keeps its own highlight (on the tr) under the pointer: its cells stay clear. */
+    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-active:hover > td {
+        background-color: transparent;
+    }
 
     /* Inline checkbox */
     .fancytree-ext-table .treegrid-checkbox {

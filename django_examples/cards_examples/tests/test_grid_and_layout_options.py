@@ -130,15 +130,26 @@ class TestScrollCards(SimpleTestCase):
         self.assertEqual(len(marked), 2)  # the lone region and the tab -- not the pair
         self.assertIn('tab-pane', marked[1]['class'])
 
-    def test_the_lone_card_fills_and_scrolls_but_not_a_treegrids(self):
+    def test_a_treegrid_or_a_slot_alone_is_not_marked(self):
+        view = _view()
+        layout = view.add_panel_layout(card_name='shell', persist=False, scroll_cards=True)
+        layout.root.add_region('grid', size='1fr').add_card(_grid(view))
+        layout.root.add_region('slot', size='1fr').add_slot()
+        page = _Page(str(layout.render().render()))
+        self.assertEqual([a for a in page.find('div') if 'panel-region__content--single' in (a.get('class') or '').split()], [])
+
+    def test_the_lone_card_fills_and_scrolls_in_a_region_a_tab_and_a_reload_wrapper(self):
         css = (CSS / 'static/cards/panel_layout/css/panel_layout.css').read_text()
+        flex = css[css.index('.panel-layout--scroll-cards .panel-region__content--single,'):]
+        # out-ranks .panel-region__content.tab-content > .tab-pane.active { display: block }
+        self.assertIn('.panel-region__content.tab-content > .tab-pane.active.panel-region__content--single', flex[:flex.index('{')])
         card = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card,'):]
-        self.assertIn('flex: 1;', card[:card.index('}')])
-        self.assertIn('[id$="_ajax"] > .card', card[:card.index('{')])  # an ajax-reload card too
-        body = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card > '
-                             '.card-body:not(:has(.treegrid-table)),'):]
+        self.assertIn('> .django-card__ajax > .card', card[:card.index('{')])
+        body = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card > .card-body,'):]
         self.assertIn('overflow: auto;', body[:body.index('}')])
-        self.assertIn('class="treegrid-table ', _grid(_view()).render())  # there before any script runs
+        self.assertNotIn(':has(', css[css.index('add_panel_layout(scroll_cards=True)'):])
+        reloads = _view().add_card('r', title='R', ajax_reload=True)
+        self.assertIn('id="r_ajax" class="django-card__ajax"', reloads.render())
 
     def test_css_class_none_draws_no_stray_class(self):
         view = _view()
