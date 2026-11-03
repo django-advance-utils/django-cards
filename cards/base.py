@@ -203,7 +203,113 @@ class _RowStyleFormatter(string.Formatter):
 _row_style_formatter = _RowStyleFormatter()
 
 
-class ScrollableTabMenu:
+class _MenuWrapper:
+    """Decorates a menu, passing every attribute read, write and delete through to it.
+
+    So a wrapper is a drop-in wherever the menu was: forwarding reads alone holds only until
+    something assigns to it -- the value lands on the wrapper, reads back off the wrapper, and the
+    menu never sees it (``compare_full_path`` set on a wrapped tab menu was lost that way, and no
+    tab came back active). The names in ``_OWN`` are the wrapper's own.
+    """
+
+    _OWN = frozenset({'_menu'})
+
+    def __init__(self, html_menu):
+        object.__setattr__(self, '_menu', html_menu)
+
+    def __getattr__(self, name):
+        # Only reached for a name the wrapper does not have. One of its own missing means the
+        # instance is being built without __init__ -- copy, deepcopy and unpickle all do -- and
+        # reading `_menu` here would come straight back, forever.
+        if name in self._OWN:
+            raise AttributeError(name)
+        return getattr(self._menu, name)
+
+    def __setattr__(self, name, value):
+        if name in self._OWN:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._menu, name, value)
+
+    def __delattr__(self, name):
+        if name in self._OWN:
+            object.__delattr__(self, name)
+        else:
+            delattr(self._menu, name)
+
+
+def visible_menu_items(menu):
+    """The items of ``menu`` that will be drawn, decided as django-menus decides when it renders.
+
+    ``test_visible(request)`` is what ``HtmlMenu.render`` asks of each item: it resolves a callable
+    ``visible`` and, for a link, the target view's ``view_permission`` and the current view's
+    ``menu_permissions``. An item without it (a stand-in) is read by its ``visible`` alone.
+    """
+    request = getattr(menu, 'request', None)
+    items = []
+    for item in getattr(menu, 'menu_items', None) or ():
+        if hasattr(item, 'test_visible'):
+            visible = item.test_visible(request) and item.visible
+        else:
+            visible = getattr(item, 'visible', True)
+        if visible:
+            items.append(item)
+    return items
+
+
+class TabMenuWithSubRow(_MenuWrapper):
+    """A card's tab bar with a second, quieter row of tabs under it.
+
+    For a group of pages under a top tab (Summary, Items, Money... and under Summary its own
+    Summary and Settings). A card carries one ``tab_menu``, which every card template prints, so
+    this renders both rows from that one slot: the top menu as it is, then the sub menu in a
+    ``django-card__sub-tabs`` row styled in ``cards.css``. It composes with
+    :class:`ScrollableTabMenu`, which then holds the top row only.
+
+    Whether the second row is drawn is decided when it renders, as django-menus decides which
+    tabs to draw: only when the top row shows a tab and the sub row shows two or more. A single
+    sub tab repeats the top tab it sits under and is noise; and a tab hidden by ``visible`` or a
+    view's permissions, or one added to the menu after the card was built, counts as it will draw.
+
+    Reads pass to the top menu; a setting written through it (``compare_full_path``) is written to
+    both rows, so the two match the url the same way; ``sub_menu`` reads and replaces the second.
+    """
+
+    _OWN = _MenuWrapper._OWN | {'_sub_menu'}
+
+    def __init__(self, html_menu, sub_menu):
+        super().__init__(html_menu)
+        object.__setattr__(self, '_sub_menu', sub_menu)
+
+    @property
+    def sub_menu(self):
+        return self._sub_menu
+
+    def __setattr__(self, name, value):
+        if name == 'sub_menu':
+            object.__setattr__(self, '_sub_menu', value)
+        elif name in self._OWN:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._menu, name, value)
+            setattr(self._sub_menu, name, value)
+
+    def __delattr__(self, name):
+        if name in self._OWN:
+            object.__delattr__(self, name)
+        else:
+            delattr(self._menu, name)
+            if hasattr(self._sub_menu, name):
+                delattr(self._sub_menu, name)
+
+    def render(self):
+        top = self._menu.render()
+        if not visible_menu_items(self._menu) or len(visible_menu_items(self._sub_menu)) < 2:
+            return top
+        return mark_safe(f'{top}<div class="django-card__sub-tabs">{self._sub_menu.render()}</div>')
+
+
+class ScrollableTabMenu(_MenuWrapper):
     """
     Wraps an HtmlMenu tab menu to add left/right scroll buttons when tabs overflow.
 
@@ -214,9 +320,6 @@ class ScrollableTabMenu:
     Usage — pass ``scrollable_tab_menu=True`` to ``add_card()`` or any convenience
     method that accepts ``**kwargs`` (e.g. ``add_treegrid_card``).
     """
-
-    def __init__(self, html_menu):
-        self._menu = html_menu
 
     def render(self):
         inner = self._menu.render()
@@ -273,33 +376,6 @@ class ScrollableTabMenu:
             f'</div>'
             f'<script>{js}</script>'
         )
-
-    def __getattr__(self, name):
-        # Only reached for a name the wrapper does not have. `_menu` missing means the instance is
-        # being built without __init__ -- copy, deepcopy and unpickle all do -- and reading it
-        # here would come straight back, forever.
-        if name == '_menu':
-            raise AttributeError(name)
-        return getattr(self._menu, name)
-
-    def __delattr__(self, name):
-        if name == '_menu':
-            super().__delattr__(name)
-        else:
-            delattr(self._menu, name)
-
-    def __setattr__(self, name, value):
-        """Writes pass through to the wrapped menu too, not just reads.
-
-        Forwarding reads alone makes a drop-in only until something assigns to it: the value lands
-        on the wrapper, reads back off the wrapper, and the menu never sees it. Setting
-        ``compare_full_path`` on a wrapped tab menu was lost that way, and no tab came back active.
-        ``_menu`` is the wrapper's own.
-        """
-        if name == '_menu':
-            super().__setattr__(name, value)
-        else:
-            setattr(self._menu, name, value)
 
 
 CARD_TYPE_STANDARD = 1
@@ -919,7 +995,7 @@ class CardBase:
     default_empty_template = 'message'
 
     def __init__(self, request, code=None, view=None, details_object=None, title=None,
-                 menu=None, tab_menu=None, template_name=None, call_details_data=False,
+                 menu=None, tab_menu=None, sub_tab_menu=None, template_name=None, call_details_data=False,
                  group_type=CARD_TYPE_STANDARD, show_created_modified_dates=False,
                  footer=None, extra_card_context=None,
                  is_empty=False, empty_template_name=None, empty_message='N/A',
@@ -944,6 +1020,10 @@ class CardBase:
             title (str, optional): The heading/title displayed on the card.
             menu (list, optional): Optional list of action menu items for the card.
             tab_menu (list, optional): Optional tab menu items for the card.
+            sub_tab_menu (list, optional): A second, quieter row of tabs under ``tab_menu`` -- the
+                pages under the top tab in view. Items or an HtmlMenu. Not drawn when it shows one
+                tab or none as it renders, since one repeats the tab it sits under. Needs
+                ``tab_menu``: without one this raises ``ValueError``.
             template_name (str, optional): Template to be used for rendering the card.
             call_details_data (bool, optional): Whether to invoke a method to populate dynamic data. Defaults to False.
             group_type (int, optional): Defines the visual and functional type of the card. Defaults to CARD_TYPE_STANDARD.
@@ -1031,6 +1111,15 @@ class CardBase:
         # `border` asks for the stylesheet too, and is kept separate because it is a caller's
         # option rather than something a method turns on.
         self.requires_card_css = False
+
+        if isinstance(sub_tab_menu, (list, tuple)):
+            sub_tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*sub_tab_menu)
+        if sub_tab_menu is not None:
+            if self.tab_menu is None:
+                raise ValueError('sub_tab_menu is a row under tab_menu, and this card has no tab_menu')
+            # Wrapped whatever it holds now: whether the row is drawn is decided as it renders.
+            self.tab_menu = TabMenuWithSubRow(self.tab_menu, sub_tab_menu)
+            self.requires_card_css = True  # the sub row's styling lives in cards.css
 
         if is_empty:
             self.group_type = CARD_TYPE_STANDARD
