@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from cards.packs import pack_classes, pack_template, resolve_template, template_pack
-from cards.panel_layout import SLOT_MARKER
+from cards.panel_layout import slot_marker
 from cards.render_scope import get_render_scope
 
 register = template.Library()
@@ -121,7 +121,7 @@ def panel_slot():
     under something the card draws itself. ``PanelLayout.render_around`` splits the layout here.
     Not in a card that reloads over ajax: its reload would replace the page's content too.
     """
-    return mark_safe(SLOT_MARKER)
+    return mark_safe(slot_marker())
 
 
 class PanelLayoutAroundNode(template.Node):

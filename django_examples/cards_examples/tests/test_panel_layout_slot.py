@@ -7,12 +7,17 @@ a slot (a region's or tab's ``add_slot()``, or ``{% panel_slot %}`` inside a car
 halves -- by hand, or with ``{% panel_layout_around layout %}...{% endpanel_layout_around %}``.
 
 None or two slots raise: the content would be lost or drawn twice, with nothing to say why.
+
+The marker is an html comment named by a random nonce made once per request, so stored rich text
+printed safe in a card cannot carry it: text stored before this request cannot know it, and one
+read off a page is useless to the next request.
 """
 from django.template import Context, Engine, Template
 from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.views.generic import TemplateView
 
-from cards.panel_layout import SLOT_MARKER, PanelLayoutParts
+from cards import render_scope
+from cards.panel_layout import PanelLayoutParts, slot_marker
 from cards.standard import CardMixin
 from cards_examples.tests.test_escaping import PACKS, _Page
 
@@ -52,7 +57,7 @@ class TestRenderAround(SimpleTestCase):
                     html = f'{parts.before}<p class="page-content">mine</p>{parts.after}'
                     page = _Page(html)
                     self.assertEqual(len(page.find('p', **{'class': 'page-content'})), 1)
-                    self.assertNotIn(SLOT_MARKER, html)
+                    self.assertNotIn(slot_marker(), html)
                     # the content sits in the main region's content, after the side region's card
                     self.assertLess(html.index('side text'), html.index('page-content'))
                     self.assertLess(html.index('id="panel_region_main"'), html.index('page-content'))
@@ -126,6 +131,71 @@ class TestRenderAround(SimpleTestCase):
         self.assertIn('panel_layout_bare', parts.before)
 
 
+class _Request:
+    """One request cycle's render scope, as django's request signals open and close it."""
+
+    def __enter__(self):
+        render_scope._open_scope()
+        return self
+
+    def __exit__(self, *exc):
+        render_scope._close_scope()
+
+
+class TestTheMarkerCannotBeForged(SimpleTestCase):
+
+    def test_one_marker_per_request_and_a_new_one_for_the_next(self):
+        with _Request():
+            first = slot_marker()
+            self.assertEqual(slot_marker(), first)
+        with _Request():
+            self.assertNotEqual(slot_marker(), first)
+        self.assertRegex(first, r'^<!--django-cards-panel-slot-[0-9a-f]{24}-->$')
+
+    def test_stored_text_holding_a_marker_is_not_a_slot(self):
+        """A fixed marker, or one read off an earlier page, stored and printed safe in a card."""
+        from django.utils.safestring import mark_safe
+        with _Request():
+            leaked = slot_marker()
+        for stored in ('<!--django-cards-panel-slot-->', leaked):
+            with self.subTest(stored=stored), _Request():
+                view = _view()
+                layout = view.add_panel_layout(card_name='shell', persist=False)
+                side = view.add_html_data_card(card_name='notes', title='Notes',
+                                               html=mark_safe(f'<p class="stored">notes{stored}</p>'))
+                layout.root.add_region('side', size='240px').add_card(side)
+                layout.root.add_region('main', size='1fr').add_slot()
+                parts = layout.render_around()
+                # split at the real slot, in the main region, not in the stored text
+                self.assertIn('class="stored"', parts.before)
+                self.assertIn('id="panel_region_main"', parts.before)
+
+    def test_a_slot_rendered_early_in_the_request_is_found(self):
+        """{% panel_slot %} in an html card is rendered when the card is added, in setup_cards."""
+        engine = Engine.get_default()
+        with _Request():
+            view = _view()
+            html = Template('{% load django_cards_tags %}<div class="strip">strip</div>{% panel_slot %}',
+                            engine=engine).render(Context())
+
+            def main(region):
+                region.add_card(view.add_html_data_card(card_name='shell_card', title='Shell', html=html))
+
+            parts = _layout(view, main).render_around()
+            self.assertIn('class="strip"', parts.before)
+
+    def test_a_nested_layouts_slot_is_found(self):
+        """A layout rendered as a card inside another keeps its slot for the outer one to split."""
+        with _Request():
+            view = _view()
+            inner = view.add_panel_layout(card_name='inner', persist=False)
+            inner.root.add_region('inner_main', size='1fr').add_slot()
+            outer = view.add_panel_layout(card_name='outer', persist=False)
+            outer.root.add_region('outer_main', size='1fr').add_card(inner.render())
+            parts = outer.render_around()
+            self.assertIn('id="panel_region_inner_main"', parts.before)
+
+
 class TestPanelLayoutAroundTag(SimpleTestCase):
 
     def test_the_tag_puts_its_contents_in_the_slot(self):
@@ -136,7 +206,7 @@ class TestPanelLayoutAroundTag(SimpleTestCase):
         self.assertEqual(len(_Page(html).find('p', **{'class': 'page-content'})), 1)
         self.assertIn('mine &amp; yours', html)
         self.assertIn('side text', html)
-        self.assertNotIn(SLOT_MARKER, html)
+        self.assertNotIn(slot_marker(), html)
 
     def test_a_child_templates_block_fills_the_slot(self):
         """A base template can wrap every child page's content in the layout."""

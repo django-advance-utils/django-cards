@@ -1,3 +1,4 @@
+import secrets
 from typing import NamedTuple
 
 from ajax_helpers.utils import random_string
@@ -6,6 +7,7 @@ from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
 
 from cards.base import json_for_script
+from cards.render_scope import get_render_scope
 
 
 class DeferredLayoutHtml:
@@ -38,16 +40,39 @@ class DeferredLayoutHtml:
 lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
 
 
-#: Where a panel layout leaves room for the page's own content. Written by `PanelSlot` (a region's
-#: or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a card's own template, and found by
-#: `PanelLayout.render_around`, which splits the rendered layout there.
-SLOT_MARKER = '<!--django-cards-panel-slot-->'
+#: The slot's nonce outside a request cycle (a test, a management command), where no page is
+#: served: random per process, so still nothing stored text could know.
+_PROCESS_SLOT_NONCE = secrets.token_hex(12)
+
+
+def slot_marker():
+    """Where a panel layout leaves room for the page's own content, in the request being served.
+
+    Written by `PanelSlot` (a region's or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a
+    card's own template, and found by `PanelLayout.render_around`, which splits the rendered layout
+    there. An html comment, so it draws nothing, named by a random nonce made once per request
+    (kept on the request's render scope, `cards.render_scope`). The split searches html that can
+    hold stored rich text printed safe; a fixed marker in that text would raise "2 slots" on every
+    page showing it, or take the page's content into its card. A nonce of this request cannot be
+    in text stored before it -- and one read off a page, or an ajax reply, is useless to the next.
+
+    So the slot is good for the request that made it: html holding one cannot be cached and
+    split in a later request.
+    """
+    scope = get_render_scope()
+    if scope is None:
+        nonce = _PROCESS_SLOT_NONCE
+    else:
+        nonce = getattr(scope, 'panel_slot_nonce', None)
+        if nonce is None:
+            nonce = scope.panel_slot_nonce = secrets.token_hex(12)
+    return f'<!--django-cards-panel-slot-{nonce}-->'
 
 
 class PanelSlot:
     """Stands in a region or tab for the page's own content, which the layout is rendered around.
 
-    Added with ``region.add_slot()`` or ``tab.add_slot()``. It renders as `SLOT_MARKER`, and
+    Added with ``region.add_slot()`` or ``tab.add_slot()``. It renders as `slot_marker()`, and
     `PanelLayout.render_around` splits the layout there, so the page's template can put its own
     content -- a ``{% block %}`` it renders as usual -- inside the layout without the layout knowing
     what that content is.
@@ -60,7 +85,7 @@ class PanelSlot:
     code = 'panel_slot'
 
     def render(self, override_card_context=None):
-        return mark_safe(SLOT_MARKER)
+        return mark_safe(slot_marker())
 
 
 def _add_slot(holder):
@@ -658,13 +683,14 @@ class PanelLayout:
         # registered in the view's cards while the page renders, and there is nothing for its
         # chrome to do here. So this needs no view, either.
         html = str(self._render_html())
-        count = html.count(SLOT_MARKER)
+        marker = slot_marker()
+        count = html.count(marker)
         if count != 1:
             where = 'no slot' if count == 0 else f'{count} slots'
             raise ValueError(
                 f'PanelLayout {self.layout_id!r} has {where}; render_around needs exactly one. Add one '
                 f'with region.add_slot() or tab.add_slot(), or {{% panel_slot %}} in a card template.')
-        before, after = html.split(SLOT_MARKER)
+        before, after = html.split(marker)
         return PanelLayoutParts(mark_safe(before), mark_safe(after))
 
     def render(self):
