@@ -1644,11 +1644,14 @@ class CardBase:
             extra_info['treegrid_js_filters_json'] = json_for_script(extra_info['treegrid_js_filters'])
             extra_info['treegrid_default_selected_json'] = json_for_script(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
-            # None unless given: the template draws 600px, and a treegrid placed in a panel region
-            # or tab takes 100% instead (panel_layout._fill_region_width), so a narrow region does
-            # not scroll the grid sideways under its splitter. A width given is kept everywhere,
-            # '' (no floor at all) included.
-            extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width')
+            # 600px unless given, and a treegrid placed in a panel region or tab with none given
+            # takes 100% instead (panel_layout._fill_region_width), so a narrow region does not
+            # scroll the grid sideways under its splitter. A width given is kept everywhere, ''
+            # (no floor at all) included. The value is always a width, so a project's own copy of
+            # the template, or code reading it, never meets an unset one.
+            given = kwargs.get('treegrid_min_width')
+            extra_info['treegrid_min_width'] = '600px' if given is None else given
+            extra_info['treegrid_min_width_given'] = given is not None
             # 'cell' (the default) lights the cell under the pointer, the cue for a grid edited in
             # place; 'row' lights the row, for one read a row at a time -- an editable cell in it
             # (it carries the pencil) keeps the cell cue as well.
@@ -3027,7 +3030,10 @@ class CardBase:
     def template_path(self):
         """The template file this card renders with: its ``template_name`` (or its type's default)
         through its own ``templates``, or the name itself where that is a path."""
-        name = self.template_name or self.template_defaults.get(self.group_type)
+        # As _render_template resolves it: the type's default only where no template_name is set.
+        name = self.template_name
+        if name is None:
+            name = self.template_defaults.get(self.group_type)
         entry = self.templates.get(name)
         return entry['name'] if entry is not None else name
 

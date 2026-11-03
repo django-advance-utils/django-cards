@@ -78,7 +78,7 @@ def _fill_region_width(card):
     """
     info = getattr(card, 'extra_card_info', None)
     if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
-            and info.get('treegrid_min_width') is None:
+            and not info.get('treegrid_min_width_given', True):
         info['treegrid_min_width'] = '100%'
 
 

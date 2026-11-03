@@ -45,6 +45,10 @@ def _table(html, name='grid'):
 
 class TestATreegridsWidth(SimpleTestCase):
 
+    def test_the_stored_width_is_always_a_width(self):
+        """A project's own copy of treegrid.html, or code reading it, never meets an unset one."""
+        self.assertEqual(_grid(_view()).extra_card_info['treegrid_min_width'], '600px')
+
     def test_600px_unless_given_outside_a_layout(self):
         for pack in PACKS:
             with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
