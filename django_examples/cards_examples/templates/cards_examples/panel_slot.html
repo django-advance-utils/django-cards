@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% load django_cards_tags %}
+
+{% block content %}
+{% panel_layout_around view.layout %}
+    <div class="p-3" id="slot-content">
+        <h4>Rendered by the page's template</h4>
+        <p>This is not a card: it is the template's own markup, placed in the layout's main
+           region by <code>{% templatetag openblock %} panel_layout_around {% templatetag closeblock %}</code>.
+           Drag the splitter to see it resize with the region.</p>
+    </div>
+{% endpanel_layout_around %}
+{% endblock %}
