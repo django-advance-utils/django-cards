@@ -1769,6 +1769,7 @@ class DashboardView(CardMixin, TemplateView):
 | `css_class` | str | `''` | Extra CSS classes on the layout container |
 | `css_style` | str | `''` | Extra inline styles on the layout container |
 | `persist` | bool | `True` | Save/restore panel sizes and collapse state to localStorage |
+| `scroll_cards` | bool | `False` | Every region card fills its region and scrolls its own body, so a long card keeps its header and tab bar in view |
 
 With `full_height=True` the layout is sized to what is left of the viewport below its own top edge,
 less whatever comes *after* it on the page — a breadcrumb, a footer — so those land on the bottom edge
@@ -2057,6 +2058,8 @@ class OrgTreeView(CardMixin, TemplateView):
 | `treegrid_data_url` | str | `''` | URL for a separate data endpoint (GET with `?parent=` param) |
 | `treegrid_static_data` | list | `None` | Inline static tree data (no AJAX) |
 | `treegrid_read_only` | bool | `True` | Disable inline editing |
+| `treegrid_hover` | str | `'cell'` | `'cell'` lights the cell under the pointer (for a grid edited in place); `'row'` lights the row (for one read a row at a time), an editable cell keeping its cell cue too |
+| `treegrid_min_width` | str | `None` | The table's minimum width. Left as None: 600px, or 100% in a panel layout region or tab, which can be dragged narrower |
 | `treegrid_height` | str | `'600px'` | CSS max-height of the scrollable table area |
 | `treegrid_indentation` | int | `20` | Pixels of indentation per tree level |
 | `treegrid_icon_map` | dict | `{}` | Maps node `data.type` → FontAwesome class |

@@ -572,7 +572,7 @@ class PanelLayout:
     def __init__(self, view=None, card_name='panel_layout', layout_id=None,
                  direction=PanelSplit.HORIZONTAL,
                  resizable=True, full_height=True, min_height='400px',
-                 css_class='', css_style='', persist=True):
+                 css_class='', css_style='', persist=True, scroll_cards=False):
         if layout_id is not None and layout_id in self.wrapper_ids(card_name):
             # The wrapper card takes `card_name` as its DOM id, and its body and reload
             # container ids from it; panel_layout.js finds the layout by id, taking the first
@@ -589,7 +589,9 @@ class PanelLayout:
         self.root = PanelSplit(direction=direction, resizable=resizable)
         self.full_height = full_height
         self.min_height = min_height
-        self.css_class = css_class
+        # scroll_cards: every region card fills its region and scrolls its own body, so a long card
+        # keeps its header and tab bar in view rather than the region scrolling them away.
+        self.css_class = f'{css_class} panel-layout--scroll-cards'.strip() if scroll_cards else css_class
         self.css_style = css_style
         self.linked_tables = None
         self.persist = persist
@@ -672,9 +674,15 @@ class PanelLayout:
         return [card for card in cards if not isinstance(card, PanelSlot)]
 
     def _render_html(self):
-        from cards.base import refuse_if_stacked
+        from cards.base import CARD_TYPE_TREEGRID, refuse_if_stacked
         for card in self.placed_cards():
             refuse_if_stacked(self.view, card, 'a panel layout region')
+            info = getattr(card, 'extra_card_info', None)
+            if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
+                    and info.get('treegrid_min_width') is None:
+                # A region can be dragged narrower than the 600px a treegrid otherwise keeps, and
+                # the grid would scroll sideways with its last column under the splitter.
+                info['treegrid_min_width'] = '100%'
         self._process_menus(self.root)
         context = self.get_render_html_context()
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))

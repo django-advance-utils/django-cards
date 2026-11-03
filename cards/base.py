@@ -1646,7 +1646,17 @@ class CardBase:
             extra_info['treegrid_js_filters_json'] = json_for_script(extra_info['treegrid_js_filters'])
             extra_info['treegrid_default_selected_json'] = json_for_script(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
-            extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width', '600px')
+            # None unless given: the template draws 600px, and a panel layout gives a treegrid in
+            # one of its regions 100% instead (PanelLayout._render_html), so a narrow region does
+            # not scroll the grid sideways under its splitter. A width given is kept everywhere.
+            extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width')
+            # 'cell' (the default) lights the cell under the pointer, the cue for a grid edited in
+            # place; 'row' lights the row, for one read a row at a time -- an editable cell in it
+            # (it carries the pencil) keeps the cell cue as well.
+            hover = kwargs.get('treegrid_hover', 'cell')
+            if hover not in ('cell', 'row'):
+                raise ValueError(f"treegrid_hover is 'cell' or 'row'; got {hover!r}")
+            extra_info['treegrid_hover'] = hover
 
     def add_boolean_entry(self, value, label=None, hidden=False, html_override=None,
                           entry_css_class=None, css_class=None,

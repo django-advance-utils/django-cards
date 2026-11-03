@@ -123,6 +123,18 @@
         background-color: #a2bbd333;
     }
 
+    /* treegrid_hover='row': the row lights, for a grid read a row at a time; a cell that can be
+       edited in place (it carries the pencil) keeps the cell cue on top of the row's. */
+    .fancytree-ext-table.treegrid--row-hover tbody td:hover {
+        background-color: transparent;
+    }
+    .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {
+        background-color: #a2bbd333;
+    }
+    .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td:has(.treegrid-edit-icon):hover {
+        background-color: #a2bbd366;
+    }
+
     /* Inline checkbox */
     .fancytree-ext-table .treegrid-checkbox {
         cursor: pointer;
