@@ -363,9 +363,10 @@ class BannerTile:
         action_label (str, optional): The footer button's text. No button without one.
         action_url (str, optional): Where the button goes. A plain href, so a ``javascript:``
             URL that opens a modal works as well as a real one.
-        action_css_class (str, optional): The button's classes. Defaults to
-            ``'btn btn-sm btn-outline-primary'`` in the compact layout and
-            ``'btn btn-primary'`` (full width) in the detail one.
+        action_css_class (str, optional): The button's classes. Left as None, they follow
+            the layout at render time: ``'btn btn-sm btn-outline-primary'`` in the compact
+            layout, ``'btn btn-primary'`` (full width) in the detail one, and each other
+            layout's own button style.
         css_class (str, optional): Extra classes on the tile.
         layout (str, optional): ``'compact'`` (the default) is the grid tile: stats in a row,
             the button in the footer. ``'detail'`` is the single-item sidebar: stats one per
@@ -467,16 +468,37 @@ class BannerTile:
     flow: list = field(default_factory=list)
     panel_icon: str = None
 
+    ACTION_CSS_CLASSES = {'detail': 'btn btn-primary',
+                          'highlight': 'btn django-card__banner-tile-highlight-action',
+                          'feature': 'btn django-card__banner-tile-feature-action',
+                          'plain': 'django-card__banner-tile-plain-action',
+                          'showcase': 'btn django-card__banner-tile-showcase-action',
+                          }
+
     def __post_init__(self):
         if self.layout not in self.LAYOUTS:
             raise ValueError(f'BannerTile layout is one of {self.LAYOUTS}; got {self.layout!r}')
-        if self.action_css_class is None:
-            self.action_css_class = {'detail': 'btn btn-primary',
-                                     'highlight': 'btn django-card__banner-tile-highlight-action',
-                                     'feature': 'btn django-card__banner-tile-feature-action',
-                                     'plain': 'django-card__banner-tile-plain-action',
-                                     'showcase': 'btn django-card__banner-tile-showcase-action',
-                                     }.get(self.layout, 'btn btn-sm btn-outline-primary')
+        # Check the list and number fields now, so bad input fails where the tile is built
+        # rather than as a 500 when the page renders -- whichever layout the tile has.
+        self.stat_items
+        self.point_items
+        self.progress_percent
+
+    @property
+    def action_classes(self):
+        """`action_css_class`, or the layout's default -- worked out here, not in __post_init__,
+        so a tile whose layout changes later (dataclasses.replace) gets that layout's button."""
+        if self.action_css_class is not None:
+            return self.action_css_class
+        return self.ACTION_CSS_CLASSES.get(self.layout, 'btn btn-sm btn-outline-primary')
+
+    @property
+    def heading(self):
+        """The tile's title: `title_html` as-is (see the class's warning), else `title`, which
+        the template escapes."""
+        if self.title_html:
+            return mark_safe(self.title_html)
+        return self.title
 
     @property
     def is_detail(self):
@@ -552,7 +574,14 @@ class BannerTile:
         """`progress` clamped to 0-100, so a bad figure cannot push the bar out of its track."""
         if self.progress is None:
             return None
-        return max(0, min(100, int(self.progress)))
+        try:
+            progress = float(self.progress)
+        except (TypeError, ValueError):
+            raise ValueError(f'BannerTile progress is a number from 0 to 100 or None; '
+                             f'got {self.progress!r}') from None
+        if progress != progress:  # NaN
+            raise ValueError('BannerTile progress is a number from 0 to 100 or None; got NaN')
+        return int(max(0, min(100, progress)))  # clamp first: int() of an infinity raises
 
     @property
     def has_footer(self):
@@ -2155,7 +2184,7 @@ class CardBase:
         self.requires_card_css = True
         return self
 
-    def add_banner_tiles(self, tiles, empty_message=None, width=None, slider=False):
+    def add_banner_tiles(self, tiles, empty_message=None, width=None, slider=None):
         """Render the card's body as a grid of :class:`BannerTile` cards.
 
         The card it is called on is the master card -- its header, menu and footer stay as
@@ -2189,13 +2218,14 @@ class CardBase:
             empty_message (str, optional): Shown in place of the grid when there are no tiles.
             width (str, optional): The width of one tile, as a CSS length. Defaults to the
                 stylesheet's 260px. A feature tile's width is set by the stylesheet instead.
-            slider (bool, optional): Lay the tiles out as a slider rather than a grid.
+            slider (bool, optional): True lays the tiles out as a slider, False as a grid.
+                Left as None, it keeps what an earlier call set (a grid if none did).
 
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
-        if slider:
-            self.extra_card_info['banner_tiles_slider'] = True
+        if slider is not None:
+            self.extra_card_info['banner_tiles_slider'] = bool(slider)
         self.extra_card_info.setdefault('banner_tiles', []).extend(
             BannerTile.build(tile) for tile in tiles)
         if empty_message is not None:

@@ -1170,7 +1170,7 @@ card.add_banner_tiles(
 | `tiles` | list | required | `BannerTile` objects, or dicts of the same fields |
 | `empty_message` | str | `None` | Shown in place of the tiles when there are none. Nothing is drawn without one |
 | `width` | str | `260px` | The width of one grid tile, as a CSS length |
-| `slider` | bool | `False` | Lay the tiles out as a slider rather than a grid |
+| `slider` | bool | `None` | `True` for a slider, `False` for a grid; `None` keeps what an earlier call set (a grid if none did) |
 
 As with `add_tiles()`, it sets the card's template, adds to the tiles when called more than once,
 and returns the card so the call can be chained onto `add_card()`. For a single tile with no box

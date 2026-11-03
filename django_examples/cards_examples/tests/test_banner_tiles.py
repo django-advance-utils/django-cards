@@ -1,4 +1,6 @@
 """add_banner_tiles(): a master card whose body is a grid of larger banner tiles."""
+import dataclasses
+import os
 import re
 
 from django.test import RequestFactory, TestCase
@@ -6,6 +8,10 @@ from django.utils.html import format_html
 from django.views.generic import TemplateView
 
 from cards.standard import CardMixin, BannerTile
+
+
+_TEMPLATES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))), "cards", "templates", "cards")
 
 
 class _BannerTileCardView(CardMixin, TemplateView):
@@ -322,3 +328,61 @@ class TestBannerTileShowcaseLayout(TestCase):
     def test_a_malformed_point_raises(self):
         with self.assertRaises(ValueError):
             self.render([self.showcase(points=['just text'])])
+
+
+class TestBannerTileReviewFixes(TestCase):
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def test_bad_progress_fails_when_the_tile_is_built(self):
+        for progress in ('50%', float('nan'), object()):
+            with self.subTest(progress=progress), self.assertRaises(ValueError):
+                BannerTile(key='c', title='T', progress=progress)
+
+    def test_progress_clamps_an_infinity_and_accepts_a_numeric_string(self):
+        self.assertEqual(BannerTile(key='c', progress=float('inf')).progress_percent, 100)
+        self.assertEqual(BannerTile(key='c', progress='42.7').progress_percent, 42)
+
+    def test_bad_stats_and_points_fail_when_the_tile_is_built_in_any_layout(self):
+        with self.assertRaises(ValueError):
+            BannerTile(key='c', stats=[('a', 'b', 'c')])
+        with self.assertRaises(ValueError):
+            BannerTile(key='c', points=['just text'])   # compact, which never draws points
+
+    def test_the_button_follows_a_layout_changed_after_construction(self):
+        tile = dataclasses.replace(BannerTile(key='c', title='T'), layout='highlight')
+        self.assertEqual(tile.action_classes, 'btn django-card__banner-tile-highlight-action')
+        tile.layout = 'detail'
+        self.assertEqual(tile.action_classes, 'btn btn-primary')
+        self.assertEqual(BannerTile(key='c', layout='detail', action_css_class='x').action_classes, 'x')
+
+    def test_a_highlight_icon_without_a_label_is_drawn(self):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles([BannerTile(key='h', layout='highlight', title='T',
+                                          banner_icon='fas fa-route')])
+        self.assertIn('<i class="fas fa-route"></i></div>', card.render())
+
+    def test_a_later_call_can_turn_the_slider_off_and_none_keeps_it(self):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles([BannerTile(key='a')], slider=True)
+        card.add_banner_tiles([BannerTile(key='b')])
+        self.assertTrue(card.extra_card_info['banner_tiles_slider'])
+        card.add_banner_tiles([BannerTile(key='c')], slider=False)
+        self.assertNotIn('django-card__banner-tiles--slider', card.render())
+
+    def test_heading_escapes_title_and_passes_title_html(self):
+        self.assertEqual(str(BannerTile(key='c', title='<b>x</b>').heading), '<b>x</b>')
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles([BannerTile(key='a', title='<b>x</b>'),
+                               BannerTile(key='b', title_html=format_html('<em>{}</em>', 'y'))])
+        html = card.render()
+        self.assertIn('&lt;b&gt;x&lt;/b&gt;', html)
+        self.assertIn('<em>y</em>', html)
+
+    def test_both_packs_share_one_tiles_body(self):
+        for pack in ('bootstrap4', 'bootstrap5'):
+            with open(f'{_TEMPLATES}/{pack}/standard/banner_tiles.html') as f:
+                source = f.read()
+            self.assertIn("{% include 'cards/standard/_banner_tiles_body.html' %}", source)
+            self.assertNotIn('tile.', source)

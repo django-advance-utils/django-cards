@@ -9,16 +9,22 @@
     var next = slider.querySelector('.django-card__banner-tile-slider-arrow--next');
     var dots = slider.querySelectorAll('.django-card__banner-tile-slider-dots button');
     var slides = function () { return track.querySelectorAll(':scope > .django-card__banner-tile'); };
-    // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft less that.
-    var restingLeft = function (slide) { return slide.offsetLeft - parseFloat(getComputedStyle(track).paddingLeft); };
+    // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft
+    // less that. The padding is read once per call below, not once per slide.
+    var padding = function () { return parseFloat(getComputedStyle(track).paddingLeft) || 0; };
+    var overflows = function () { return track.scrollWidth - track.clientWidth > 1; };
+    var atEnd = function () { return track.scrollLeft + track.clientWidth >= track.scrollWidth - 1; };
 
     function current() {
-        var items = slides(), best = 0;
-        for (var i = 1; i < items.length; i++) {
-            if (Math.abs(restingLeft(items[i]) - track.scrollLeft) < Math.abs(restingLeft(items[best]) - track.scrollLeft)) { best = i; }
+        var items = slides(), pad = padding(), best = 0, bestDistance = Infinity;
+        for (var i = 0; i < items.length; i++) {
+            var distance = Math.abs(items[i].offsetLeft - pad - track.scrollLeft);
+            if (distance < bestDistance) { best = i; bestDistance = distance; }
         }
-        // At the end of the track the last slides may never reach its left edge, so the last dot would never light.
-        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 1) { best = items.length - 1; }
+        // At the end of the track the last slides may never reach its left edge, so the last dot
+        // would never light. Only when the track scrolls at all: when every slide fits it is at
+        // its start and its end at once, and the first dot is the right one.
+        if (overflows() && atEnd()) { best = items.length - 1; }
         return best;
     }
 
@@ -26,17 +32,17 @@
         var items = slides();
         if (!items.length) { return; }
         index = Math.max(0, Math.min(items.length - 1, index));
-        track.scrollTo({left: restingLeft(items[index]), behavior: 'smooth'});
+        track.scrollTo({left: items[index].offsetLeft - padding(), behavior: 'smooth'});
     }
 
     // The arrows step to the nearest slide starting before or after where the track is, not to
     // current() +/- 1: with several slides on screen the track can be at its end with current()
     // on the last dot, and the slide before that may start beyond where the track can scroll.
     function step(direction) {
-        var items = slides(), left = track.scrollLeft;
+        var items = slides(), pad = padding(), left = track.scrollLeft;
         for (var i = 0; i < items.length; i++) {
             var j = direction > 0 ? i : items.length - 1 - i;
-            var resting = restingLeft(items[j]);
+            var resting = items[j].offsetLeft - pad;
             if (direction > 0 ? resting > left + 1 : resting < left - 1) { go(j); return; }
         }
     }
@@ -45,7 +51,7 @@
         var index = current();
         dots.forEach(function (dot, i) { dot.classList.toggle('active', i === index); });
         prev.disabled = track.scrollLeft <= 1;
-        next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+        next.disabled = !overflows() || atEnd();
     }
 
     prev.addEventListener('click', function () { step(-1); });
@@ -57,7 +63,25 @@
         pending = true;
         requestAnimationFrame(function () { pending = false; update(); });
     });
-    window.addEventListener('resize', update);
+
+    // Watch the track's own size rather than the window's: it also changes when a collapsed card,
+    // tab or modal holding the slider is first shown, which fires no window resize, and a slider
+    // hidden at load measures 0 wide. A reload of the card replaces this slider and runs this
+    // script again, so each listener lets go once its slider has left the page; otherwise every
+    // reload would leave one behind, holding the old slider in memory.
+    if (window.ResizeObserver) {
+        var observer = new ResizeObserver(function () {
+            if (!slider.isConnected) { observer.disconnect(); return; }
+            update();
+        });
+        observer.observe(track);
+    } else {
+        var onResize = function () {
+            if (!slider.isConnected) { window.removeEventListener('resize', onResize); return; }
+            update();
+        };
+        window.addEventListener('resize', onResize);
+    }
     update();
 })();
 </script>
