@@ -654,7 +654,7 @@ class TestReviewNineFixes(SimpleTestCase):
         contact, _tags, _site = _cards(view)
         stack = view.add_card('customer', title='Customer').add_sections([contact])
         stack.extra_card_info['datatable'] = object()  # as add_table() leaves it
-        with self.assertRaisesMessage(ValueError, 'a table or tiles'):
+        with self.assertRaisesMessage(ValueError, 'a body of its own after it'):
             stack.render()
 
     def test_one_renderer_serves_every_add_sections_call(self):
@@ -794,3 +794,25 @@ class TestFollowUp(SimpleTestCase):
     def test_a_click_on_the_bars_free_space_folds_and_the_controls_are_left_alone(self):
         script = render_to_string('cards/standard/_section_stack_script.html')
         self.assertIn("event.target.closest('.django-card__section-toggle, .django-card__section-menu')", script)
+
+
+class TestFollowUpReview(SimpleTestCase):
+
+    def test_a_header_controls_template_added_later_counts(self):
+        view = _view()
+        rows = view.add_card('rows', title='Rows', template_name='late', searchable=True)
+        rows.add_entry(value='x', label='X')
+        CardBase.templates['late'] = {'name': 'cards/standard/table.html', 'header_controls': True}
+        try:
+            self.assertTrue(CardSection(rows).full_controls)
+        finally:
+            del CardBase.templates['late']
+        self.assertFalse(CardSection(rows).full_controls)
+
+    def test_a_stack_card_made_empty_after_says_what_happened(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        stack.is_empty = True
+        with self.assertRaisesMessage(ValueError, 'made empty'):
+            stack.render()

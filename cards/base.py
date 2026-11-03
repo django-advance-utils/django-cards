@@ -1,6 +1,5 @@
 import _string
 import datetime
-import functools
 import json
 import math
 import re
@@ -672,9 +671,9 @@ class CardSection:
             'full_controls': full_controls}))
 
 
-@functools.lru_cache(maxsize=None)
 def _header_control_templates():
-    """The paths of cards' own templates that draw search and export (``'header_controls'``)."""
+    """The paths of cards' own templates that draw search and export (``'header_controls'``). Read
+    each time, so an entry a project adds to ``CardBase.templates`` later counts."""
     return frozenset(entry['name'] for entry in CardBase.templates.values() if entry.get('header_controls'))
 
 
@@ -698,8 +697,9 @@ def build_sections(entries, register=True):
 
 SECTION_SCRIPT_MARK = '_django_cards_section_script_rendered'
 
-#: Where a view keeps the section stacks built on it this build, each a list of sections: what says
-#: a card is in a stack already, and where an ajax reload finds a card's section. ``build_cards``
+#: Where a view keeps what it built this build (`_this_build`): ``(cards dict, {'stacks': [...],
+#: 'layouts': [...]})`` -- its section stacks, each a list of sections, and its panel layouts. What
+#: says a card is placed already, and where an ajax reload finds a card's section. ``build_cards``
 #: starts it again, so it only ever holds the cards of the build in hand.
 SECTION_STACKS = '_django_cards_section_stacks'
 
@@ -713,9 +713,14 @@ def _this_build(view):
     kept = getattr(view, SECTION_STACKS, None)
     cards = getattr(view, 'cards', None)
     if kept is None or kept[0] is not cards:
-        kept = (cards, {'stacks': [], 'layouts': []})
-        setattr(view, SECTION_STACKS, kept)
+        kept = _new_build(view)
     return kept[1]
+
+
+def _new_build(view):
+    kept = (getattr(view, 'cards', None), {'stacks': [], 'layouts': []})
+    setattr(view, SECTION_STACKS, kept)
+    return kept
 
 
 def _stacks(view):
@@ -735,7 +740,7 @@ def register_panel_layout(view, layout):
 def reset_section_stacks(view):
     """Start what ``view`` keeps of the build again: ``CardMixin.build_cards`` does, so building the
     cards a second time into the same ``cards`` dict does not find the first build's stacks."""
-    setattr(view, SECTION_STACKS, (getattr(view, 'cards', None), {'stacks': [], 'layouts': []}))
+    _new_build(view)
 
 
 def _register_stack(view, sections):
@@ -827,8 +832,9 @@ def own_stack_id(sections):
 
 def has_own_body(card):
     """Whether ``card`` already has a body a section stack would take the place of: an empty card's
-    message, rows, a datatable, tiles or banner tiles, a template it was given, or a type other
-    than a standard card."""
+    message, rows, a datatable, tiles or banner tiles, or a type other than a standard card. A
+    ``template_name`` it was given is the caller's to check (``add_sections`` does): a stack card
+    has one of its own."""
     info = getattr(card, 'extra_card_info', None) or {}
     return bool(getattr(card, 'is_empty', False) or card.group_type != CARD_TYPE_STANDARD or card.rows
                 or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles'))
@@ -905,8 +911,9 @@ class _SectionsHtml:
         if has_own_body(card):
             # Another body added some way the add_* methods do not guard: the stack is the body,
             # and the html template that draws it has no place for another.
-            raise ValueError(f'Card {card.code!r} holds a section stack, and rows, a table or tiles were '
-                             f'added to it too; put them in a card of their own in the stack')
+            raise ValueError(f'Card {card.code!r} holds a section stack, and was also given a body of its own '
+                             f'after it (rows, a table, tiles, or made empty or another type); put that '
+                             f'in a card of its own in the stack')
         # Again now, against every card the view ended up with: one added after add_sections(),
         # later in setup_cards() or in cards_ready(), could take a section's id.
         check_section_ids(card, sections, {stack_id(card)})
