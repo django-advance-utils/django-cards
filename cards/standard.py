@@ -194,6 +194,7 @@ class CardMixin:
                  title=None,
                  menu=None,
                  tab_menu=None,
+                 sub_tab_menu=None,
                  scrollable_tab_menu=False,
                  template_name=None,
                  call_details_data=False,
@@ -229,6 +230,8 @@ class CardMixin:
             title (str, optional): Title text shown on the card.
             menu (list, optional): A list of menu actions associated with the card.
             tab_menu (list, optional): A list of tabbed menu items for the card.
+            sub_tab_menu (list, optional): A second, quieter row of tabs under ``tab_menu``; left
+                out when it has one visible tab or none.
             template_name (str, optional): The template path to use for rendering the card.
             call_details_data (bool, optional): Whether to invoke a method to populate additional card data. Defaults to False.
             group_type (str, optional): Type or layout category for the card. Defaults to CARD_TYPE_STANDARD.
@@ -266,6 +269,7 @@ class CardMixin:
                              title=title,
                              menu=menu,
                              tab_menu=tab_menu,
+                             sub_tab_menu=sub_tab_menu,
                              scrollable_tab_menu=scrollable_tab_menu,
                              template_name=template_name,
                              call_details_data=call_details_data,

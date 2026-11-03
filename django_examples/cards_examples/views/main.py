@@ -67,6 +67,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
 
     def setup_cards(self):
         self.add_welcome_card()
+        self.add_sub_tabs_card()
         self.add_split_card()
         self.add_table_multiple_columns()
         self.add_other_card()
@@ -83,7 +84,7 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
         self.add_menu_items_card()
         self.add_warning_message_card()
 
-        self.add_card_group('welcome', 'split', 'table_multiple_columns',
+        self.add_card_group('welcome', 'sub_tabs', 'split', 'table_multiple_columns',
                             'other', 'person', 'multi_fields_example', collapsed_card,
                             div_css_class=col('col-6', self.request), )
         self.add_card_group('company', 'companies', 'no_model', 'test_error_not_found',
@@ -102,6 +103,16 @@ class ExampleCardsIndex(MainMenu, CardMixin, TemplateView):
                     ('cards_examples:groups', 'Groups')]
         card = self.add_card('welcome', title='Welcome', menu=menu, tab_menu=tab_menu)
         card.add_entry(value='sample text', label='Sample')
+
+    def add_sub_tabs_card(self):
+        # A second row of tabs under the first: the pages under the top tab in view.
+        tab_menu = [('cards_examples:index', 'Home'),
+                    ('cards_examples:groups', 'Groups')]
+        sub_tab_menu = [('cards_examples:groups', 'Overview'),
+                        ('cards_examples:new_features', 'New features'),
+                        ('cards_examples:tiles', 'Tiles')]
+        card = self.add_card('sub_tabs', title='Sub tabs', tab_menu=tab_menu, sub_tab_menu=sub_tab_menu)
+        card.add_entry(value='A second, quieter row of tabs under the first', label='sub_tab_menu')
 
     def add_split_card(self):
         card = self.add_card('split', title='Split Column', collapsed=False)
