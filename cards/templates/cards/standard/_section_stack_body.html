@@ -1,0 +1,21 @@
+{# The folding sections of an add_sections() card, shared by both packs (none of it is   #}
+{# Bootstrap-version-specific). `sections` is a list of cards.base.CardSection; include this #}
+{# with sections=build_sections(cards) to put a stack inside a template of your own.        #}
+{# The menu sits beside the toggle, not inside it: a button may not hold links or buttons. #}
+<div class="django-card__sections">
+    {% for section in sections %}
+    <div class="django-card__section{% if section.folded %} django-card__section--folded{% endif %}" id="{{ section.id }}">
+        <div class="django-card__section-header{% if section.has_menu %} django-card__section-header--has-menu{% endif %}">
+            <button type="button" class="django-card__section-toggle"
+                    aria-expanded="{% if section.folded %}false{% else %}true{% endif %}"
+                    aria-controls="{{ section.id }}_body"
+                    onclick="this.setAttribute('aria-expanded', !this.closest('.django-card__section').classList.toggle('django-card__section--folded'));">
+                <span class="django-card__section-title">{{ section.title }}</span>
+                <i class="fas fa-chevron-down django-card__section-chevron" aria-hidden="true"></i>
+            </button>
+            {% if section.has_menu %}<span class="django-card__section-menu">{{ section.menu.render }}</span>{% endif %}
+        </div>
+        <div class="django-card__section-body" id="{{ section.id }}_body">{{ section.render_body }}</div>
+    </div>
+    {% endfor %}
+</div>

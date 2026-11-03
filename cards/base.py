@@ -538,6 +538,72 @@ class Tile:
 
 
 @dataclass
+class CardSection:
+    """One folding section of an :meth:`CardBase.add_sections` stack: a card under a header.
+
+    The header is a toggle holding the section's title and a chevron, with the card's own menu
+    beside it -- never inside it, as a button may not hold links or other buttons. The card's own
+    header is switched off for its body (``show_header=False`` in the render, not on the card), so
+    the section's is the only one it shows.
+
+    Args:
+        card (CardBase): The card whose body is the section's.
+        title (str, optional): The header's text. Defaults to the card's title. Escaped unless
+            marked safe.
+        menu (HtmlMenu, optional): Buttons beside the toggle. Defaults to the card's own menu.
+        folded (bool, optional): Whether it starts folded. Defaults to whether the card is empty
+            (``add_card(is_empty=True)``), so a section with nothing in it starts out of the way.
+    """
+
+    card: object
+    title: object = None
+    menu: object = None
+    folded: bool = None
+
+    def __post_init__(self):
+        # A title given here is escaped by the template's {{ }} unless marked safe; the card's own
+        # was made text-unless-marked-safe when the card was built.
+        if self.title is None:
+            self.title = getattr(self.card, 'title', None)
+        if self.menu is None:
+            self.menu = getattr(self.card, 'menu', None)
+        if self.folded is None:
+            self.folded = bool(getattr(self.card, 'is_empty', False))
+
+    @classmethod
+    def build(cls, entry):
+        """A section from a card, a dict of these fields, or a section; ``None`` for ``None``."""
+        if entry is None or isinstance(entry, cls):
+            return entry
+        if isinstance(entry, dict):
+            return cls(**entry)
+        return cls(card=entry)
+
+    @property
+    def id(self):
+        return f'{self.card.code}_section'
+
+    @property
+    def has_menu(self):
+        items = getattr(self.menu, 'menu_items', None)
+        return bool(self.menu) and (items is None or bool(items))
+
+    def render_body(self):
+        return self.card.render({'show_header': False})
+
+
+def build_sections(entries):
+    """:class:`CardSection` objects for ``entries`` (cards, dicts or sections), skipping ``None``.
+
+    A builder that decided it had nothing to add can hand back ``None`` in its place; it is left
+    out, as a card group leaves one out. For a template of an application's own that wants the
+    sections without a card around them: include ``cards/standard/_section_stack_body.html`` with
+    ``sections=build_sections(cards)``.
+    """
+    return [section for section in (CardSection.build(entry) for entry in entries or ()) if section is not None]
+
+
+@dataclass
 class BannerTile:
     """One card in an :meth:`CardBase.add_banner_tiles` grid -- a large tile with a banner.
 
@@ -952,6 +1018,9 @@ class CardBase:
                  'tiles': {'name': 'cards/standard/tiles.html',
                            'context': {'card_css_class': 'card django-card',
                                        'card_body_css_class': 'card-body cards-list'}},
+                 'section_stack': {'name': 'cards/standard/section_stack.html',
+                                   'context': {'card_css_class': 'card django-card',
+                                               'card_body_css_class': 'card-body p-0'}},
                  'banner_tiles': {'name': 'cards/standard/banner_tiles.html',
                                   'context': {'card_css_class': 'card django-card',
                                               'card_body_css_class': 'card-body cards-list'}},
@@ -2525,6 +2594,33 @@ class CardBase:
         if width is not None:
             self.extra_card_info['banner_tiles_width'] = width
         self.template_name = 'banner_tiles'
+        self.requires_card_css = True
+        return self
+
+    def add_sections(self, cards):
+        """Make this card's body a stack of folding sections, one per card in ``cards``.
+
+        For a record's sidebar -- contact, site, tags, priority -- where each part is a card of its
+        own but a page of full cards is too much: each becomes a header the reader can fold, its
+        title and menu taken from the card, its body the card's without its header::
+
+            card = self.add_card('customer', title='Customer')
+            card.add_sections([contact_card, site_card, tags_card])
+
+        A card added empty (``add_card(is_empty=True)``) starts folded. ``None`` entries are
+        skipped, and a dict of :class:`CardSection` fields (``{'card': c, 'folded': True}``) sets
+        a section's title, menu or folding by hand. The sections fold in the browser and do not
+        remember it across page loads.
+
+        Like add_banner_tiles, this sets the card's template (replacing any template_name given to
+        add_card()), and called more than once it adds to the stack. Chrome is in
+        ``cards/css/cards.css`` (``.django-card__section*``).
+
+        Returns:
+            CardBase: The card, so the call can be chained onto add_card().
+        """
+        self.extra_card_info.setdefault('sections', []).extend(build_sections(cards))
+        self.template_name = 'section_stack'
         self.requires_card_css = True
         return self
 

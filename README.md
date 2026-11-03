@@ -1127,6 +1127,33 @@ optional ones, both shapes above, and the empty state.
 
 ---
 
+## Sections
+
+`card.add_sections(cards)` makes a card's body a stack of folding sections, one per card -- for a
+record's sidebar (contact, site, tags, priority) where each part is a card of its own but a page of
+full cards is too much:
+
+```python
+contact = self.add_card('contact', title='Contact', menu=[MenuItem('contact_edit', menu_display='Edit')])
+contact.add_rows('name', 'phone')
+tags = self.add_card('tags', title='Tags', is_empty=True, empty_message='No tags yet')
+
+self.add_card('customer', title='Customer').add_sections([contact, site_card, tags])
+```
+
+- Each section's header is a toggle holding the card's title and a chevron, with the card's own
+  menu beside it (outside the button, which may not hold other controls). Its body is the card
+  rendered without its own header; the card itself is not changed, so it can be shown elsewhere too.
+- A card added empty (`is_empty=True`) starts folded. `None` entries are skipped, so a builder that
+  had nothing to add can hand one back.
+- A dict sets a section by hand: `{'card': card, 'title': 'Contact', 'menu': menu, 'folded': True}`.
+- The sections fold in the browser and do not remember it across page loads.
+- For a template of your own, include `cards/standard/_section_stack_body.html` with
+  `sections=build_sections(cards)` (`from cards.standard import build_sections`).
+
+Chrome is in `cards/css/cards.css` (`.django-card__section*`); retint the titles with
+`--django-card-section-title-color`. The example app's Groups page has one.
+
 ## Banner Tiles
 
 `add_banner_tiles()` makes a card a master card whose body is a set of larger cards: courses,

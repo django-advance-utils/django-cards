@@ -1072,3 +1072,83 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     border-bottom-color: currentColor;
     background: none;
 }
+
+/* card.add_sections(cards): a card whose body is a stack of folding sections, one per card --
+ * a header the reader folds (title, chevron) with the card's own menu beside it, over the card's
+ * body without its header. The toggle is a native button across the header; the menu sits over
+ * its right end, outside it in the markup, since a button may not hold links or buttons.
+ * Retint with --django-card-section-title-color. */
+.django-card__section + .django-card__section {
+    border-top: 1px solid var(--django-card-border-color, #dee2e6);
+}
+
+.django-card__section-header {
+    position: relative;
+}
+
+.django-card__section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    background: none;
+    color: var(--django-card-section-title-color, #6c757d);
+    font: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    cursor: pointer;
+}
+
+.django-card__section-toggle:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+}
+
+.django-card__section-title {
+    flex: 1 1 auto;
+}
+
+/* Room for the menu, which sits over the toggle's right end just before the chevron. */
+.django-card__section-header--has-menu .django-card__section-title {
+    margin-right: 2.5rem;
+}
+
+.django-card__section-menu {
+    position: absolute;
+    top: 50%;
+    right: 2rem;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.django-card__section-menu .btn {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.django-card__section-chevron {
+    transition: transform 0.15s ease;
+}
+
+.django-card__section--folded .django-card__section-chevron {
+    transform: rotate(-90deg);
+}
+
+.django-card__section--folded .django-card__section-body {
+    display: none;
+}
+
+/* A section's card is the section's body, not a card of its own: no box around it. */
+.django-card__section-body > .card,
+.django-card__section-body > div > .card {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
