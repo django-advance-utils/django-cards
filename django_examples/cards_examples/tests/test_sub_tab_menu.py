@@ -4,7 +4,9 @@ A group of pages under a top tab -- Summary, Items, Money, and under Summary its
 Settings -- wants a second row. A card has one ``tab_menu``, which every card template prints, so
 the second row rides on it: ``TabMenuWithSubRow`` renders the top menu and then the sub menu in a
 ``django-card__sub-tabs`` row, styled in ``cards.css``. A sub row of one tab repeats the tab it sits
-under, so it is left out, and so is one of none; tabs switched off by ``visible`` do not count.
+under, so it is left out, and so is one of none. That is counted as the row renders, the way
+django-menus decides which tabs to draw: a tab hidden by ``visible`` or a view's permissions does
+not count, and one added after the card was built does.
 """
 import copy
 
@@ -82,15 +84,37 @@ class TestASubRow(SimpleTestCase):
                     _tabs('Overview') + _tabs('Settings', visible=lambda request: False)):
             with self.subTest(sub=sub):
                 card = _view().add_card('probe', title='Probe', tab_menu=_tabs(*TOP), sub_tab_menu=sub)
-                self.assertNotIsInstance(card.tab_menu, TabMenuWithSubRow)
                 html = card.render()
                 self.assertEqual(_sub_rows(html), [], html)
-                self.assertNotIn('cards/css/cards.css', html)
+                self.assertEqual(len(_Page(html).find('b', **{'class': 'top-tab'})), 3, html)
+
+    def test_a_tab_the_user_may_not_see_does_not_count(self):
+        """Counted as django-menus draws: by test_visible, which applies a view's permissions."""
+        class Forbidden(HtmlMenuItem):
+            def test_visible(self, request):
+                self.visible = False
+                return False
+
+        sub = _tabs('Overview') + [Forbidden('<b class="sub-tab">Settings</b>')]
+        html = _view().add_card('probe', title='Probe', tab_menu=_tabs(*TOP), sub_tab_menu=sub).render()
+        self.assertEqual(_sub_rows(html), [], html)
+
+    def test_no_top_tab_draws_no_second_row(self):
+        for top in ([], _tabs(*TOP, visible=False)):
+            with self.subTest(top=top):
+                html = _view().add_card('probe', title='Probe', tab_menu=top, sub_tab_menu=_tabs(*SUB)).render()
+                self.assertEqual(_sub_rows(html), [], html)
+
+    def test_tabs_added_after_the_card_is_built_count(self):
+        card = _view().add_card('probe', title='Probe', tab_menu=_tabs(*TOP), sub_tab_menu=_tabs('Overview'))
+        self.assertEqual(_sub_rows(card.render()), [])
+        card.tab_menu.sub_menu.add_items(*_tabs('Settings', cls='sub-tab'))
+        self.assertEqual(len(_sub_rows(card.render())), 1)
 
     def test_a_tab_visible_by_a_callable_counts(self):
         sub = _tabs('Overview') + _tabs('Settings', visible=lambda request: True)
         card = _view().add_card('probe', title='Probe', tab_menu=_tabs(*TOP), sub_tab_menu=sub)
-        self.assertIsInstance(card.tab_menu, TabMenuWithSubRow)
+        self.assertEqual(len(_sub_rows(card.render())), 1)
 
     def test_a_sub_row_needs_a_tab_bar_to_sit_under(self):
         with self.assertRaises(ValueError):
@@ -121,20 +145,27 @@ class TestTabMenuWithSubRow(SimpleTestCase):
         top, sub = self._Menu('<ul>top</ul>'), self._Menu('<ul>sub</ul>')
         return top, sub, TabMenuWithSubRow(top, sub)
 
-    def test_writes_reads_and_deletes_reach_the_top_menu(self):
+    def test_a_setting_reaches_both_rows(self):
+        """So the two rows match the url the same way."""
         top, sub, wrapped = self.wrapped()
         wrapped.compare_full_path = True
         self.assertTrue(top.compare_full_path)
-        self.assertFalse(sub.compare_full_path)
+        self.assertTrue(sub.compare_full_path)
         self.assertTrue(wrapped.compare_full_path)
         del wrapped.compare_full_path
         self.assertFalse(hasattr(top, 'compare_full_path'))
+        self.assertFalse(hasattr(sub, 'compare_full_path'))
 
-    def test_the_sub_menu_is_reachable(self):
-        _top, sub, wrapped = self.wrapped()
+    def test_the_sub_menu_can_be_read_and_replaced(self):
+        top, sub, wrapped = self.wrapped()
         self.assertIs(wrapped.sub_menu, sub)
+        other = self._Menu('<ul>other</ul>')
+        wrapped.sub_menu = other
+        self.assertIs(wrapped.sub_menu, other)
+        self.assertFalse(hasattr(top, 'sub_menu'))
 
     def test_it_can_be_copied(self):
         _top, _sub, wrapped = self.wrapped()
         for clone in (copy.copy(wrapped), copy.deepcopy(wrapped)):
-            self.assertIn('<ul>sub</ul>', clone.render())
+            self.assertIs(type(clone.sub_menu), self._Menu)
+            self.assertIn('<ul>top</ul>', clone.render())

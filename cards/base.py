@@ -212,7 +212,7 @@ class _MenuWrapper:
     tab came back active). The names in ``_OWN`` are the wrapper's own.
     """
 
-    _OWN = frozenset({'_menu', '_sub_menu'})
+    _OWN = frozenset({'_menu'})
 
     def __init__(self, html_menu):
         object.__setattr__(self, '_menu', html_menu)
@@ -239,15 +239,19 @@ class _MenuWrapper:
 
 
 def visible_menu_items(menu):
-    """The items of ``menu`` that will be drawn: those not switched off by ``visible``.
+    """The items of ``menu`` that will be drawn, decided as django-menus decides when it renders.
 
-    ``visible`` may be a callable of the request, which django-menus resolves (``resolve_visible``)
-    and which is truthy as it stands, so it is resolved here the same way.
+    ``test_visible(request)`` is what ``HtmlMenu.render`` asks of each item: it resolves a callable
+    ``visible`` and, for a link, the target view's ``view_permission`` and the current view's
+    ``menu_permissions``. An item without it (a stand-in) is read by its ``visible`` alone.
     """
     request = getattr(menu, 'request', None)
     items = []
     for item in getattr(menu, 'menu_items', None) or ():
-        visible = item.resolve_visible(request) if hasattr(item, 'resolve_visible') else getattr(item, 'visible', True)
+        if hasattr(item, 'test_visible'):
+            visible = item.test_visible(request) and item.visible
+        else:
+            visible = getattr(item, 'visible', True)
         if visible:
             items.append(item)
     return items
@@ -259,12 +263,19 @@ class TabMenuWithSubRow(_MenuWrapper):
     For a group of pages under a top tab (Summary, Items, Money... and under Summary its own
     Summary and Settings). A card carries one ``tab_menu``, which every card template prints, so
     this renders both rows from that one slot: the top menu as it is, then the sub menu in a
-    ``django-card__sub-tabs`` row styled in ``cards.css``. Everything else -- reads, writes,
-    deletes -- passes to the top menu, which also composes with :class:`ScrollableTabMenu`.
+    ``django-card__sub-tabs`` row styled in ``cards.css``. It composes with
+    :class:`ScrollableTabMenu`, which then holds the top row only.
 
-    Built by ``add_card(sub_tab_menu=...)``, which leaves a sub row of one tab or none out: a
-    single tab repeats the top tab it sits under and is noise.
+    Whether the second row is drawn is decided when it renders, as django-menus decides which
+    tabs to draw: only when the top row shows a tab and the sub row shows two or more. A single
+    sub tab repeats the top tab it sits under and is noise; and a tab hidden by ``visible`` or a
+    view's permissions, or one added to the menu after the card was built, counts as it will draw.
+
+    Reads pass to the top menu; a setting written through it (``compare_full_path``) is written to
+    both rows, so the two match the url the same way; ``sub_menu`` reads and replaces the second.
     """
+
+    _OWN = _MenuWrapper._OWN | {'_sub_menu'}
 
     def __init__(self, html_menu, sub_menu):
         super().__init__(html_menu)
@@ -274,9 +285,28 @@ class TabMenuWithSubRow(_MenuWrapper):
     def sub_menu(self):
         return self._sub_menu
 
+    def __setattr__(self, name, value):
+        if name == 'sub_menu':
+            object.__setattr__(self, '_sub_menu', value)
+        elif name in self._OWN:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._menu, name, value)
+            setattr(self._sub_menu, name, value)
+
+    def __delattr__(self, name):
+        if name in self._OWN:
+            object.__delattr__(self, name)
+        else:
+            delattr(self._menu, name)
+            if hasattr(self._sub_menu, name):
+                delattr(self._sub_menu, name)
+
     def render(self):
-        return mark_safe(f'{self._menu.render()}'
-                         f'<div class="django-card__sub-tabs">{self._sub_menu.render()}</div>')
+        top = self._menu.render()
+        if not visible_menu_items(self._menu) or len(visible_menu_items(self._sub_menu)) < 2:
+            return top
+        return mark_safe(f'{top}<div class="django-card__sub-tabs">{self._sub_menu.render()}</div>')
 
 
 class ScrollableTabMenu(_MenuWrapper):
@@ -991,8 +1021,9 @@ class CardBase:
             menu (list, optional): Optional list of action menu items for the card.
             tab_menu (list, optional): Optional tab menu items for the card.
             sub_tab_menu (list, optional): A second, quieter row of tabs under ``tab_menu`` -- the
-                pages under the top tab in view. Items or an HtmlMenu. Left out when it has one
-                visible tab or none, since one repeats the tab it sits under. Needs ``tab_menu``.
+                pages under the top tab in view. Items or an HtmlMenu. Not drawn when it shows one
+                tab or none as it renders, since one repeats the tab it sits under. Needs
+                ``tab_menu``: without one this raises ``ValueError``.
             template_name (str, optional): Template to be used for rendering the card.
             call_details_data (bool, optional): Whether to invoke a method to populate dynamic data. Defaults to False.
             group_type (int, optional): Defines the visual and functional type of the card. Defaults to CARD_TYPE_STANDARD.
@@ -1083,9 +1114,10 @@ class CardBase:
 
         if isinstance(sub_tab_menu, (list, tuple)):
             sub_tab_menu = HtmlMenu(self.request, self.tab_menu_type).add_items(*sub_tab_menu)
-        if sub_tab_menu is not None and len(visible_menu_items(sub_tab_menu)) > 1:
+        if sub_tab_menu is not None:
             if self.tab_menu is None:
                 raise ValueError('sub_tab_menu is a row under tab_menu, and this card has no tab_menu')
+            # Wrapped whatever it holds now: whether the row is drawn is decided as it renders.
             self.tab_menu = TabMenuWithSubRow(self.tab_menu, sub_tab_menu)
             self.requires_card_css = True  # the sub row's styling lives in cards.css
 
