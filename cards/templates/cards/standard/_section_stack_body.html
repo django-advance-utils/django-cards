@@ -12,4 +12,6 @@
     </div>
     {% endfor %}
 </div>
-<script>djangoCardsApplySectionFolds(document.getElementById('{{ stack_dom_id|escapejs }}'));</script>{% endif %}
+{# Guarded: the script comes with the first stack rendered, which may sit later on the page. A #}
+{# fresh stack's markup already carries its folds; this only matters after a redraw.          #}
+<script>window.djangoCardsApplySectionFolds && djangoCardsApplySectionFolds(document.getElementById('{{ stack_dom_id|escapejs }}'));</script>{% endif %}

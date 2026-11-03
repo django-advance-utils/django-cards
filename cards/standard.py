@@ -1238,6 +1238,9 @@ class CardMixin:
         if card is not None:
             section = getattr(card, 'section', None)
             if section is not None:
+                # As a full render does: a card added later in the build could have taken an id.
+                from cards.base import _check_section_ids
+                _check_section_ids(card, [section])
                 # A card in an add_sections() stack: its header is the section's, outside the
                 # card, so it is redrawn too -- the title, menu and actions may have changed.
                 self.add_command('html', selector=f'#{section.id}-header', html=section.render_header(redraw=True))

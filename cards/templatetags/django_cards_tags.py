@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 
 from cards.packs import pack_classes, pack_template, resolve_template, template_pack
 from cards.panel_layout import slot_marker
-from cards.render_scope import get_render_scope
+from cards.render_scope import emit_once, get_render_scope
 
 register = template.Library()
 
@@ -104,13 +104,7 @@ def treegrid_shared_assets(context):
     consumes the page's emission, and the grids that do reach the browser then queue their
     configs and report the missing shared half on the console.
     """
-    holder = get_render_scope() or context.get('request')
-    if holder is not None and getattr(holder, TREEGRID_SHARED_ASSETS_MARK, False):
-        return ''
-    html = _shared_assets_html()
-    if holder is not None:
-        setattr(holder, TREEGRID_SHARED_ASSETS_MARK, True)
-    return mark_safe(html)
+    return mark_safe(emit_once(TREEGRID_SHARED_ASSETS_MARK, context.get('request'), _shared_assets_html))
 
 
 @register.simple_tag
@@ -169,12 +163,8 @@ def section_stack_script(context):
     """The add_sections() toggle script, once per request -- whether the stack came from
     add_sections() or a template of an application's own including the stack body."""
     from cards.base import SECTION_SCRIPT_MARK
-    holder = get_render_scope() or context.get('request')
-    if holder is not None:
-        if getattr(holder, SECTION_SCRIPT_MARK, False):
-            return ''
-        setattr(holder, SECTION_SCRIPT_MARK, True)
-    return mark_safe(render_to_string('cards/standard/_section_stack_script.html'))
+    return mark_safe(emit_once(SECTION_SCRIPT_MARK, context.get('request'),
+                               lambda: render_to_string('cards/standard/_section_stack_script.html')))
 
 
 @register.simple_tag

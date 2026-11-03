@@ -23,7 +23,7 @@ from django_datatables.reorder_datatable import OrderedDatatable
 from django_menus.menu import HtmlMenu
 
 from cards.packs import pack_class, resolve_template
-from cards.render_scope import get_render_scope
+from cards.render_scope import emit_once, get_render_scope
 
 
 def json_for_script(value):
@@ -442,14 +442,8 @@ def card_css_once(request=None):
     shared-asset tag: outside a request cycle there is nothing to mark, and carrying a
     second copy of a stylesheet the browser has already cached beats a page with none.
     """
-    holder = get_render_scope() or request
-    if holder is not None and getattr(holder, CARD_CSS_MARK, False):
-        return ''
-    html = render_to_string('cards/standard/_card_css.html',
-                            {'card_css_version_qs': CARD_CSS_VERSION_QS})
-    if holder is not None:
-        setattr(holder, CARD_CSS_MARK, True)
-    return html
+    return emit_once(CARD_CSS_MARK, request, lambda: render_to_string(
+        'cards/standard/_card_css.html', {'card_css_version_qs': CARD_CSS_VERSION_QS}))
 
 
 @dataclass
@@ -570,7 +564,6 @@ class CardSection:
         self._title = title
         self._menu = card.as_menu(menu)
         self._folded = folded
-        self.owner = None  # the card whose stack this is, set by add_sections()
 
     @classmethod
     def build(cls, entry):
@@ -587,12 +580,27 @@ class CardSection:
         """Make the card the section's: its header and collapse off, and the section on it, so a
         reload of the card redraws the section's header too (``CardMixin.button_reload_card``); and
         record it on the view as taken (`SECTION_CLAIMS`)."""
-        self.card.show_header = False
-        self.card.enable_collapse = False
-        self.card.section = self
-        claims = _claims(self.card)
+        card = self.card
+        if getattr(card, '_before_section', None) is None:
+            # What the card was before any stack had it, for release() to put back.
+            card._before_section = (card.show_header, card.enable_collapse)
+        card.show_header = False
+        card.enable_collapse = False
+        card.section = self
+        claims = _claims(card)
         if claims is not None:
-            claims[id(self.card)] = self
+            claims[id(card)] = self
+
+    def release(self):
+        """Give the card back as it was: its own header and collapse, and no section. For a claim a
+        rebuild has left behind -- a card kept between builds and not stacked this time."""
+        card = self.card
+        before = getattr(card, '_before_section', None)
+        if before is not None:
+            card.show_header, card.enable_collapse = before
+            card._before_section = None
+        if getattr(card, 'section', None) is self:
+            card.section = None
 
     @property
     def title(self):
@@ -638,13 +646,13 @@ class CardSection:
         name = card.template_name or card.template_defaults.get(card.group_type)
         return bool((card.templates.get(name) or {}).get('header_controls'))
 
-    @property
-    def has_controls(self):
-        """Whether the card has header controls besides its menu: what the section header draws."""
+    def has_controls(self, full_controls):
+        """Whether the card has header controls besides its menu: what the section header draws,
+        given whether its template carries search and export (`full_controls`)."""
         card = self.card
         if getattr(card, 'ajax_reload', False):
             return True
-        return self.full_controls and bool(getattr(card, 'searchable', False) or getattr(card, 'exportable', False))
+        return full_controls and bool(getattr(card, 'searchable', False) or getattr(card, 'exportable', False))
 
 
     def render_body(self):
@@ -670,10 +678,11 @@ class CardSection:
         menu = self.menu
         menu_html = menu.render() if menu else ''
         has_menu = bool(str(menu_html).strip())
+        full_controls = self.full_controls
         return mark_safe(render_to_string('cards/standard/_section_header.html', {
             'section': self, 'card': self.card, 'request': self.card.request, 'redraw': redraw,
-            'menu_html': menu_html, 'has_actions': has_menu or self.has_controls,
-            'full_controls': self.full_controls}))
+            'menu_html': menu_html, 'has_actions': has_menu or self.has_controls(full_controls),
+            'full_controls': full_controls}))
 
 
 def build_sections(entries, claim=True):
@@ -717,19 +726,44 @@ def _claims(card):
     return claims
 
 
+def live_section(card):
+    """The section ``card`` is in for this build, or None.
+
+    A claim is renewed each build: the view records it (`SECTION_CLAIMS`), and
+    ``CardMixin.rebuild_cards`` starts that record again, so a claim from an earlier build -- a card
+    the view kept -- is not live. A card with no view has no record to start again, and its claim
+    stands as long as it does.
+    """
+    section = getattr(card, 'section', None)
+    if section is None:
+        return None
+    claims = _claims(card)
+    if claims is None:
+        return section
+    return section if claims.get(id(card)) is section else None
+
+
 def _validate_sections(sections, stack=None):
     """Raise, before any card is claimed, for a section stack that would put a card in two places,
-    hold itself, or write an id another card or table on the view has."""
+    hold itself, or write an id another card, table or section on the page has."""
     seen = set()
+    section_ids = set()
     for section in sections:
         stacked = section.card
         if stack is not None and (stacked is stack or _stack_holds(stacked, stack)):
             raise ValueError(f'Card {stack.code!r} cannot hold a stack that holds itself')
-        claims = _claims(stacked)
-        if id(stacked) in seen or (claims is not None and id(stacked) in claims):
+        if id(stacked) in seen or live_section(stacked) is not None:
             raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
                              f'place on a page, or its DOM ids are there twice')
         seen.add(id(stacked))
+        claims = _claims(stacked) or {}
+        # By id as well as by card: two cards may share a code (two untitled cards, say), and a
+        # section's ids are made from it.
+        others = {live.id for live in claims.values()}
+        if section.id in section_ids or section.id in others:
+            raise ValueError(f'Two sections on the page would be {section.id!r}: their cards share the '
+                             f'code {stacked.code!r}; give one a card_name of its own')
+        section_ids.add(section.id)
     if sections:
         owner = stack if stack is not None else sections[0].card
         extra = {stack_id(stack)} if stack is not None else {own_stack_id(sections)}
@@ -2859,11 +2893,14 @@ class CardBase:
             if self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows or self.template_name:
                 raise ValueError(f'add_sections() makes a card\'s body its stack, and card {self.code!r} '
                                  f'already has one (empty, rows, or not a standard card)')
+        # A stack card the view keeps between builds still holds the last build's sections: their
+        # claims are not live any more, and this build's add_sections() adds them again.
+        self.extra_card_info['sections'] = [section for section in self.extra_card_info.get('sections', [])
+                                            if live_section(section.card) is section]
         # Built and checked before any card is claimed, so a bad entry or a clash changes nothing.
         sections = build_sections(cards, claim=False)
         _validate_sections(sections, stack=self)
         for section in sections:
-            section.owner = self
             section.claim()
         self.extra_card_info.setdefault('sections', []).extend(sections)
         # Read (and called) by the html card template, so the sections' cards are drawn when
@@ -2945,10 +2982,14 @@ class CardBase:
         When ajax_reload is enabled, wraps the output in a container div that serves
         as the stable target for AJAX content replacement.
         """
-        if getattr(self, 'section', None) is not None and not getattr(self, '_in_section_render', False):
-            # Its header is the section's and its ids are on the page already: drawn here as well
-            # it would come out headerless, with every id twice.
-            raise ValueError(f'Card {self.code!r} is in a section stack; it is drawn there, not here too')
+        section = getattr(self, 'section', None)
+        if section is not None and not getattr(self, '_in_section_render', False):
+            if live_section(self) is section:
+                # Its header is the section's and its ids are on the page already: drawn here as
+                # well it would come out headerless, with every id twice.
+                raise ValueError(f'Card {self.code!r} is in a section stack; it is drawn there, not here too')
+            # A claim from an earlier build, which this one did not renew: the card is its own again.
+            section.release()
         html = self._render_template(override_card_context)
         if self.ajax_reload:
             return mark_safe(f'<div id="{self.code}_ajax">{html}</div>')

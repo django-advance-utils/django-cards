@@ -17,4 +17,4 @@
         <i class="fas fa-chevron-down django-card__section-chevron"></i>
     </button>
 </div>
-{% if redraw %}<script>djangoCardsApplySectionFolds(document.getElementById('{{ section.id|escapejs }}'), {% if section.folded %}true{% else %}false{% endif %});</script>{% endif %}
+{% if redraw %}<script>window.djangoCardsApplySectionFolds && djangoCardsApplySectionFolds(document.getElementById('{{ section.id|escapejs }}'), {% if section.folded %}true{% else %}false{% endif %});</script>{% endif %}
