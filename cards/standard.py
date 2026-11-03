@@ -1246,14 +1246,17 @@ class CardMixin:
                 and optionally ``table_id`` (defaults to the view's first table).
 
         Returns:
-            JsonResponse: A ``refresh_rows`` command, or a ``null`` command for a table this
-            view does not build.
+            JsonResponse: A ``refresh_rows`` command, or a ``null`` command when ``row_nos`` is
+            not a list or the table is not one this view builds.
         """
+        row_nos = kwargs.get('row_nos')
+        if not isinstance(row_nos, (list, tuple)):
+            return self.command_response('null')
         self.setup_datatable_cards()
         table = self.tables.get(kwargs.get('table_id') or next(iter(self.tables), None))
         if table is None:
             return self.command_response('null')
-        return table.refresh_rows(self.request, kwargs.get('row_nos'))
+        return table.refresh_rows(self.request, row_nos)
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()

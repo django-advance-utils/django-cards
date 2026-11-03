@@ -48,8 +48,16 @@ class TestRowRefreshMany(TestCase):
         command, = _refresh_many(row_nos=[f'i{self.tin.pk}'])
         self.assertEqual(command['table_id'], 'companies')
 
-    def test_an_unknown_table_answers_null(self):
-        self.assertEqual(_refresh_many(table_id='nope', row_nos=[f'i{self.brass.pk}']), [{'function': 'null'}])
+    def test_nothing_to_repaint_answers_null(self):
+        cases = {
+            'an unknown table': {'table_id': 'nope', 'row_nos': [f'i{self.brass.pk}']},
+            'no row_nos': {'table_id': 'companies'},
+            'a string, not a list': {'table_id': 'companies', 'row_nos': f'i{self.brass.pk}'},
+            'a number': {'table_id': 'companies', 'row_nos': 12},
+        }
+        for name, kwargs in cases.items():
+            with self.subTest(name):
+                self.assertEqual(_refresh_many(**kwargs), [{'function': 'null'}])
 
 
 class _Capped(_TableView):
@@ -73,5 +81,9 @@ class TestACappedTable(TestCase):
 
     @HAS_REFRESH_ROWS
     def test_row_refresh_many_reads_past_the_cap(self):
-        command, = _refresh_many(_Capped, table_id='companies', row_nos=[f'i{self.brass.pk}', f'i{self.copper.pk}'])
+        view = _Capped()
+        view.request = RequestFactory().post('/')
+        response = view.row_refresh_many(table_id='companies', row_nos=[f'i{self.brass.pk}', f'i{self.copper.pk}'])
+        command, = json.loads(response.content)
         self.assertEqual(len(command['rows']), 2)
+        self.assertEqual(view.tables['companies'].max_records, 1)
