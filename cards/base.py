@@ -42,6 +42,32 @@ def json_for_script(value):
             .replace('&', '\\u0026'))
 
 
+#: What a css colour written into a ``style`` attribute may be: a name (``green``,
+#: ``transparent``), ``#`` and 3, 4, 6 or 8 hex digits, an ``rgb()``/``rgba()``/``hsl()``/``hsla()``
+#: of numbers, or a ``var()`` of a custom property. Nothing here can hold a semicolon, a quote, a
+#: url or a second function, which is what it takes to add a declaration of one's own.
+_CSS_COLOUR = re.compile(
+    r'[a-zA-Z]+'
+    r'|#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})'
+    r'|(?:rgba?|hsla?)\([0-9a-zA-Z.,%/+\- ]+\)'
+    r'|var\(--[A-Za-z0-9_-]+\)')
+
+
+def css_colour(colour):
+    """``colour`` when it is a css colour that is safe to write into a ``style``, else ``None``.
+
+    A colour handed to a card is printed inside ``style="..."``, where html-escaping is the wrong
+    tool: the character that does the damage is a semicolon, and escaping leaves it alone, so a
+    stored ``red;position:fixed;inset:0`` would arrive as more declarations and lift the element
+    over the page. So the shape is checked instead (`_CSS_COLOUR`) and anything else dropped,
+    which a template draws as no colour at all.
+    """
+    if colour is None:
+        return None
+    colour = str(colour).strip()
+    return colour if _CSS_COLOUR.fullmatch(colour) else None
+
+
 def escape_value(value):
     """`value` as ``{{ value }}`` prints it: escaped, unless it is marked safe.
 
@@ -1795,7 +1821,8 @@ class CardBase:
                      'row_style_html': row_style_html,
                      'prefix': prefix,
                      'suffix': suffix,
-                     'status_dot': status_dot,
+                     # Written into a style attribute by the row templates: checked, not escaped.
+                     'status_dot': css_colour(status_dot),
                      'progress_bar': progress_bar,
                      'image': image,
                      'help_text': help_text,
