@@ -1654,7 +1654,7 @@ class CardBase:
             # 'cell' (the default) lights the cell under the pointer, the cue for a grid edited in
             # place; 'row' lights the row, for one read a row at a time -- an editable cell in it
             # (it carries the pencil) keeps the cell cue as well.
-            hover = kwargs.get('treegrid_hover', 'cell')
+            hover = kwargs.get('treegrid_hover') or 'cell'
             if hover not in ('cell', 'row'):
                 raise ValueError(f"treegrid_hover is 'cell' or 'row'; got {hover!r}")
             extra_info['treegrid_hover'] = hover
@@ -3007,17 +3007,22 @@ class CardBase:
                 data.append({'label': label or '', 'value': value})
         return data
 
-    #: The card types that size themselves -- a treegrid by ``treegrid_height`` and its own scrolling
-    #: grid, an accordion, an iframe and a panel layout by filling what they are given -- and so,
-    #: alone in a ``scroll_cards`` region, are left as they are rather than made to scroll their body.
-    SELF_SIZING_TYPES = frozenset({CARD_TYPE_TREEGRID, CARD_TYPE_ACCORDION, CARD_TYPE_IFRAME, CARD_TYPE_PANEL_LAYOUT})
+    #: The card templates whose body is one ``.card-body`` that can be made to scroll: alone in a
+    #: ``scroll_cards`` region, a card drawn by one of these fills the region and scrolls its body.
+    #: Named rather than excluded, as every other template sizes itself or lays its body out its own
+    #: way -- a treegrid's own scrolling grid, an accordion, an iframe, a panel layout, a list
+    #: selection's fixed-height body, a card layout's rows -- and would spill or scroll twice.
+    REGION_FILLING_TEMPLATES = frozenset({'default', 'table', 'html', 'message'})
 
     @property
     def fills_region(self):
         """Whether, alone in a panel region or tab under ``scroll_cards``, the card fills it and
-        scrolls its own body. Not a self-sizing type (`SELF_SIZING_TYPES`), whose own scrolling a
-        second scrollbar would fight, nor a collapsible card, which would fill the region folded."""
-        return self.group_type not in self.SELF_SIZING_TYPES and not self.enable_collapse
+        scrolls its own body: drawn by one of `REGION_FILLING_TEMPLATES`, and not collapsible (it
+        would fill the region folded)."""
+        if self.enable_collapse:
+            return False
+        name = self.template_name or self.template_defaults.get(self.group_type)
+        return name in self.REGION_FILLING_TEMPLATES
 
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the

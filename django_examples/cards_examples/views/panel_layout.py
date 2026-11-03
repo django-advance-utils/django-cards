@@ -922,7 +922,6 @@ class PanelLayoutSlotExample(MainMenu, CardMixin, TemplateView):
         root.add_region('main', size='1fr', min_size=300, title='Page content').add_slot()
 
 
-
 class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
     """A treegrid in a narrow region, read a row at a time, beside a long card that scrolls.
 

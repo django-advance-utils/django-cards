@@ -90,6 +90,9 @@ class TestRowHover(SimpleTestCase):
                     rows = _grid(view, name='rows', treegrid_hover='row')
                     self.assertIn('treegrid--row-hover', _table(rows.render(), 'rows')['class'].split())
 
+    def test_none_is_the_default(self):
+        self.assertNotIn('treegrid--row-hover', _table(_grid(_view(), treegrid_hover=None).render())['class'])
+
     def test_anything_else_is_refused(self):
         with self.assertRaisesMessage(ValueError, "'cell' or 'row'"):
             _grid(_view(), treegrid_hover='column')
@@ -160,7 +163,13 @@ class TestScrollCards(SimpleTestCase):
         view = _view()
         self.assertFalse(view.add_accordion_card(card_name='acc', title='Acc', panels=[]).fills_region)
         self.assertFalse(view.add_card('folds', title='Folds', collapsed=False).fills_region)
-        self.assertTrue(view.add_card('plain', title='Plain').fills_region)
+        self.assertFalse(view.add_layout_card('rows').fills_region)
+        self.assertFalse(view.add_card('picks', title='Picks', template_name='list_selection').fills_region)
+        self.assertFalse(_grid(view, name='tree').fills_region)
+        for name in ('plain', 'table', 'html', 'message'):
+            with self.subTest(template=name):
+                template = None if name == 'plain' else name
+                self.assertTrue(view.add_card(f'fill_{name}', title='Fill', template_name=template).fills_region)
         layout = view.add_panel_layout(card_name='inner', persist=False)  # no scroll_cards
         layout.root.add_region('main', size='1fr').add_card(view.add_card('alone', title='Alone'))
         self.assertNotIn('panel-region__content--single', str(layout.render().render()))
