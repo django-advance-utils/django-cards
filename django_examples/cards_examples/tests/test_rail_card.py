@@ -206,6 +206,32 @@ class TestTheRail(SimpleTestCase):
                                           'card': _body(view, 'a', 'x')}]).render())
         self.assertEqual(_buttons(page)[0]['title'], 'Doors & Frames "x"')
 
+    def test_a_card_in_two_panes_is_refused(self):
+        view = _view()
+        card = _body(view, 'twice', 'x')
+        with self.assertRaisesMessage(ValueError, "'twice' is in two panes"):
+            _rail(view, panels=[{'title': 'A', 'card': card}, {'title': 'B', 'panels': [{'title': 'C', 'card': card}]}])
+
+    def test_an_empty_column_is_refused(self):
+        with self.assertRaisesMessage(ValueError, 'empty column'):
+            _rail(_view(), panels=[{'title': 'Details', 'panels': []}])
+
+    def test_no_height_is_the_default_height(self):
+        rail = _rail(_view(), height=None)
+        self.assertIn('style="height: 100%;"', rail.render())
+        self.assertTrue(rail.fills_region)
+
+    def test_an_accordions_stray_nested_panels_are_not_placed(self):
+        """An accordion draws no nested panels: a card listed in one is free for a section stack."""
+        view = _view()
+        loose = _body(view, 'loose', 'x')
+        view.add_accordion_card(card_name='acc', panels=[{'title': 'A', 'panels': [{'title': 'B', 'card': loose}]}])
+        view.add_card('stack', title='Stack').add_sections([loose])
+
+    def test_modified_arrow_keys_are_left_to_the_page(self):
+        self.assertIn('if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) { return; }',
+                      _rail(_view()).render())
+
     def test_a_rail_does_not_fold(self):
         with self.assertRaisesMessage(ValueError, 'does not fold'):
             _rail(_view(), collapsed=True)

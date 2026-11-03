@@ -758,15 +758,17 @@ def find_section(view, card):
     return None
 
 
-def _panel_cards(panels):
-    """The cards of an accordion's or a rail's panels, those of a rail's nested columns included."""
+def _panel_cards(panels, nested=True):
+    """The cards of an accordion's or a rail's panels; with ``nested``, a rail's nested columns' too
+    (an accordion draws no nested panels, so a card listed in one is not placed)."""
     if not isinstance(panels, (list, tuple)):
         return
     for panel in panels:
         if isinstance(panel, dict):
             if panel.get('card') is not None:
                 yield panel['card']
-            yield from _panel_cards(panel.get('panels'))
+            if nested:
+                yield from _panel_cards(panel.get('panels'))
 
 
 def placements(view):
@@ -782,7 +784,8 @@ def placements(view):
     for holder in (getattr(view, 'cards', None) or {}).values():
         for group in getattr(holder, 'child_card_groups', None) or ():
             placed.update(id(card) for card in group.get('cards', ()))
-        placed.update(id(card) for card in _panel_cards((getattr(holder, 'extra_card_info', None) or {}).get('panels')))
+        placed.update(id(card) for card in _panel_cards((getattr(holder, 'extra_card_info', None) or {}).get('panels'),
+                                                        nested=getattr(holder, 'group_type', None) == CARD_TYPE_RAIL))
     for layout in (_this_build(view) or {}).get('layouts', ()):
         placed.update(id(card) for card in layout.placed_cards())
     return placed
@@ -1572,7 +1575,7 @@ class CardBase:
             extra_info['datatables'] = kwargs.get('datatables', [])
         elif group_type == CARD_TYPE_RAIL:
             extra_info['panels'] = kwargs.get('panels', [])
-            extra_info['height'] = kwargs.get('height', '100%')
+            extra_info['height'] = kwargs.get('height') or '100%'
             extra_info['pane_titles'] = kwargs.get('pane_titles', True)
         elif group_type == CARD_TYPE_ACCORDION:
             extra_info['panels'] = kwargs.get('panels', [])
@@ -2681,6 +2684,7 @@ class CardBase:
         """
         columns = []
         panes = []
+        drawn = set()
 
         def walk(panels, column_id, parent_id, on_path):
             if not isinstance(panels, (list, tuple)):
@@ -2705,6 +2709,9 @@ class CardBase:
                 }
                 buttons.append(button)
                 children = panel.get('panels')
+                if 'panels' in panel and not children:
+                    raise ValueError(f'Rail panel {title!r} has an empty column of panels; leave the panel '
+                                     f'out, or give it a card')
                 if children:
                     if panel.get('card') is not None:
                         raise ValueError(f'Rail panel {button["title"]!r} holds both panels and a card; '
@@ -2714,6 +2721,11 @@ class CardBase:
                 else:
                     card = panel.get('card')
                     refuse_if_stacked(self.view, card, 'a rail panel')
+                    if card is not None:
+                        if id(card) in drawn:
+                            raise ValueError(f'Card {card.code!r} is in two panes of rail {self.code!r}; it '
+                                             f'would be drawn twice, with its DOM ids there twice')
+                        drawn.add(id(card))
                     button['pane'] = f'{node_id}_pane'
                     panes.append({'id': button['pane'], 'button': node_id, 'title': button['title'],
                                   'icon': button['icon'], 'card': card, 'visible': on_path and i == active})
