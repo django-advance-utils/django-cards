@@ -16,7 +16,7 @@ from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.views.generic import TemplateView
 from django_menus.menu import HtmlMenuItem
 
-from cards.base import ScrollableTabMenu, css_colour
+from cards.base import ScrollableTabMenu, css_background, css_colour
 from cards.panel_layout import PanelLayout
 from cards.standard import CardMixin
 from cards_examples.tests.test_escaping import PACKS, ROW_TEMPLATES, _Page
@@ -105,6 +105,25 @@ class TestCssColour(SimpleTestCase):
 
     def test_none_is_none(self):
         self.assertIsNone(css_colour(None))
+
+
+class TestCssBackground(SimpleTestCase):
+
+    def test_colours_and_gradients_are_kept(self):
+        for background in ('green', '#fff', 'linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)',
+                           'repeating-linear-gradient(to right, red 0 10px, blue 10px 20px)',
+                           'conic-gradient(from 90deg at 50% 50%, red, blue)'):
+            with self.subTest(background=background):
+                self.assertEqual(css_background(background), background)
+
+    def test_a_colour_alone_takes_no_gradient(self):
+        self.assertIsNone(css_colour('linear-gradient(red, blue)'))
+
+    def test_urls_and_extra_declarations_are_dropped(self):
+        for background in (STYLE_PAYLOAD, 'url(x)', 'linear-gradient(red, blue), url(x)',
+                           'image-set(x 1x)', 'linear-gradient(red, blue);top:0', None):
+            with self.subTest(background=background):
+                self.assertIsNone(css_background(background))
 
 
 class TestAStatusDotIsChecked(SimpleTestCase):

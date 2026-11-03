@@ -58,6 +58,23 @@ _COLOUR_CHARS = re.compile(r'[0-9A-Za-z#.,%/+\- ()_]+')
 _COLOUR_TOKEN = re.compile(r'([A-Za-z][A-Za-z0-9-]*)?\(|\)| ')
 
 
+#: A ``background`` may also be a gradient, as a banner's is documented to be.
+_BACKGROUND_FUNCTIONS = _COLOUR_FUNCTIONS | frozenset({
+    'linear-gradient', 'radial-gradient', 'conic-gradient',
+    'repeating-linear-gradient', 'repeating-radial-gradient', 'repeating-conic-gradient',
+})
+
+
+def css_background(background):
+    """``background`` when it is a colour or a gradient safe to write into a ``style``, else ``None``.
+
+    :func:`css_colour`'s rules, with the gradient functions allowed as well
+    (``linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)``). Still no ``url()``: a banner image has
+    a field of its own.
+    """
+    return _checked_css(background, _BACKGROUND_FUNCTIONS)
+
+
 def css_colour(colour):
     """``colour`` when it is a css colour that is safe to write into a ``style``, else ``None``.
 
@@ -72,6 +89,11 @@ def css_colour(colour):
     ``rgb(var(--r) 0 0)``, ``oklch(70% 0.1 150)``, ``color-mix(in srgb, red, blue)``. Checked for
     safety rather than validity: a malformed colour that gets through is one the browser ignores.
     """
+    return _checked_css(colour, _COLOUR_FUNCTIONS)
+
+
+def _checked_css(colour, functions):
+    """``colour`` if it is one css value built only from ``functions``, else ``None``."""
     if colour is None:
         return None
     colour = str(colour).strip()
@@ -93,7 +115,7 @@ def css_colour(colour):
                 return None
         else:
             name = (match.group(1) or '').lower()
-            if name not in _COLOUR_FUNCTIONS:
+            if name not in functions:
                 return None
             if name == 'var' and not colour[match.end():].lstrip().startswith('--'):
                 return None
@@ -462,8 +484,9 @@ class BannerTile:
         banner_icon (str, optional): Icon classes (``'fas fa-folder-open'``) drawn beside the
             caption and again, large and faded, on the banner's right.
         banner_background (str, optional): CSS ``background`` for the banner -- a colour or a
-            gradient. Defaults to the stylesheet's blue gradient. Written into a ``style``
-            attribute, so it must come from code, never from a form or a model field.
+            gradient. Defaults to the stylesheet's blue gradient. It is written into a ``style``
+            attribute, so it is checked (:func:`css_background`): anything that is not a colour
+            or a gradient is dropped, and the banner keeps the default.
         image_url (str, optional): A banner image, drawn instead of the background and icon.
         step (str, optional): A flag in the banner's top-left (``'Step 1 of 2'``). Escaped.
         badge (str, optional): A pill under the description (``'Required for your role'``).
@@ -520,8 +543,8 @@ class BannerTile:
         points (list, optional): The showcase layout's list. Each is ``(icon_classes, text)``
             or ``(icon_classes, text, colour)``, the colour filling the icon's circle; without
             one the circles take turns through four soft colours. The text is escaped; the
-            colour is written into a ``style`` attribute, so like ``banner_background`` it must
-            come from code.
+            colour is written into a ``style`` attribute, so it is checked (:func:`css_colour`),
+            and one that is not a colour takes its turn like a point given none.
         flow (list, optional): Names drawn as boxes joined by lines in a showcase panel
             (``['CRM', 'Projects', 'Gantt']``). Escaped.
         panel_icon (str, optional): Icon classes for the showcase's small icon panel.
@@ -667,9 +690,20 @@ class BannerTile:
                 raise ValueError(f'A point is (icon_classes, text) or (icon_classes, text, colour); '
                                  f'got {point!r}')
             icon, text = point[0], point[1]
-            colour = point[2] if len(point) == 3 else self.POINT_COLOURS[index % len(self.POINT_COLOURS)]
+            # Written into `style="background: ..."`: checked, and a colour that is not one takes
+            # its turn from POINT_COLOURS as a point with none does.
+            colour = css_colour(point[2]) if len(point) == 3 else None
+            if colour is None:
+                colour = self.POINT_COLOURS[index % len(self.POINT_COLOURS)]
             items.append({'icon': icon or '', 'text': text, 'colour': colour})
         return items
+
+    @property
+    def background_css(self):
+        """`banner_background` as the templates write it into a ``style``: checked by
+        :func:`css_background`, so one that is not a colour or a gradient is dropped and the
+        banner keeps the stylesheet's own, as if none had been given."""
+        return css_background(self.banner_background)
 
     @property
     def has_panels(self):

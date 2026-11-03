@@ -1,8 +1,8 @@
 {# The body of an add_banner_tiles() card -- the grid or slider of tiles -- shared by both #}
 {# packs, since none of it is Bootstrap-version-specific. Every field a tile shows is      #}
 {# escaped except `title_html` (via tile.heading), rendered as-is by name like            #}
-{# Tile.heading_html; the inline values a caller sets (the banner background and the     #}
-{# point colours) are documented on BannerTile as code-only.                             #}
+{# Tile.heading_html. The inline style values -- the banner background and the point     #}
+{# colours -- are checked on BannerTile (background_css, point_items) before they get here. #}
 {% if card.extra_card_info.banner_tiles_is_slider %}
 <div class="django-card__banner-tile-slider" id="{{ card.code }}_slider">
     <button type="button" class="django-card__banner-tile-slider-arrow django-card__banner-tile-slider-arrow--prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
@@ -23,7 +23,7 @@
         </div>
         {% if tile.has_panels %}
         <div class="django-card__banner-tile-showcase-panels" aria-hidden="true">
-            {% if tile.banner_icon %}<div class="django-card__banner-tile-showcase-panel django-card__banner-tile-showcase-panel--main"{% if tile.banner_background %} style="background: {{ tile.banner_background }}"{% endif %}><i class="{{ tile.banner_icon }}"></i></div>{% endif %}
+            {% if tile.banner_icon %}<div class="django-card__banner-tile-showcase-panel django-card__banner-tile-showcase-panel--main"{% if tile.background_css %} style="background: {{ tile.background_css }}"{% endif %}><i class="{{ tile.banner_icon }}"></i></div>{% endif %}
             {% if tile.flow or tile.panel_icon %}
             <div class="django-card__banner-tile-showcase-side">
                 {% if tile.flow %}<div class="django-card__banner-tile-showcase-panel django-card__banner-tile-showcase-panel--flow">{% for name in tile.flow %}{% if not forloop.first %}<span class="django-card__banner-tile-showcase-flow-line"></span>{% endif %}<span class="django-card__banner-tile-showcase-flow-node">{{ name }}</span>{% endfor %}</div>{% endif %}
@@ -40,7 +40,7 @@
         {% if tile.action_label %}<a href="{{ tile.action_url|default:'#' }}" class="{{ tile.action_classes }}">{{ tile.action_label }} <i class="fas fa-arrow-right"></i></a>{% endif %}
     </div>
     {% elif tile.is_feature %}
-    <div class="django-card__banner-tile django-card__banner-tile-feature{% if not tile.banner_icon %} django-card__banner-tile-feature--plain{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}"{% if tile.banner_background %} style="background: {{ tile.banner_background }}"{% endif %}>
+    <div class="django-card__banner-tile django-card__banner-tile-feature{% if not tile.banner_icon %} django-card__banner-tile-feature--plain{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}"{% if tile.background_css %} style="background: {{ tile.background_css }}"{% endif %}>
         <div class="django-card__banner-tile-feature-text">
             {% if tile.has_title %}<div class="django-card__banner-tile-feature-title">{{ tile.heading }}</div>{% endif %}
             {% if tile.description %}<div class="django-card__banner-tile-feature-description">{{ tile.description }}</div>{% endif %}
@@ -53,7 +53,7 @@
         </div>
     </div>
     {% elif tile.is_highlight %}
-    <div class="django-card__banner-tile django-card__banner-tile-highlight{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}"{% if tile.banner_background %} style="background: {{ tile.banner_background }}"{% endif %}>
+    <div class="django-card__banner-tile django-card__banner-tile-highlight{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}"{% if tile.background_css %} style="background: {{ tile.background_css }}"{% endif %}>
         {% if tile.banner_label or tile.banner_icon %}<div class="django-card__banner-tile-highlight-label">{% if tile.banner_icon %}<i class="{{ tile.banner_icon }}"></i>{% if tile.banner_label %} {% endif %}{% endif %}{{ tile.banner_label|default:'' }}</div>{% endif %}
         {% if tile.has_title %}<div class="django-card__banner-tile-highlight-title">{{ tile.heading }}</div>{% endif %}
         {% if tile.description %}<div class="django-card__banner-tile-highlight-description">{{ tile.description }}</div>{% endif %}
@@ -69,7 +69,7 @@
     </div>
     {% else %}
     <div class="django-card__banner-tile{% if tile.is_detail %} django-card__banner-tile-detail{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}">
-        {% if tile.banner_url %}<a href="{{ tile.banner_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% if not tile.banner_caption and not tile.banner_label %} aria-label="{% firstof tile.plain_title 'Preview' %}"{% endif %}{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.banner_background and not tile.image_url %} style="background: {{ tile.banner_background }}"{% endif %}>
+        {% if tile.banner_url %}<a href="{{ tile.banner_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% if not tile.banner_caption and not tile.banner_label %} aria-label="{% firstof tile.plain_title 'Preview' %}"{% endif %}{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.background_css and not tile.image_url %} style="background: {{ tile.background_css }}"{% endif %}>
             {% if tile.image_url %}
             <img src="{{ tile.image_url }}" alt="" loading="lazy" class="django-card__banner-tile-banner-image">
             {% elif tile.banner_icon %}
