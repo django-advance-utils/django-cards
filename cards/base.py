@@ -570,6 +570,9 @@ class CardSection:
         if isinstance(entry, dict):
             if 'card' not in entry:
                 raise ValueError(f'A section dict needs its card: {entry!r}')
+            unknown = set(entry) - {'card', 'title', 'menu', 'folded'}
+            if unknown:
+                raise ValueError(f'A section dict takes card, title, menu and folded; got {sorted(unknown)}')
             return cls(**entry)
         return cls(card=entry)
 
@@ -615,10 +618,15 @@ class CardSection:
         if own is not None:
             return bool(own)
         name = card.template_name or card.template_defaults.get(card.group_type)
-        entry = card.templates.get(name) or {}
-        if 'header_controls' not in entry:
-            entry = CardBase.templates.get(name) or {}
-        return bool(entry.get('header_controls'))
+        entry = card.templates.get(name)
+        if entry is not None and 'header_controls' in entry:
+            return bool(entry['header_controls'])
+        # Otherwise by the template file that will render: cards' own default and table templates
+        # carry them, whether named by key ('table'), through a subclass entry that left the flag
+        # out, or by path ('cards/standard/table.html'). A subclass entry naming a template of its
+        # own is not assumed to.
+        path = entry['name'] if entry is not None else name
+        return path in {own_entry['name'] for own_entry in CardBase.templates.values() if own_entry.get('header_controls')}
 
     def has_controls(self, full_controls):
         """Whether the card has header controls besides its menu: what the section header draws,
@@ -681,13 +689,23 @@ SECTION_STACKS = '_django_cards_section_stacks'
 
 
 def _stacks(view):
+    """This build's stacks on ``view``. Tied to the ``view.cards`` dict they were built in, so a view
+    that starts its cards again by any route -- ``rebuild_cards()``, or a handler of its own setting
+    ``self.cards = {}`` -- starts its stacks again with them."""
     if view is None:
         return None
-    stacks = getattr(view, SECTION_STACKS, None)
-    if stacks is None:
-        stacks = []
-        setattr(view, SECTION_STACKS, stacks)
-    return stacks
+    kept = getattr(view, SECTION_STACKS, None)
+    cards = getattr(view, 'cards', None)
+    if kept is None or kept[0] is not cards:
+        kept = (cards, [])
+        setattr(view, SECTION_STACKS, kept)
+    return kept[1]
+
+
+def reset_section_stacks(view):
+    """Start ``view``'s section stacks again: ``CardMixin.build_cards`` does, so building the cards a
+    second time into the same ``cards`` dict does not find the first build's stacks."""
+    setattr(view, SECTION_STACKS, (getattr(view, 'cards', None), []))
 
 
 def _register_stack(view, sections):
@@ -735,7 +753,7 @@ def _validate_sections(sections, stack=None):
     if sections:
         owner = stack if stack is not None else sections[0].card
         extra = {stack_id(stack)} if stack is not None else {own_stack_id(sections)}
-        _check_section_ids(owner, sections, extra)
+        check_section_ids(owner, sections, extra)
 
 
 def own_stack_id(sections):
@@ -755,7 +773,7 @@ def stack_id(card):
     return f'{card.code}-sections'
 
 
-def _check_section_ids(card, sections, extra=()):
+def check_section_ids(card, sections, extra=()):
     """Raise if an id the stack (``extra``) or one of its ``sections`` writes is a card name on the
     view, or a datatable's id there."""
     view = card.view
@@ -786,8 +804,8 @@ class _SectionsHtml:
 
     The card's html template prints ``extra_card_info.html``, and Django calls a callable it is
     handed there, so this is stored as the bound `render`: the sections' cards are drawn when the
-    card is, after ``cards_ready()``, and once -- a second read returns the same markup.
-    ``add_sections()`` makes a new one each call, so a later call's sections are in it.
+    card is, after ``cards_ready()``, and once -- a second read returns the same markup. It reads
+    the card's sections when it renders, so one serves every ``add_sections()`` call.
     """
 
     def __init__(self, card):
@@ -811,14 +829,15 @@ class _SectionsHtml:
     def _render(self):
         card = self.card
         sections = card.extra_card_info.get('sections', [])
-        if card.rows:
-            # A row added some way add_entry() and the rest do not guard: the stack is the body,
-            # and the html template that draws it has no place for rows.
-            raise ValueError(f'Card {card.code!r} holds a section stack, and rows were added to it too; '
-                             f'put the rows in a card of their own in the stack')
+        info = card.extra_card_info
+        if card.rows or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles'):
+            # Another body added some way the add_* methods do not guard (add_table, say): the
+            # stack is the body, and the html template that draws it has no place for another.
+            raise ValueError(f'Card {card.code!r} holds a section stack, and rows, a table or tiles were '
+                             f'added to it too; put them in a card of their own in the stack')
         # Again now, against every card the view ended up with: one added after add_sections(),
         # later in setup_cards() or in cards_ready(), could take a section's id.
-        _check_section_ids(card, sections, {stack_id(card)})
+        check_section_ids(card, sections, {stack_id(card)})
         return mark_safe(render_to_string('cards/standard/_section_stack_body.html', {
             'sections': sections, 'request': card.request, 'stack_id': stack_id(card)}))
 
@@ -2834,7 +2853,8 @@ class CardBase:
         that made it, and nowhere else on the page -- so the cards are made in ``setup_cards()``
         each build, as cards are, and stacked once.
 
-        Raises ``ValueError``, before anything is changed, for an entry that is not a card, a card
+        Raises ``TypeError`` for an entry that is not a card, a dict or a section, and ``ValueError``,
+        before anything is changed, for a dict without its card or with a key it does not take, a card
         already in a stack on the view, one built ``collapsed=`` (the section is its fold), a stack
         that would hold itself, section ids another card or table on the view has, or a card that
         already has a body of its own (empty, rows, a datatable, tiles, a ``template_name``). A
@@ -2863,9 +2883,11 @@ class CardBase:
         stack.extend(sections)
         _register_stack(self.view, stack)
         # Read (and called) by the html card template, so the sections' cards are drawn when
-        # this card is, after cards_ready(), and once. The html template, rather than one of its
-        # own, as every card class has it: a subclass's own `templates` need not list a stack.
-        self.extra_card_info['html'] = _SectionsHtml(self).render
+        # this card is, after cards_ready(), and once; it reads the sections when it does, so one
+        # serves every add_sections() call. The html template, rather than one of its own, as
+        # every card class has it: a subclass's own `templates` need not list a stack.
+        if not callable(self.extra_card_info.get('html')):
+            self.extra_card_info['html'] = _SectionsHtml(self).render
         self.template_name = 'html'
         self.extra_card_context = {**(self.extra_card_context or {}), 'card_body_css_class': 'card-body p-0'}
         self.requires_card_css = True

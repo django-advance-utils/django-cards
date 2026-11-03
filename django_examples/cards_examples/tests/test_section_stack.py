@@ -454,18 +454,19 @@ class TestReload(SimpleTestCase):
             title = 'Contact (2)'
 
         commands = _reload(Renamed)
-        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-header', '#contact_ajax'])
-        self.assertIn('Contact (2)', commands[0]['html'])
-        self.assertNotIn('card-header', commands[1]['html'])
-        self.assertIn('Brass &amp; Co', commands[1]['html'])
+        # the body first, so the header's fold script re-measures the new body
+        self.assertEqual([c.get('selector') for c in commands], ['#contact_ajax', '#contact-section-header'])
+        self.assertIn('Contact (2)', commands[1]['html'])
+        self.assertNotIn('card-header', commands[0]['html'])
+        self.assertIn('Brass &amp; Co', commands[0]['html'])
 
     def test_a_card_that_does_not_reload_is_redrawn_into_its_section_body(self):
         class Plain(_ReloadView):
             reloads = False
 
         commands = _reload(Plain)
-        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-header', '#contact-section-body'])
-        self.assertNotIn('card-header', commands[1]['html'])
+        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-body', '#contact-section-header'])
+        self.assertNotIn('card-header', commands[0]['html'])
 
     def test_a_reload_re_checks_the_sections_ids(self):
         class Late(_ReloadView):
@@ -577,3 +578,81 @@ class TestTheHeadersHonourShowHeader(SimpleTestCase):
         group.title = 'Group'
         html = view.add_card('customer', title='Customer').add_sections([group]).render()
         self.assertNotIn('card-header', html[html.index('id="group-section-body"'):])
+
+
+class TestReviewNineFixes(SimpleTestCase):
+
+    def test_controls_follow_the_template_that_renders(self):
+        class OwnDefault(CardBase):
+            templates = {**CardBase.templates,
+                         'default': {'name': 'cards/standard/html.html', 'context': {}}}
+
+        class View(CardMixin, TemplateView):
+            card_cls = OwnDefault
+
+        view = View()
+        view.request = RequestFactory().get('/')
+        own = view.add_card('own', title='Own', searchable=True, exportable=True)
+        own.add_entry(value='x', label='X')
+        by_path = view.add_card('by_path', title='By path', template_name='cards/standard/table.html', searchable=True)
+        by_path.add_entry(value='x', label='X')
+        html = view.add_card('customer', title='Customer').add_sections([own, by_path]).render()
+        own_header = _between(html, 'id="own-section-header"', 'id="own-section-body"')
+        self.assertNotIn('own_search', own_header)
+        self.assertNotIn('exportCard', own_header)
+        self.assertIn('id="by_path_search"', _between(html, 'id="by_path-section-header"', 'id="by_path-section-body"'))
+
+    def test_a_stacked_card_cannot_also_be_in_a_card_group(self):
+        view = _view()
+        contact, _tags, site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact, site])
+        with self.assertRaisesMessage(ValueError, 'is in a section stack'):
+            view.add_card_group(contact)
+        with self.assertRaisesMessage(ValueError, 'is in a section stack'):
+            view.add_card_group('site')
+
+    def test_starting_the_cards_again_by_any_route_starts_the_stacks_again(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([contact])
+        view.cards = {}  # a handler of its own, not build_cards()
+        again, _t, _s = _cards(view)
+        view.add_card('customer', title='Customer').add_sections([again])
+        self.assertIs(find_section(view, again).card, again)
+
+    def test_a_dict_with_a_key_it_does_not_take_says_so(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        with self.assertRaisesMessage(ValueError, "['fold']"):
+            view.add_card('customer', title='Customer').add_sections([{'card': contact, 'fold': True}])
+
+    def test_string_if_invalid_does_not_become_a_stacks_id(self):
+        from django.template import engines
+        engine = engines['django'].engine
+        before = engine.string_if_invalid
+        engine.string_if_invalid = 'INVALID'
+        try:
+            view = _view()
+            html = render_to_string('cards/standard/_section_stack_body.html',
+                                    {'sections': build_sections(_cards(view)), 'request': view.request})
+        finally:
+            engine.string_if_invalid = before
+        self.assertIn('id="contact-section-stack"', html)
+        self.assertNotIn('id="INVALID"', html)
+
+    def test_a_table_added_after_the_stack_raises_when_drawn(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        stack.extra_card_info['datatable'] = object()  # as add_table() leaves it
+        with self.assertRaisesMessage(ValueError, 'a table or tiles'):
+            stack.render()
+
+    def test_one_renderer_serves_every_add_sections_call(self):
+        view = _view()
+        contact, tags, site = _cards(view)
+        card = view.add_card('customer', title='Customer').add_sections([contact])
+        first = card.extra_card_info['html']
+        card.add_sections([tags, site])
+        self.assertEqual(card.extra_card_info['html'], first)
+        self.assertIn('id="site-section"', card.render())

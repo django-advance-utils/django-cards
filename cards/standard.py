@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
 # Re-exported so a view building tiles imports Tile from the same place as CardMixin.
 from cards.base import Tile, BannerTile, CardSection, build_sections  # noqa: F401
-from cards.base import SECTION_STACKS, _check_section_ids, find_section
+from cards.base import check_section_ids, find_section, reset_section_stacks
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
@@ -173,8 +173,14 @@ class CardMixin:
         """
         cards = []
         for card in args:
+            if not isinstance(card, str) and find_section(self, card) is not None:
+                raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
+                                 f'a card in two places has its DOM ids there twice')
             if isinstance(card, str):
                 if error_if_not_found or card in self.cards:
+                    if card in self.cards and find_section(self, self.cards[card]) is not None:
+                        raise ValueError(f'Card {card!r} is in a section stack, and is drawn there; '
+                                         f'a card in two places has its DOM ids there twice')
                     cards.append(self.cards[card])
             else:
                 cards.append(card)
@@ -512,8 +518,8 @@ class CardMixin:
         to render them runs the hook. Call this, rather than the three steps, from any handler
         that builds the cards itself; `rebuild_cards()` first throws away the ones built so far.
         """
-        # The section stacks are this build's: a second build starts them again with the cards.
-        setattr(self, SECTION_STACKS, [])
+        # The section stacks are this build's: a second build starts them again.
+        reset_section_stacks(self)
         self.setup_datatable_cards()
         self.setup_cards()
         self.cards_ready()
@@ -1241,14 +1247,18 @@ class CardMixin:
                 # A card in an add_sections() stack of this build: its header is the section's,
                 # outside the card, so it is redrawn too -- the title, menu and actions may have
                 # changed -- and the card is drawn as its section draws it, without a header.
-                _check_section_ids(card, [section])
-                self.add_command('html', selector=f'#{section.id}-header', html=section.render_header(redraw=True))
+                check_section_ids(card, [section])
+                # The body first, then the header, whose script puts the fold back: a section it
+                # opens re-measures the new body's datatables, not the old one's.
                 if not card.ajax_reload:
                     # No #<code>_ajax around a card that does not reload: its section's body is
                     # where it is drawn, so header and body change together.
-                    return self.command_response('html', selector=f'#{section.id}-body', html=section.render_body())
-                return self.command_response('html', selector=f'#{card.code}_ajax',
-                                             html=card._render_template({'show_header': False}))
+                    self.add_command('html', selector=f'#{section.id}-body', html=section.render_body())
+                else:
+                    self.add_command('html', selector=f'#{card.code}_ajax',
+                                     html=card._render_template({'show_header': False}))
+                return self.command_response('html', selector=f'#{section.id}-header',
+                                             html=section.render_header(redraw=True))
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 

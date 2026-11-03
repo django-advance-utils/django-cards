@@ -1152,7 +1152,8 @@ self.add_card('customer', title='Customer').add_sections([contact, site_card, ta
 - A card added empty (`is_empty=True`) starts folded. `None` entries are skipped, so a builder that
   had nothing to add can hand one back. A dict sets a section by hand:
   `{'card': card, 'title': 'Contact', 'menu': [...], 'folded': True}`.
-- `add_sections()` raises, before anything is changed, for an entry that is not a card, a card
+- `add_sections()` raises `TypeError` for an entry that is not a card, and `ValueError`, before
+  anything is changed, for a dict without its card or with a key it does not take, a card
   already in a stack on the view (named or not), one built `collapsed=` (the section is its fold),
   a stack that would hold itself, two cards sharing a code, section ids another card or table on the
   view has (checked again when the stack renders), and a card that already has a body of its own

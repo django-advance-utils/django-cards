@@ -3,7 +3,7 @@
 {# with sections=build_sections(cards) to put a stack inside a template of your own -- the    #}
 {# card stylesheet and the toggle's script come with it, each once per request.              #}
 {% if sections %}{% card_css %}{% section_stack_script %}
-{% section_stack_id sections stack_id as stack_dom_id %}
+{% section_stack_id sections as stack_dom_id %}
 <div class="django-card__sections" id="{{ stack_dom_id }}">
     {% for section in sections %}
     <div class="django-card__section{% if section.folded %} django-card__section--folded{% endif %}" id="{{ section.id }}">
