@@ -3,12 +3,12 @@ import re
 from ajax_helpers.mixins import AjaxHelpers
 from django_menus.menu import MenuMixin
 
-from cards.base import CARD_TYPE_HTML, escape_value
+from cards.base import CARD_TYPE_HTML, HEX_COLOUR_DIGITS, escape_value
 from cards.card_list.base import CardListBaseMixin
 from cards.standard import CardMixin
 
-#: The digits of a css hex colour -- #rgb, #rgba, #rrggbb or #rrggbbaa -- with or without the hash.
-_HEX_COLOUR = re.compile(r'#?([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
+#: A css hex colour's digits, with or without the hash (the template writes its own).
+_HEX_COLOUR = re.compile(f'#?({HEX_COLOUR_DIGITS})')
 
 
 def list_colour_digits(colour):

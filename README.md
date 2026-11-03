@@ -301,7 +301,7 @@ card.add_entry(value='Contact support@example.com', label='Email', auto_link=Tru
 | `icon` | str | `None` | Font Awesome class (e.g. `'fas fa-envelope'`) |
 | `prefix` | str | `None` | Text before the value |
 | `suffix` | str | `None` | Text after the value |
-| `status_dot` | str | `None` | CSS color for a dot indicator (e.g. `'green'`, `'#ff0000'`) |
+| `status_dot` | str | `None` | CSS color for a dot indicator (e.g. `'green'`, `'#ff0000'`, `'rgb(0 128 0)'`, `'var(--ok)'`); anything else draws no dot |
 | `progress_bar` | bool/str | `None` | `True` for default bar, or a CSS class (value is percentage) |
 | `image` | bool/str | `None` | `True` for 40px height, or custom height string; value is image URL |
 | `rating` | bool/int | `None` | `True` for 5 stars, or int for custom max; value is filled count |

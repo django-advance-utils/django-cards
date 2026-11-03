@@ -1,6 +1,7 @@
 import _string
 import datetime
 import json
+import math
 import re
 import string
 from html import unescape
@@ -40,6 +41,76 @@ def json_for_script(value):
             .replace('<', '\\u003c')
             .replace('>', '\\u003e')
             .replace('&', '\\u0026'))
+
+
+#: The digits of a css hex colour: 3, 4, 6 or 8 of them (#rgb, #rgba, #rrggbb, #rrggbbaa).
+HEX_COLOUR_DIGITS = r'(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})'
+
+#: The functions a colour may be built from. Anything else is refused -- ``url()``,
+#: ``image-set()`` and ``element()`` reach for something off the page, and ``expression()`` runs.
+_COLOUR_FUNCTIONS = frozenset({
+    'rgb', 'rgba', 'hsl', 'hsla', 'hwb', 'lab', 'lch', 'oklab', 'oklch', 'color', 'color-mix',
+    'light-dark', 'var', 'calc',
+})
+#: Every character a colour may hold. No semicolon, colon, quote, backslash, brace or angle bracket,
+#: so nothing can end the declaration, start another, or leave the attribute.
+_COLOUR_CHARS = re.compile(r'[0-9A-Za-z#.,%/+\- ()_]+')
+_COLOUR_TOKEN = re.compile(r'([A-Za-z][A-Za-z0-9-]*)?\(|\)| ')
+
+
+def css_colour(colour):
+    """``colour`` when it is a css colour that is safe to write into a ``style``, else ``None``.
+
+    A colour handed to a card is printed inside ``style="..."``, where html-escaping is the wrong
+    tool: the character that does the damage is a semicolon, and escaping leaves it alone, so a
+    stored ``red;position:fixed;inset:0`` would arrive as more declarations and lift the element
+    over the page. So the shape is checked instead, and anything else dropped, which a template
+    draws as no colour at all.
+
+    Taken: a name (``green``, ``currentColor``), ``#`` and hex digits, or one of
+    `_COLOUR_FUNCTIONS` -- nested, with a fallback, in modern syntax: ``var(--ok, green)``,
+    ``rgb(var(--r) 0 0)``, ``oklch(70% 0.1 150)``, ``color-mix(in srgb, red, blue)``. Checked for
+    safety rather than validity: a malformed colour that gets through is one the browser ignores.
+    """
+    if colour is None:
+        return None
+    colour = str(colour).strip()
+    if not colour or len(colour) > 200 or not _COLOUR_CHARS.fullmatch(colour):
+        return None
+    if '(' not in colour and ')' not in colour:
+        if colour.startswith('#'):
+            return colour if re.fullmatch('#' + HEX_COLOUR_DIGITS, colour) else None
+        return colour if re.fullmatch('[A-Za-z]+', colour) else None
+    depth = 0
+    for match in _COLOUR_TOKEN.finditer(colour):
+        token = match.group(0)
+        if token == ' ':
+            if depth == 0:  # two values side by side, not one colour
+                return None
+        elif token == ')':
+            depth -= 1
+            if depth < 0:
+                return None
+        else:
+            name = (match.group(1) or '').lower()
+            if name not in _COLOUR_FUNCTIONS:
+                return None
+            if name == 'var' and not colour[match.end():].lstrip().startswith('--'):
+                return None
+            depth += 1
+    if depth or not colour.endswith(')'):
+        return None
+    if not all(re.fullmatch(HEX_COLOUR_DIGITS, digits) for digits in re.findall(r'#([0-9A-Za-z]*)', colour)):
+        return None
+    return colour
+
+
+def _is_percentage(value):
+    """Whether ``value`` reads as a finite number, as a progress bar's width must."""
+    try:
+        return math.isfinite(float(str(value).strip()))
+    except (TypeError, ValueError):
+        return False
 
 
 def escape_value(value):
@@ -134,9 +205,26 @@ class ScrollableTabMenu:
             "r.classList.toggle('stm__btn--visible',o&&u.scrollLeft+u.clientWidth<u.scrollWidth-1);}"
             "l.addEventListener('click',function(){u.scrollBy({left:-120,behavior:'smooth'});});"
             "r.addEventListener('click',function(){u.scrollBy({left:120,behavior:'smooth'});});"
+            # Open showing the active tab. A card re-rendered over ajax gets a new bar scrolled to
+            # the start, so a tab reached by scrolling right was off screen the moment it was
+            # picked. Centred rather than put at an edge, so a button that appears once it
+            # scrolls cannot cover it. Scrolling shows or hides the buttons, which changes the
+            # strip's width, so it is measured again after each move; a few passes settle it.
+            # Done once the strip overflows and has been placed. Until then (a bar in a hidden
+            # tab pane or modal measures 0; one inserted before its stylesheet applies has not
+            # yet stopped wrapping) it is tried again from the ResizeObserver. The strip's own
+            # scrollLeft is set rather than scrollIntoView, which would scroll the page too.
+            "var a=u.querySelector('.nav-link.active,.active>.nav-link'),d=!a;"
+            "function s(){"
+            "if(d||!u.clientWidth||u.scrollWidth<=u.clientWidth+1)return;"
+            "for(var n=0;n<3;n++){var ar=a.getBoundingClientRect(),ur=u.getBoundingClientRect();"
+            "if(ar.left>=ur.left-1&&ar.right<=ur.right+1)break;"
+            "u.scrollLeft+=ar.left-ur.left-(u.clientWidth-ar.width)/2;p();}"
+            "d=true;}"
             "u.addEventListener('scroll',p);"
-            "if(window.ResizeObserver)new ResizeObserver(p).observe(w);"
-            "p();}"
+            "if(window.ResizeObserver)new ResizeObserver(function(){p();s();}).observe(w);"
+            "p();s();"
+            "}"
             "if(c)i(c);"
             "else document.addEventListener('DOMContentLoaded',function(){"
             f"var c=document.getElementById('{uid}');if(c)i(c);}});"
@@ -155,7 +243,32 @@ class ScrollableTabMenu:
         )
 
     def __getattr__(self, name):
+        # Only reached for a name the wrapper does not have. `_menu` missing means the instance is
+        # being built without __init__ -- copy, deepcopy and unpickle all do -- and reading it
+        # here would come straight back, forever.
+        if name == '_menu':
+            raise AttributeError(name)
         return getattr(self._menu, name)
+
+    def __delattr__(self, name):
+        if name == '_menu':
+            super().__delattr__(name)
+        else:
+            delattr(self._menu, name)
+
+    def __setattr__(self, name, value):
+        """Writes pass through to the wrapped menu too, not just reads.
+
+        Forwarding reads alone makes a drop-in only until something assigns to it: the value lands
+        on the wrapper, reads back off the wrapper, and the menu never sees it. Setting
+        ``compare_full_path`` on a wrapped tab menu was lost that way, and no tab came back active.
+        ``_menu`` is the wrapper's own.
+        """
+        if name == '_menu':
+            super().__setattr__(name, value)
+        else:
+            setattr(self._menu, name, value)
+
 
 CARD_TYPE_STANDARD = 1
 CARD_TYPE_DATATABLE = 2
@@ -1756,6 +1869,11 @@ class CardBase:
 
             if progress_bar is True:
                 progress_bar = 'bg-primary'
+            if progress_bar and not _is_percentage(value):
+                # The value is written into `style="width:...%"` as well as shown, and escaping
+                # leaves a semicolon alone there -- so a value that is not a number draws no bar,
+                # only the value. A progress bar is a number or nothing.
+                progress_bar = None
 
             if image is True:
                 image = '40px'
@@ -1795,7 +1913,8 @@ class CardBase:
                      'row_style_html': row_style_html,
                      'prefix': prefix,
                      'suffix': suffix,
-                     'status_dot': status_dot,
+                     # Written into a style attribute by the row templates: checked, not escaped.
+                     'status_dot': css_colour(status_dot),
                      'progress_bar': progress_bar,
                      'image': image,
                      'help_text': help_text,
