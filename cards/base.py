@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 import string
+from html import unescape
 from dataclasses import dataclass, field
 
 from ajax_helpers.html_include import pip_version
@@ -10,7 +11,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils.html import conditional_escape
+from django.utils.html import conditional_escape, strip_tags
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.text import slugify
@@ -389,7 +390,7 @@ class BannerTile:
             its middle -- a course preview.
         banner_caption (str, optional): Text under the play button (``'Preview this course'``).
             Without it or ``banner_label``, the banner link is named for screen readers by
-            ``title``, or ``'Preview'``.
+            the title (``title_html``'s text, if that is how it is given), or ``'Preview'``.
             Escaped.
         callout_title, callout_text (str, optional): A tinted box under the banner (``'On your
             Estimator path'`` / ``'Step 1 of 2, required for your role.'``). Escaped.
@@ -498,6 +499,16 @@ class BannerTile:
         if self.action_css_class is not None:
             return self.action_css_class
         return self.ACTION_CSS_CLASSES.get(self.layout, 'btn btn-sm btn-outline-primary')
+
+    @property
+    def plain_title(self):
+        """The title as plain text -- `title`, or `title_html` with its tags stripped -- for
+        places markup cannot go, such as the banner link's aria-label."""
+        if self.title:
+            return self.title
+        if self.title_html:
+            return unescape(strip_tags(self.title_html)).strip() or None
+        return None
 
     @property
     def heading(self):
@@ -2235,6 +2246,10 @@ class CardBase:
             self.extra_card_info['banner_tiles_slider'] = bool(slider)
         self.extra_card_info.setdefault('banner_tiles', []).extend(
             BannerTile.build(tile) for tile in tiles)
+        # What the template draws, worked out once: a slider only when there is something to
+        # slide, so an empty one is just the empty message.
+        self.extra_card_info['banner_tiles_is_slider'] = bool(
+            self.extra_card_info.get('banner_tiles_slider') and self.extra_card_info['banner_tiles'])
         if empty_message is not None:
             self.extra_card_info['banner_tiles_empty_message'] = empty_message
         if width is not None:

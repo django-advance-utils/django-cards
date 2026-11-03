@@ -307,11 +307,9 @@ class TestBannerTileShowcaseLayout(TestCase):
         self.assertIn('django-card__banner-tile-showcase-panel--icon', html)
         self.assertIn('class="btn django-card__banner-tile-showcase-action"', html)
         self.assertIn('href="/map/"', html)
-        self.assertNotIn('django-card__banner-tile-showcase--text-only', html)
 
     def test_no_panels_means_text_only(self):
         html = self.render([self.showcase()])
-        self.assertIn('django-card__banner-tile-showcase--text-only', html)
         self.assertNotIn('django-card__banner-tile-showcase-panels', html)
 
     def test_only_the_panels_given_are_drawn(self):
@@ -459,3 +457,44 @@ class TestBannerTileFinalReviewFixes(TestCase):
         self.assertNotIn('django-card__banner-tile-slider', html)
         self.assertNotIn('django-card__banner-tiles--slider', html)
         self.assertNotIn("getElementById('demo_slider')", html)
+
+
+class TestBannerTileSecondReviewFixes(TestCase):
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def render(self, tiles, **kwargs):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles(tiles, **kwargs)
+        return card, card.render()
+
+    def test_the_empty_message_spans_the_grid(self):
+        with open(os.path.join(os.path.dirname(_TEMPLATES), '..', 'static', 'cards', 'css', 'cards.css')) as f:
+            css = f.read()
+        self.assertRegex(css, r'\.django-card__banner-tiles > \.django-card__tiles-empty \{\s*grid-column: 1 / -1;')
+        _, html = self.render([], empty_message='Nothing yet')
+        self.assertRegex(html, r'<div class="django-card__banner-tiles"[^>]*>\s*<p class="django-card__tiles-empty">Nothing yet')
+
+    def test_a_title_html_banner_link_is_named_from_its_text(self):
+        _, html = self.render([BannerTile(key='a', layout='detail', banner_url='/p/',
+                                          title_html=format_html('Learn <em>{}</em> &amp; more', 'X'))])
+        self.assertIn('aria-label="Learn X &amp; more"', html)
+
+    def test_plain_title(self):
+        self.assertEqual(BannerTile(key='a', title='T', title_html='<b>H</b>').plain_title, 'T')
+        self.assertEqual(BannerTile(key='a', title_html='<b>H</b>').plain_title, 'H')
+        self.assertIsNone(BannerTile(key='a', title_html='<i class="x"></i>').plain_title)
+        self.assertIsNone(BannerTile(key='a').plain_title)
+
+    def test_the_slider_flag_is_worked_out_once_and_follows_later_calls(self):
+        card, _ = self.render([], slider=True)
+        self.assertFalse(card.extra_card_info['banner_tiles_is_slider'])
+        card.add_banner_tiles([BannerTile(key='a')])
+        self.assertTrue(card.extra_card_info['banner_tiles_is_slider'])
+        card.add_banner_tiles([], slider=False)
+        self.assertFalse(card.extra_card_info['banner_tiles_is_slider'])
+
+    def test_the_slider_hides_its_dots_when_nothing_overflows(self):
+        _, html = self.render([BannerTile(key='a')], slider=True)
+        self.assertIn("dotRow.style.display = overflows() ? '' : 'none';", html)

@@ -1247,8 +1247,10 @@ BannerTile(key='system_map', layout='showcase',
 | `panel_icon` | `showcase`'s small icon panel |
 | `css_class` | Extra classes on the tile |
 
-A misspelled field in a dict, an unknown `layout` or a malformed `stats`/`points` entry raises
-rather than quietly drawing a tile with a part missing.
+A misspelled field in a dict, an unknown `layout`, a malformed `stats`/`points` entry, a bare
+string for `stats`, `points` or `flow`, or a `progress` that is not a number raises when the tile
+is built. Fields the tile's layout does not draw (`stats` on a `highlight` tile, say) are
+ignored, so one set of fields can be shown in more than one layout.
 
 ### Slider
 

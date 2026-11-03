@@ -696,6 +696,11 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     pointer-events: none;
 }
 
+/* The empty message spans the grid; .django-card__tiles-empty is sized for add_tiles' flex row. */
+.django-card__banner-tiles > .django-card__tiles-empty {
+    grid-column: 1 / -1;
+}
+
 .django-card__banner-tile-slider-dots {
     display: flex;
     justify-content: center;

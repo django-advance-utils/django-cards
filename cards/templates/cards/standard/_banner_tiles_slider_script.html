@@ -7,7 +7,8 @@
     var track = slider.querySelector('.django-card__banner-tiles');
     var prev = slider.querySelector('.django-card__banner-tile-slider-arrow--prev');
     var next = slider.querySelector('.django-card__banner-tile-slider-arrow--next');
-    var dots = slider.querySelectorAll('.django-card__banner-tile-slider-dots button');
+    var dotRow = slider.querySelector('.django-card__banner-tile-slider-dots');
+    var dots = dotRow.querySelectorAll('button');
     var slides = function () { return track.querySelectorAll(':scope > .django-card__banner-tile'); };
     // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft
     // less that. The padding is read once per call below, not once per slide.
@@ -69,6 +70,8 @@
 
     function update() {
         var index = current();
+        // When every slide fits there is nothing to move to: the arrows hide, and so do the dots.
+        dotRow.style.display = overflows() ? '' : 'none';
         dots.forEach(function (dot, i) { dot.classList.toggle('active', i === index); });
         prev.disabled = track.scrollLeft <= 1;
         next.disabled = !overflows() || (atEnd() && index === slides().length - 1);
