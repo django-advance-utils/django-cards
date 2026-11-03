@@ -431,12 +431,20 @@
     z-index: 100;
 }
 
-/* add_panel_layout(scroll_cards=True): a region's lone card fills its region and scrolls its own
-   body, so a card longer than the window keeps its header and tab bar in view. Only a lone card:
-   several in a region would share its height evenly, so they keep the region's scroll. A card
-   holding a treegrid sizes itself and scrolls its own grid, so its body is left alone -- scrolling
-   it too would take the grid's toolbar away and draw two scrollbars. */
-.panel-layout--scroll-cards .panel-region__content > .card:only-child {
+/* add_panel_layout(scroll_cards=True): the lone card of a region or tab fills it and scrolls its own
+   body, so a card longer than the window keeps its header and tab bar in view. The template marks
+   a region or tab holding one card (panel-region__content--single) -- counted there, as a card's
+   own <script> siblings and its ajax-reload wrapper would defeat a CSS count. Several cards keep
+   the region's scroll rather than sharing its height evenly. A card holding a treegrid scrolls its
+   own grid, so its body is left alone: scrolling it too would take the grid's toolbar away and
+   draw two scrollbars. */
+.panel-layout--scroll-cards .panel-region__content--single {
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .card,
+.panel-layout--scroll-cards .panel-region__content--single > [id$="_ajax"] > .card {
     flex: 1;
     min-height: 0;
     margin-top: 0;
@@ -445,7 +453,15 @@
     flex-direction: column;
 }
 
-.panel-layout--scroll-cards .panel-region__content > .card:only-child > .card-body:not(:has(.fancytree-ext-table)) {
+.panel-layout--scroll-cards .panel-region__content--single > [id$="_ajax"] {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-layout--scroll-cards .panel-region__content--single > .card > .card-body:not(:has(.treegrid-table)),
+.panel-layout--scroll-cards .panel-region__content--single > [id$="_ajax"] > .card > .card-body:not(:has(.treegrid-table)) {
     flex: 1;
     min-height: 0;
     overflow: auto;

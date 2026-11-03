@@ -132,6 +132,10 @@
     .fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {
         background-color: #a2bbd366;
     }
+    /* A folder row keeps its own hover shade, as in a cell-hover grid. */
+    .fancytree-ext-table.treegrid--row-hover tbody tr.fancytree-folder:hover > td {
+        background-color: rgba(0, 0, 0, 0.06);
+    }
 
     /* Inline checkbox */
     .fancytree-ext-table .treegrid-checkbox {

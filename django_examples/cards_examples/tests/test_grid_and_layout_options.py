@@ -7,8 +7,8 @@
 * **``treegrid_hover='row'``** lights the whole row, for a grid read a row at a time; the default
   ``'cell'`` lights the cell, the cue for a grid edited in place. An editable cell in a row-hover
   grid keeps the cell cue too.
-* **``add_panel_layout(scroll_cards=True)``**: every region card fills its region and scrolls its
-  own body, so a card longer than the window keeps its header and tab bar in view.
+* **``add_panel_layout(scroll_cards=True)``**: the lone card of a region or tab fills it and
+  scrolls its own body, so a card longer than the window keeps its header and tab bar in view.
 """
 import pathlib
 
@@ -63,10 +63,20 @@ class TestATreegridsWidth(SimpleTestCase):
         tab.add_card(_grid(view, name='given', treegrid_min_width='900px'))
         tab.add_card(_grid(view, name='blank', treegrid_min_width=''))
         html = str(layout.render().render())
-        self.assertEqual(_table(html, 'blank')['style'], 'min-width:100%')
+        self.assertEqual(_table(html, 'blank')['style'], 'min-width:')  # '' is no floor, as before
         self.assertEqual(_table(html, 'side')['style'], 'min-width:100%')
         self.assertEqual(_table(html, 'tabbed')['style'], 'min-width:100%')
         self.assertEqual(_table(html, 'given')['style'], 'min-width:900px')
+
+
+class TestAReloadKeepsTheRegionWidth(SimpleTestCase):
+
+    def test_the_width_is_set_as_the_grid_is_placed(self):
+        """An ajax reload draws the card alone (_render_template), not the layout around it."""
+        view = _view()
+        grid = _grid(view)
+        view.add_panel_layout(card_name='shell', persist=False).root.add_region('side', size='300px').add_card(grid)
+        self.assertEqual(_table(grid._render_template())['style'], 'min-width:100%')
 
 
 class TestRowHover(SimpleTestCase):
@@ -105,15 +115,30 @@ class TestScrollCards(SimpleTestCase):
         container = _Page(str(scrolling.render().render())).find('div', id='panel_layout_scrolling')[0]
         self.assertEqual(container['class'].split(), ['panel-layout', 'mine', 'panel-layout--scroll-cards'])
 
-    def test_a_lone_region_card_fills_its_region_and_scrolls_its_body_but_not_a_grids(self):
+    def test_a_region_or_tab_holding_one_card_is_marked(self):
+        view = _view()
+        layout = view.add_panel_layout(card_name='shell', persist=False, scroll_cards=True)
+        lone = view.add_card('lone', title='Lone', searchable=True, ajax_reload=True)
+        lone.add_entry(value='x', label='X')
+        layout.root.add_region('lone', size='1fr').add_card(lone)
+        pair = layout.root.add_region('pair', size='1fr')
+        pair.add_card(view.add_card('a', title='A'))
+        pair.add_card(view.add_card('b', title='B'))
+        layout.root.add_region('tabs', size='1fr').add_tab('t', title='T').add_card(view.add_card('c', title='C'))
+        page = _Page(str(layout.render().render()))
+        marked = [a for a in page.find('div') if 'panel-region__content--single' in (a.get('class') or '').split()]
+        self.assertEqual(len(marked), 2)  # the lone region and the tab -- not the pair
+        self.assertIn('tab-pane', marked[1]['class'])
+
+    def test_the_lone_card_fills_and_scrolls_but_not_a_treegrids(self):
         css = (CSS / 'static/cards/panel_layout/css/panel_layout.css').read_text()
-        # :only-child -- several cards in a region keep the region's scroll, not an even split
-        card = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card:only-child {'):]
+        card = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card,'):]
         self.assertIn('flex: 1;', card[:card.index('}')])
-        # a treegrid card scrolls its own grid: its body is left alone
-        body = css[css.index('.panel-layout--scroll-cards .panel-region__content > .card:only-child > '
-                             '.card-body:not(:has(.fancytree-ext-table)) {'):]
+        self.assertIn('[id$="_ajax"] > .card', card[:card.index('{')])  # an ajax-reload card too
+        body = css[css.index('.panel-layout--scroll-cards .panel-region__content--single > .card > '
+                             '.card-body:not(:has(.treegrid-table)),'):]
         self.assertIn('overflow: auto;', body[:body.index('}')])
+        self.assertIn('class="treegrid-table ', _grid(_view()).render())  # there before any script runs
 
     def test_css_class_none_draws_no_stray_class(self):
         view = _view()

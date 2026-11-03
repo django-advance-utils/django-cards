@@ -69,6 +69,20 @@ def slot_marker():
     return f'<!--django-cards-panel-slot-{nonce}-->'
 
 
+def _fill_region_width(card):
+    """A treegrid placed in a region or tab with no treegrid_min_width of its own takes 100%.
+
+    A region can be dragged narrower than the 600px a treegrid otherwise keeps, and the grid would
+    scroll sideways with its last column under the splitter. Set as the card is placed, so an ajax
+    reload -- which rebuilds the cards, and the layout with them -- draws it the same way.
+    """
+    from cards.base import CARD_TYPE_TREEGRID
+    info = getattr(card, 'extra_card_info', None)
+    if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
+            and info.get('treegrid_min_width') is None:
+        info['treegrid_min_width'] = '100%'
+
+
 class PanelSlot:
     """Stands in a region or tab for the page's own content, which the layout is rendered around.
 
@@ -145,6 +159,7 @@ class PanelTab:
 
     def add_card(self, card):
         """Add a card to this tab pane."""
+        _fill_region_width(card)
         self.cards.append(card)
         return self
 
@@ -247,6 +262,7 @@ class PanelRegion:
         When the region has a ``title`` or ``menu``, the card's own header is
         hidden to avoid duplication (the region toolbar acts as the header).
         """
+        _fill_region_width(card)
         self.cards.append(card)
         return self
 
@@ -590,8 +606,9 @@ class PanelLayout:
         self.full_height = full_height
         self.min_height = min_height
         self.css_class = css_class or ''
-        # A region's lone card fills it and scrolls its own body, so a long card keeps its header and
-        # tab bar in view rather than the region scrolling them away (the template adds the class).
+        # A region's (or tab's) lone card fills it and scrolls its own body, so a long card keeps its
+        # header and tab bar in view rather than the region scrolling them away (the template adds
+        # the class, and marks a region or tab holding one card).
         self.scroll_cards = bool(scroll_cards)
         self.css_style = css_style
         self.linked_tables = None
@@ -676,15 +693,9 @@ class PanelLayout:
         return [card for card in cards if not isinstance(card, PanelSlot)]
 
     def _render_html(self):
-        from cards.base import CARD_TYPE_TREEGRID, refuse_if_stacked
+        from cards.base import refuse_if_stacked
         for card in self.placed_cards():
             refuse_if_stacked(self.view, card, 'a panel layout region')
-            info = getattr(card, 'extra_card_info', None)
-            if getattr(card, 'group_type', None) == CARD_TYPE_TREEGRID and info is not None \
-                    and not info.get('treegrid_min_width'):
-                # A region can be dragged narrower than the 600px a treegrid otherwise keeps, and
-                # the grid would scroll sideways with its last column under the splitter.
-                info['treegrid_min_width'] = '100%'
         self._process_menus(self.root)
         context = self.get_render_html_context()
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))

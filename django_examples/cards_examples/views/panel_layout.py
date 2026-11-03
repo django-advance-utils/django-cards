@@ -949,7 +949,7 @@ class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
                               {'title': 'People', 'field': 'people', 'width': '25%'}],
             treegrid_static_data=nodes, treegrid_show_filter=False, treegrid_hover='row')
         root.add_region('grid', size='420px', min_size=200).add_card(grid)
-        notes = self.add_card(title='Notes (scrolls inside its card)')
+        notes = self.add_card(title='Notes (scrolls inside its card)', searchable=True, ajax_reload=True)
         notes.add_rows(*[{'label': f'Note {i}', 'value': 'A long card: its header stays put while its body scrolls.'}
                          for i in range(1, 31)])
         root.add_region('notes', size='1fr', min_size=200).add_card(notes)

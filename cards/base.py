@@ -1646,9 +1646,10 @@ class CardBase:
             extra_info['treegrid_js_filters_json'] = json_for_script(extra_info['treegrid_js_filters'])
             extra_info['treegrid_default_selected_json'] = json_for_script(extra_info['treegrid_default_selected'] or [])
             extra_info['treegrid_borderless'] = kwargs.get('treegrid_borderless', False)
-            # None unless given: the template draws 600px, and a panel layout gives a treegrid in
-            # one of its regions 100% instead (PanelLayout._render_html), so a narrow region does
-            # not scroll the grid sideways under its splitter. A width given is kept everywhere.
+            # None unless given: the template draws 600px, and a treegrid placed in a panel region
+            # or tab takes 100% instead (panel_layout._fill_region_width), so a narrow region does
+            # not scroll the grid sideways under its splitter. A width given is kept everywhere,
+            # '' (no floor at all) included.
             extra_info['treegrid_min_width'] = kwargs.get('treegrid_min_width')
             # 'cell' (the default) lights the cell under the pointer, the cue for a grid edited in
             # place; 'row' lights the row, for one read a row at a time -- an editable cell in it

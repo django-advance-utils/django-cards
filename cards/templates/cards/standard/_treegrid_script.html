@@ -704,6 +704,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
             if (d[nodeField + '__bg']) $nodeTd.css('background-color', d[nodeField + '__bg']);
             if (d[nodeField + '__color']) $nodeTd.css('color', d[nodeField + '__color']);
             if (d[nodeField + '__class']) $nodeTd.addClass(d[nodeField + '__class']);
+            $nodeTd.toggleClass('treegrid-editable', !!(!READ_ONLY && !node.data.disableEdit && EDITABLE_FIELDS[NODE_COLUMN]));
             if (!READ_ONLY && !node.data.disableEdit && COLUMNS[NODE_COLUMN].edit_icon && EDITABLE_FIELDS[NODE_COLUMN]) {
                 var $titleSpan = $nodeTd.find('.fancytree-title');
                 if ($titleSpan.length && !$titleSpan.find('.treegrid-edit-icon').length) {
@@ -731,7 +732,7 @@ window._treegridInit = window._treegridInit || function(CFG) {
 
             // If this column should not show for this node type, render empty
             if (!visible) {
-                $td.empty();
+                $td.empty().removeClass('treegrid-editable');
                 continue;
             }
 
