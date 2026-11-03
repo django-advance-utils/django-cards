@@ -3,11 +3,12 @@
 {# escaped except `title_html` (via tile.heading), rendered as-is by name like            #}
 {# Tile.heading_html; the inline values a caller sets (the banner background and the     #}
 {# point colours) are documented on BannerTile as code-only.                             #}
-{% if card.extra_card_info.banner_tiles_slider %}
+{# A slider only when there is something to slide: an empty one is just the empty message. #}
+{% if card.extra_card_info.banner_tiles_slider and card.extra_card_info.banner_tiles %}
 <div class="django-card__banner-tile-slider" id="{{ card.code }}_slider">
     <button type="button" class="django-card__banner-tile-slider-arrow django-card__banner-tile-slider-arrow--prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
 {% endif %}
-<div class="django-card__banner-tiles{% if card.extra_card_info.banner_tiles_slider %} django-card__banner-tiles--slider{% endif %}"{% if card.extra_card_info.banner_tiles_width %} style="--django-card-banner-tile-width: {{ card.extra_card_info.banner_tiles_width }}"{% endif %}>
+<div class="django-card__banner-tiles{% if card.extra_card_info.banner_tiles_slider and card.extra_card_info.banner_tiles %} django-card__banner-tiles--slider{% endif %}"{% if card.extra_card_info.banner_tiles_width %} style="--django-card-banner-tile-width: {{ card.extra_card_info.banner_tiles_width }}"{% endif %}>
     {% for tile in card.extra_card_info.banner_tiles %}
     {% if tile.is_showcase %}
     <div class="django-card__banner-tile django-card__banner-tile-showcase{% if not tile.has_panels %} django-card__banner-tile-showcase--text-only{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}">
@@ -69,7 +70,7 @@
     </div>
     {% else %}
     <div class="django-card__banner-tile{% if tile.is_detail %} django-card__banner-tile-detail{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}">
-        {% if tile.banner_url %}<a href="{{ tile.banner_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.banner_background and not tile.image_url %} style="background: {{ tile.banner_background }}"{% endif %}>
+        {% if tile.banner_url %}<a href="{{ tile.banner_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% if not tile.banner_caption and not tile.banner_label %} aria-label="{% firstof tile.title 'Preview' %}"{% endif %}{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.banner_background and not tile.image_url %} style="background: {{ tile.banner_background }}"{% endif %}>
             {% if tile.image_url %}
             <img src="{{ tile.image_url }}" alt="" loading="lazy" class="django-card__banner-tile-banner-image">
             {% elif tile.banner_icon %}
@@ -111,7 +112,7 @@
                     <div class="django-card__banner-tile-progress-bar" style="width: {{ tile.progress_percent }}%"></div>
                 </div>
                 {% endif %}
-                {% if tile.status or tile.progress_percent is not None %}<div class="django-card__banner-tile-status">{{ tile.status|default:'' }}</div>{% endif %}{# empty under a bar: it keeps the line, so the bars of a row line up #}
+                <div class="django-card__banner-tile-status">{{ tile.status|default:'' }}</div>{# empty under a bar: it keeps the line, so the bars of a row line up #}
             </div>
             {% endif %}
 
@@ -136,7 +137,7 @@
     {% endif %}
     {% endfor %}
 </div>
-{% if card.extra_card_info.banner_tiles_slider %}
+{% if card.extra_card_info.banner_tiles_slider and card.extra_card_info.banner_tiles %}
     <button type="button" class="django-card__banner-tile-slider-arrow django-card__banner-tile-slider-arrow--next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
     <div class="django-card__banner-tile-slider-dots">
         {% for tile in card.extra_card_info.banner_tiles %}<button type="button" aria-label="Go to slide {{ forloop.counter }}"></button>{% endfor %}

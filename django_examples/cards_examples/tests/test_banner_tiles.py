@@ -424,3 +424,38 @@ class TestBannerTileProgressGroup(TestCase):
 
     def test_neither_means_no_group(self):
         self.assertIsNone(self.group())
+
+
+class TestBannerTileFinalReviewFixes(TestCase):
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def render(self, tiles, **kwargs):
+        card = self.view.add_card('demo', title='M')
+        card.add_banner_tiles(tiles, **kwargs)
+        return card.render()
+
+    def test_a_bare_string_for_a_list_field_is_refused(self):
+        for name in ('stats', 'points', 'flow'):
+            with self.subTest(name), self.assertRaises(TypeError):
+                BannerTile(key='c', **{name: 'oops'})
+        BannerTile(key='c', stats=('a', 'b'), flow=None)   # a tuple or None is fine
+
+    def test_a_banner_link_with_no_text_is_named_for_screen_readers(self):
+        html = self.render([BannerTile(key='a', title='Intro', banner_url='/p/'),
+                            BannerTile(key='b', layout='detail', banner_url='/q/')])
+        self.assertIn('href="/p/" class="django-card__banner-tile-banner django-card__banner-tile-banner--link" '
+                      'aria-label="Intro"', html)
+        self.assertIn('aria-label="Preview"', html)
+
+    def test_a_banner_link_with_a_caption_needs_no_label(self):
+        html = self.render([BannerTile(key='a', title='Intro', banner_url='/p/', banner_caption='Watch')])
+        self.assertNotIn('aria-label="Intro"', html)
+
+    def test_an_empty_slider_is_just_the_empty_message(self):
+        html = self.render([], slider=True, empty_message='Nothing yet')
+        self.assertIn('Nothing yet', html)
+        self.assertNotIn('django-card__banner-tile-slider', html)
+        self.assertNotIn('django-card__banner-tiles--slider', html)
+        self.assertNotIn("getElementById('demo_slider')", html)

@@ -14,6 +14,13 @@
     var padding = function () { return parseFloat(getComputedStyle(track).paddingLeft) || 0; };
     var overflows = function () { return track.scrollWidth - track.clientWidth > 1; };
     var atEnd = function () { return track.scrollLeft + track.clientWidth >= track.scrollWidth - 1; };
+    // The slide a dot or arrow last asked for. Near the end of the track several slides cannot
+    // scroll to its left edge, so the track stops at its end for each of them; this says which
+    // one was meant. A swipe, wheel or drag is the user's own scrolling, so it forgets it.
+    var target = null;
+    ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (type) {
+        track.addEventListener(type, function () { target = null; }, {passive: true});
+    });
 
     function current() {
         var items = slides(), pad = padding(), best = 0, bestDistance = Infinity;
@@ -21,10 +28,15 @@
             var distance = Math.abs(items[i].offsetLeft - pad - track.scrollLeft);
             if (distance < bestDistance) { best = i; bestDistance = distance; }
         }
-        // At the end of the track the last slides may never reach its left edge, so the last dot
-        // would never light. Only when the track scrolls at all: when every slide fits it is at
-        // its start and its end at once, and the first dot is the right one.
-        if (overflows() && atEnd()) { best = items.length - 1; }
+        // At the end of the track the last slides may never reach its left edge, so the nearest
+        // one would be lit for all of them: light the one asked for, or after a swipe the last.
+        // Only when the track scrolls at all: when every slide fits it is at its start and its
+        // end at once, and the first dot is the right one.
+        if (overflows() && atEnd()) {
+            var maxLeft = track.scrollWidth - track.clientWidth;
+            var asked = target !== null && items[target] && items[target].offsetLeft - pad >= maxLeft - 1;
+            best = asked ? target : items.length - 1;
+        }
         return best;
     }
 
@@ -32,6 +44,7 @@
         var items = slides();
         if (!items.length) { return; }
         index = Math.max(0, Math.min(items.length - 1, index));
+        target = index;
         track.scrollTo({left: items[index].offsetLeft - padding(), behavior: 'smooth'});
     }
 
@@ -40,6 +53,13 @@
     // on the last dot, and the slide before that may start beyond where the track can scroll.
     function step(direction) {
         var items = slides(), pad = padding(), left = track.scrollLeft;
+        // At the end, the slides that cannot reach the left edge are stepped one dot at a time,
+        // since moving among them does not move the track.
+        if (overflows() && atEnd()) {
+            var at = current(), maxLeft = track.scrollWidth - track.clientWidth;
+            var neighbour = items[at + direction];
+            if (neighbour && neighbour.offsetLeft - pad >= maxLeft - 1) { go(at + direction); update(); return; }
+        }
         for (var i = 0; i < items.length; i++) {
             var j = direction > 0 ? i : items.length - 1 - i;
             var resting = items[j].offsetLeft - pad;
@@ -51,12 +71,13 @@
         var index = current();
         dots.forEach(function (dot, i) { dot.classList.toggle('active', i === index); });
         prev.disabled = track.scrollLeft <= 1;
-        next.disabled = !overflows() || atEnd();
+        next.disabled = !overflows() || (atEnd() && index === slides().length - 1);
     }
 
     prev.addEventListener('click', function () { step(-1); });
     next.addEventListener('click', function () { step(1); });
-    dots.forEach(function (dot, i) { dot.addEventListener('click', function () { go(i); }); });
+    // At the end of the track go() may not scroll at all, so update the dots here too.
+    dots.forEach(function (dot, i) { dot.addEventListener('click', function () { go(i); update(); }); });
     var pending = false;
     track.addEventListener('scroll', function () {
         if (pending) { return; }

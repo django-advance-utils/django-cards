@@ -388,6 +388,8 @@ class BannerTile:
         banner_url (str, optional): Makes the banner a link, with a round play button over
             its middle -- a course preview.
         banner_caption (str, optional): Text under the play button (``'Preview this course'``).
+            Without it or ``banner_label``, the banner link is named for screen readers by
+            ``title``, or ``'Preview'``.
             Escaped.
         callout_title, callout_text (str, optional): A tinted box under the banner (``'On your
             Estimator path'`` / ``'Step 1 of 2, required for your role.'``). Escaped.
@@ -479,7 +481,12 @@ class BannerTile:
         if self.layout not in self.LAYOUTS:
             raise ValueError(f'BannerTile layout is one of {self.LAYOUTS}; got {self.layout!r}')
         # Check the list and number fields now, so bad input fails where the tile is built
-        # rather than as a 500 when the page renders -- whichever layout the tile has.
+        # rather than as a 500 when the page renders -- whichever layout the tile has. A bare
+        # string is refused: iterated, it would draw a stat, point or box per character.
+        for name in ('stats', 'points', 'flow'):
+            value = getattr(self, name)
+            if value is not None and not isinstance(value, (list, tuple)):
+                raise TypeError(f'BannerTile {name} is a list; got {type(value).__name__} {value!r}')
         self.stat_items
         self.point_items
         self.progress_percent
