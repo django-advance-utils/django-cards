@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
 # Re-exported so a view building tiles imports Tile from the same place as CardMixin.
 from cards.base import Tile, BannerTile, CardSection, build_sections  # noqa: F401
+from cards.base import SECTION_STACKS, _check_section_ids, find_section
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
@@ -511,6 +512,8 @@ class CardMixin:
         to render them runs the hook. Call this, rather than the three steps, from any handler
         that builds the cards itself; `rebuild_cards()` first throws away the ones built so far.
         """
+        # The section stacks are this build's: a second build starts them again with the cards.
+        setattr(self, SECTION_STACKS, [])
         self.setup_datatable_cards()
         self.setup_cards()
         self.cards_ready()
@@ -525,9 +528,6 @@ class CardMixin:
         self.cards = {}
         self.card_groups = {}
         self.tables = {}
-        # The section stacks go with the cards: a card kept between builds is free to be claimed again.
-        from cards.base import SECTION_CLAIMS
-        setattr(self, SECTION_CLAIMS, {})
         self.build_cards()
 
     def add_html_card(self, context_template_name, context=None, is_empty=False, **kwargs):
@@ -1236,18 +1236,19 @@ class CardMixin:
         self.rebuild_cards()
         card = self.cards.get(card_code)
         if card is not None:
-            section = getattr(card, 'section', None)
+            section = find_section(self, card)
             if section is not None:
-                # As a full render does: a card added later in the build could have taken an id.
-                from cards.base import _check_section_ids
+                # A card in an add_sections() stack of this build: its header is the section's,
+                # outside the card, so it is redrawn too -- the title, menu and actions may have
+                # changed -- and the card is drawn as its section draws it, without a header.
                 _check_section_ids(card, [section])
-                # A card in an add_sections() stack: its header is the section's, outside the
-                # card, so it is redrawn too -- the title, menu and actions may have changed.
                 self.add_command('html', selector=f'#{section.id}-header', html=section.render_header(redraw=True))
                 if not card.ajax_reload:
                     # No #<code>_ajax around a card that does not reload: its section's body is
                     # where it is drawn, so header and body change together.
                     return self.command_response('html', selector=f'#{section.id}-body', html=section.render_body())
+                return self.command_response('html', selector=f'#{card.code}_ajax',
+                                             html=card._render_template({'show_header': False}))
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 

@@ -1082,10 +1082,13 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     border-top: 1px solid var(--django-card-border-color, #dee2e6);
 }
 
+/* The colour is the bar's, and the toggle and chevron inherit it, so a card's header_css_class
+ * on the bar (text-white over bg-dark, say) colours the title too. */
 .django-card__section-bar {
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    color: var(--django-card-section-title-color, #6c757d);
 }
 
 .django-card__section-toggle,
@@ -1093,7 +1096,7 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     margin: 0;
     border: 0;
     background: none;
-    color: var(--django-card-section-title-color, #6c757d);
+    color: inherit;
     font: inherit;
     cursor: pointer;
 }
