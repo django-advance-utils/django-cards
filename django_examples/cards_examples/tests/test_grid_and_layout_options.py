@@ -96,11 +96,16 @@ class TestRowHover(SimpleTestCase):
 
     def test_the_row_lights_and_an_editable_cell_keeps_its_cue(self):
         css = (CSS / 'templates/cards/standard/_treegrid_css.html').read_text()
-        self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {', css)
+        # an overlay, so a cell's own class colour survives; the plain cell cue is for 'cell' grids
+        row = css[css.index('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {'):]
+        self.assertIn('background-image: linear-gradient(', row[:row.index('}')])
+        self.assertNotIn('background-color', row[:row.index('}')])
+        self.assertIn('.fancytree-ext-table:not(.treegrid--row-hover) tbody td:hover {', css)
         self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {', css)
         # every editable cell is marked, whether or not its column draws the pencil
         script = (CSS / 'templates/cards/standard/_treegrid_script.html').read_text()
         self.assertIn("$td.toggleClass('treegrid-editable', !!(!READ_ONLY && editInfo && !disabled));", script)
+        self.assertIn("$nodeTd.toggleClass('treegrid-editable', titleEditable);", script)
 
 
 class TestScrollCards(SimpleTestCase):
@@ -150,6 +155,15 @@ class TestScrollCards(SimpleTestCase):
         self.assertNotIn(':has(', css[css.index('add_panel_layout(scroll_cards=True)'):])
         reloads = _view().add_card('r', title='R', ajax_reload=True)
         self.assertIn('id="r_ajax" class="django-card__ajax"', reloads.render())
+
+    def test_self_sizing_and_collapsible_cards_are_not_marked_and_nothing_is_without_scroll_cards(self):
+        view = _view()
+        self.assertFalse(view.add_accordion_card(card_name='acc', title='Acc', panels=[]).fills_region)
+        self.assertFalse(view.add_card('folds', title='Folds', collapsed=False).fills_region)
+        self.assertTrue(view.add_card('plain', title='Plain').fills_region)
+        layout = view.add_panel_layout(card_name='inner', persist=False)  # no scroll_cards
+        layout.root.add_region('main', size='1fr').add_card(view.add_card('alone', title='Alone'))
+        self.assertNotIn('panel-region__content--single', str(layout.render().render()))
 
     def test_css_class_none_draws_no_stray_class(self):
         view = _view()

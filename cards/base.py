@@ -3007,12 +3007,17 @@ class CardBase:
                 data.append({'label': label or '', 'value': value})
         return data
 
+    #: The card types that size themselves -- a treegrid by ``treegrid_height`` and its own scrolling
+    #: grid, an accordion, an iframe and a panel layout by filling what they are given -- and so,
+    #: alone in a ``scroll_cards`` region, are left as they are rather than made to scroll their body.
+    SELF_SIZING_TYPES = frozenset({CARD_TYPE_TREEGRID, CARD_TYPE_ACCORDION, CARD_TYPE_IFRAME, CARD_TYPE_PANEL_LAYOUT})
+
     @property
     def fills_region(self):
         """Whether, alone in a panel region or tab under ``scroll_cards``, the card fills it and
-        scrolls its own body. A treegrid does not: it sizes itself (``treegrid_height``) and scrolls
-        its own grid, and shrinking it to the region would spill the grid past its border."""
-        return self.group_type != CARD_TYPE_TREEGRID
+        scrolls its own body. Not a self-sizing type (`SELF_SIZING_TYPES`), whose own scrolling a
+        second scrollbar would fight, nor a collapsible card, which would fill the region folded."""
+        return self.group_type not in self.SELF_SIZING_TYPES and not self.enable_collapse
 
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the
