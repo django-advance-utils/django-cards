@@ -7,12 +7,16 @@ a slot (a region's or tab's ``add_slot()``, or ``{% panel_slot %}`` inside a car
 halves -- by hand, or with ``{% panel_layout_around layout %}...{% endpanel_layout_around %}``.
 
 None or two slots raise: the content would be lost or drawn twice, with nothing to say why.
+
+The marker is an html comment named by an HMAC of ``SECRET_KEY``, so stored rich text printed safe
+in a card cannot carry it, and a layout rendered as a card -- not split -- strips it, so it never
+reaches a page to be read.
 """
 from django.template import Context, Engine, Template
 from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.views.generic import TemplateView
 
-from cards.panel_layout import SLOT_MARKER, PanelLayoutParts
+from cards.panel_layout import PanelLayoutParts, slot_marker
 from cards.standard import CardMixin
 from cards_examples.tests.test_escaping import PACKS, _Page
 
@@ -52,7 +56,7 @@ class TestRenderAround(SimpleTestCase):
                     html = f'{parts.before}<p class="page-content">mine</p>{parts.after}'
                     page = _Page(html)
                     self.assertEqual(len(page.find('p', **{'class': 'page-content'})), 1)
-                    self.assertNotIn(SLOT_MARKER, html)
+                    self.assertNotIn(slot_marker(), html)
                     # the content sits in the main region's content, after the side region's card
                     self.assertLess(html.index('side text'), html.index('page-content'))
                     self.assertLess(html.index('id="panel_region_main"'), html.index('page-content'))
@@ -126,6 +130,38 @@ class TestRenderAround(SimpleTestCase):
         self.assertIn('panel_layout_bare', parts.before)
 
 
+class TestTheMarkerCannotBeForged(SimpleTestCase):
+
+    def test_stored_text_that_looks_like_a_marker_is_not_one(self):
+        from django.utils.safestring import mark_safe
+        for stored in ('<!--django-cards-panel-slot-->', '<!--django-cards-panel-slot-0123456789abcdef01234567-->'):
+            with self.subTest(stored=stored):
+                view = _view()
+                layout = view.add_panel_layout(card_name='shell', persist=False)
+                side = view.add_html_data_card(card_name='notes', title='Notes',
+                                               html=mark_safe(f'<p class="stored">notes{stored}</p>'))
+                layout.root.add_region('side', size='240px').add_card(side)
+                layout.root.add_region('main', size='1fr').add_slot()
+                parts = layout.render_around()
+                # split at the real slot, in the main region, not in the stored text
+                self.assertIn('class="stored"', parts.before)
+                self.assertIn('id="panel_region_main"', parts.before)
+
+    def test_it_depends_on_the_secret_key(self):
+        first = slot_marker()
+        with override_settings(SECRET_KEY='another secret'):
+            self.assertNotEqual(slot_marker(), first)
+        self.assertEqual(slot_marker(), first)
+        self.assertRegex(first, r'^<!--django-cards-panel-slot-[0-9a-f]{24}-->$')
+
+    def test_a_layout_rendered_as_a_card_leaves_no_marker(self):
+        view = _view()
+        html = str(_region_slot(view).render().render())
+        self.assertNotIn(slot_marker(), html)
+        self.assertNotIn('django-cards-panel-slot', html)
+        self.assertIn('side text', html)
+
+
 class TestPanelLayoutAroundTag(SimpleTestCase):
 
     def test_the_tag_puts_its_contents_in_the_slot(self):
@@ -136,7 +172,7 @@ class TestPanelLayoutAroundTag(SimpleTestCase):
         self.assertEqual(len(_Page(html).find('p', **{'class': 'page-content'})), 1)
         self.assertIn('mine &amp; yours', html)
         self.assertIn('side text', html)
-        self.assertNotIn(SLOT_MARKER, html)
+        self.assertNotIn(slot_marker(), html)
 
     def test_a_child_templates_block_fills_the_slot(self):
         """A base template can wrap every child page's content in the layout."""

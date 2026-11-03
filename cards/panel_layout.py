@@ -1,6 +1,9 @@
+import hashlib
+import hmac
 from typing import NamedTuple
 
 from ajax_helpers.utils import random_string
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.functional import lazy
 from django.utils.safestring import SafeString, mark_safe
@@ -27,7 +30,9 @@ class DeferredLayoutHtml:
 
     def render(self):
         if self.rendered is None:
-            self.rendered = self.layout._render_html()
+            # A layout rendered as a card is not being split, so a slot in it is dropped rather
+            # than left in the page, where the marker could be read and copied into stored text.
+            self.rendered = mark_safe(str(self.layout._render_html()).replace(slot_marker(), ''))
         return self.rendered
 
 
@@ -38,16 +43,27 @@ class DeferredLayoutHtml:
 lazy_layout_html = lazy(DeferredLayoutHtml.render, SafeString)
 
 
-#: Where a panel layout leaves room for the page's own content. Written by `PanelSlot` (a region's
-#: or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a card's own template, and found by
-#: `PanelLayout.render_around`, which splits the rendered layout there.
-SLOT_MARKER = '<!--django-cards-panel-slot-->'
+def slot_marker():
+    """Where a panel layout leaves room for the page's own content.
+
+    Written by `PanelSlot` (a region's or tab's ``add_slot()``) or by ``{% panel_slot %}`` in a
+    card's own template, and found by `PanelLayout.render_around`, which splits the rendered layout
+    there. An html comment, so it draws nothing; named by an HMAC of ``SECRET_KEY`` so that no
+    stored text can carry it. A card printing stored rich text marked safe could otherwise hold the
+    marker -- raising "2 slots" on every page that shows it, or, beside a layout with no slot of its
+    own, taking the page's content into that card. The same in every worker of one site, since a
+    card's html can be built in one process and split in another (a cache); it never reaches a
+    page, as the layout strips it wherever it renders without splitting.
+    """
+    key = str(getattr(settings, 'SECRET_KEY', '') or '').encode()
+    digest = hmac.new(key, b'django-cards panel layout slot', hashlib.sha256).hexdigest()[:24]
+    return f'<!--django-cards-panel-slot-{digest}-->'
 
 
 class PanelSlot:
     """Stands in a region or tab for the page's own content, which the layout is rendered around.
 
-    Added with ``region.add_slot()`` or ``tab.add_slot()``. It renders as `SLOT_MARKER`, and
+    Added with ``region.add_slot()`` or ``tab.add_slot()``. It renders as `slot_marker()`, and
     `PanelLayout.render_around` splits the layout there, so the page's template can put its own
     content -- a ``{% block %}`` it renders as usual -- inside the layout without the layout knowing
     what that content is.
@@ -60,7 +76,7 @@ class PanelSlot:
     code = 'panel_slot'
 
     def render(self, override_card_context=None):
-        return mark_safe(SLOT_MARKER)
+        return mark_safe(slot_marker())
 
 
 def _add_slot(holder):
@@ -658,13 +674,14 @@ class PanelLayout:
         # registered in the view's cards while the page renders, and there is nothing for its
         # chrome to do here. So this needs no view, either.
         html = str(self._render_html())
-        count = html.count(SLOT_MARKER)
+        marker = slot_marker()
+        count = html.count(marker)
         if count != 1:
             where = 'no slot' if count == 0 else f'{count} slots'
             raise ValueError(
                 f'PanelLayout {self.layout_id!r} has {where}; render_around needs exactly one. Add one '
                 f'with region.add_slot() or tab.add_slot(), or {{% panel_slot %}} in a card template.')
-        before, after = html.split(SLOT_MARKER)
+        before, after = html.split(marker)
         return PanelLayoutParts(mark_safe(before), mark_safe(after))
 
     def render(self):
