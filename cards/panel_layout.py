@@ -496,6 +496,15 @@ class PanelLayout:
                  direction=PanelSplit.HORIZONTAL,
                  resizable=True, full_height=True, min_height='400px',
                  css_class='', css_style='', persist=True):
+        if layout_id is not None and layout_id == card_name:
+            # The wrapper card takes `card_name` as its DOM id, and panel_layout.js finds the
+            # layout by id, taking the first element that carries it -- the wrapper. The layout
+            # then never sizes itself, and a splitter drag lays its overlay on the wrapper. Refused
+            # rather than renamed: a caller who chose the id styles or scripts it by that name.
+            raise ValueError(
+                f'PanelLayout layout_id {layout_id!r} is the same as its card_name, which the '
+                f'wrapper card uses as its id. Leave layout_id out (it defaults to '
+                f'panel_layout_<card_name>) or give it a name of its own.')
         self.view = view
         self.card_name = card_name
         self.layout_id = layout_id or f'panel_layout_{card_name}'

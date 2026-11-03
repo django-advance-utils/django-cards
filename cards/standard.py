@@ -355,7 +355,9 @@ class CardMixin:
 
         Args:
             card_name (str, optional): Card name for the wrapper card. Defaults to 'panel_layout'.
-            layout_id (str, optional): HTML id for the layout container.
+            layout_id (str, optional): HTML id for the layout container. Defaults to
+                ``panel_layout_<card_name>``. Must differ from ``card_name``, which the wrapper
+                card takes as its id; the same name raises ``ValueError``.
             direction (str, optional): Root split direction - 'horizontal' or 'vertical'.
             resizable (bool, optional): Whether panels can be resized by dragging. Defaults to True.
             full_height (bool, optional): Whether to fill viewport height. Defaults to True.
