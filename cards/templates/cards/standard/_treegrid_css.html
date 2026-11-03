@@ -118,9 +118,11 @@
         background-color: rgba(0, 0, 0, 0.06);
     }
 
-    /* Cell hover highlight matching datatable (treegrid_hover='cell', the default; in a row-hover
-       grid the hovered cell keeps it too, a shade under the row's overlay) */
-    .fancytree-ext-table tbody td:hover {
+    /* Cell hover highlight matching datatable (treegrid_hover='cell', the default). Not in a
+       row-hover grid, where the row's overlay is the cue and a cell keeps its own colour -- left
+       out by :where(), which adds no specificity, so a project's own override of this rule still
+       wins as it always has. */
+    .fancytree-ext-table tbody td:hover:not(:where(.treegrid--row-hover td)) {
         background-color: #a2bbd333;
     }
 

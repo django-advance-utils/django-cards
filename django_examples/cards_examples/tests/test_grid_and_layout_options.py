@@ -103,9 +103,9 @@ class TestRowHover(SimpleTestCase):
         row = css[css.index('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td {'):]
         self.assertIn('background-image: linear-gradient(', row[:row.index('}')])
         self.assertNotIn('background-color', row[:row.index('}')])
-        # the default cell rule is left as it was, so a project's own overrides still win
-        self.assertIn('    .fancytree-ext-table tbody td:hover {', css)
-        self.assertNotIn(':not(.treegrid--row-hover)', css)
+        # the default cell rule skips row-hover grids without gaining specificity (:where), so a
+        # project's own overrides of it still win
+        self.assertIn('    .fancytree-ext-table tbody td:hover:not(:where(.treegrid--row-hover td)) {', css)
         self.assertIn('.fancytree-ext-table.treegrid--row-hover tbody tr:hover > td.treegrid-editable:hover {', css)
         # every editable cell is marked, whether or not its column draws the pencil
         script = (CSS / 'templates/cards/standard/_treegrid_script.html').read_text()
@@ -169,6 +169,9 @@ class TestScrollCards(SimpleTestCase):
         self.assertFalse(view.add_accordion_card(card_name='acc', title='Acc', panels=[]).fills_region)
         self.assertFalse(view.add_card('folds', title='Folds', collapsed=False).fills_region)
         self.assertFalse(view.add_layout_card('rows').fills_region)
+        inner = view.add_panel_layout(card_name='nested', persist=False)
+        inner.root.add_region('main', size='1fr')
+        self.assertFalse(inner.render().fills_region)  # drawn by html.html, but sizes itself
         self.assertFalse(view.add_card('picks', title='Picks', template_name='list_selection').fills_region)
         self.assertFalse(_grid(view, name='tree').fills_region)
         for name in ('plain', 'table', 'html', 'message'):

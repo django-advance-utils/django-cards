@@ -617,16 +617,14 @@ class CardSection:
         own = getattr(card, 'section_header_controls', None)
         if own is not None:
             return bool(own)
-        name = card.template_name or card.template_defaults.get(card.group_type)
-        entry = card.templates.get(name)
+        entry = card.templates.get(card.template_name or card.template_defaults.get(card.group_type))
         if entry is not None and 'header_controls' in entry:
             return bool(entry['header_controls'])
         # Otherwise by the template file that will render: cards' own default and table templates
         # carry them, whether named by key ('table'), through a subclass entry that left the flag
         # out, or by path ('cards/standard/table.html'). A subclass entry naming a template of its
         # own is not assumed to.
-        path = entry['name'] if entry is not None else name
-        return path in _header_control_templates()
+        return card.template_path in _header_control_templates()
 
     def has_controls(self, full_controls):
         """Whether the card has header controls besides its menu: what the section header draws,
@@ -3020,12 +3018,18 @@ class CardBase:
         scrolls its own body: drawn by the template file of one of `REGION_FILLING_TEMPLATES` --
         by key or by path, and not a subclass's entry pointing that key at a template of its own --
         and not collapsible (it would fill the region folded)."""
-        if self.enable_collapse:
+        if self.enable_collapse or self.group_type == CARD_TYPE_PANEL_LAYOUT:
+            # A nested panel layout is drawn by html.html too, but sizes itself.
             return False
+        return self.template_path in {CardBase.templates[key]['name'] for key in self.REGION_FILLING_TEMPLATES}
+
+    @property
+    def template_path(self):
+        """The template file this card renders with: its ``template_name`` (or its type's default)
+        through its own ``templates``, or the name itself where that is a path."""
         name = self.template_name or self.template_defaults.get(self.group_type)
         entry = self.templates.get(name)
-        path = entry['name'] if entry is not None else name
-        return path in {CardBase.templates[key]['name'] for key in self.REGION_FILLING_TEMPLATES}
+        return entry['name'] if entry is not None else name
 
     def as_menu(self, menu, menu_type=None):
         """``menu`` as the card holds one: a list of items made an HtmlMenu of ``menu_type`` (the
