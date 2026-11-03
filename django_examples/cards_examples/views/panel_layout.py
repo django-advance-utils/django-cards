@@ -2,6 +2,7 @@ from django_datatables.helpers import DUMMY_ID
 
 from cards_examples.models import Company, CompanyCategory, Person, Payment
 from cards_examples.views.base import MainMenu
+from django.templatetags.static import static
 from django.views.generic import TemplateView
 from django_menus.menu import MenuItem, AjaxButtonMenuItem
 
@@ -422,7 +423,7 @@ class PanelLayoutIframeExample(MainMenu, CardMixin, TemplateView):
 <html>
 <head>
 <style>body { margin: 0; overflow: hidden; }</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="__THREE_JS_URL__"></script>
 </head>
 <body>
 <script>
@@ -548,7 +549,10 @@ window.addEventListener("resize", function() {
         threejs_card = self.add_iframe_card(
             card_name='threejs',
             title='Three.js Demo',
-            iframe_srcdoc=self.THREEJS_DEMO,
+            # three.js r128 is served from our own static files, never a CDN. A srcdoc
+            # iframe resolves URLs against the parent page, so the /static/ path works.
+            iframe_srcdoc=self.THREEJS_DEMO.replace(
+                '__THREE_JS_URL__', static('cards_examples/three/three.min.js')),
             iframe_height='100%',
         )
         top_region.add_card(threejs_card)

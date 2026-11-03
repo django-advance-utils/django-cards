@@ -7,17 +7,20 @@ class DemoCSS(SourceBase):
 
 
 class Bootstrap5(SourceBase):
-    """Bootstrap 5 from the CDN, so the examples can be looked at on either version.
+    """Bootstrap 5, so the examples can be looked at on either version.
 
     ajax_helpers ships Bootstrap 4 (``ajax_helpers.includes.Bootstrap``, pinned at 4.6.0) and
     there is no Bootstrap 5 equivalent upstream yet, so the example app carries its own rather
-    than wait for one. CDN only -- ``static_path`` of None makes SourceBase force it.
+    than wait for one. Served from our own static files, never a CDN: the files under
+    ``cards_examples/static/cards_examples/bootstrap5/`` are bootstrap 5.3.3 copied unchanged
+    from the npm package's ``dist/`` directory, and with no ``cdn_path`` SourceBase always uses
+    ``static_path``.
 
     The bundle is deliberate: it carries Popper, which Bootstrap 5 needs for dropdowns and
     tooltips, and it must load *after* jQuery for Bootstrap's jQuery plugin interface to be
     registered. ``base.html`` keeps that order.
     """
-    cdn_path = 'cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/'
+    static_path = 'cards_examples/bootstrap5/'
     js_filename = 'bootstrap.bundle.min.js'
     css_filename = 'bootstrap.min.css'
 

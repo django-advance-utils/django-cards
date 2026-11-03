@@ -1,4 +1,4 @@
-<style>
+{% load django_cards_tags %}<style>
     .drop-placeholder {
         height: 2px;
         background: #007bff;
@@ -61,7 +61,7 @@
         <div class="d-flex align-items-center">
             <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
-            {% include 'cards/standard/_reload_button.html' %}
+            {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
         </div>
     </div>
     {{ card.tab_menu.render }}

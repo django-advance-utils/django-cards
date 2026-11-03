@@ -14,7 +14,7 @@ from cards_examples.views.accordion import AccordionExample, AccordionAjaxExampl
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
-from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample, CardBordersIndex, PurchaseOrderLayoutIndex, TilesIndex
+from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample, CardBordersIndex, PurchaseOrderLayoutIndex, TilesIndex, BannerTilesIndex
 from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
@@ -26,6 +26,7 @@ from cards_examples.views.treegrid import (
     TreegridSortableExample,
     TreegridDragDropExample,
     TreegridToolbarSlotsExample,
+    TreegridEscapedTextExample,
 )
 from cards_examples.views.panel_layout import (
     PanelLayoutSidebarExample, PanelLayoutThreeColumnExample,
@@ -81,6 +82,7 @@ urlpatterns = [
     path('card-borders/', CardBordersIndex.as_view(), name='card_borders'),
     path('purchase-order-layout/', PurchaseOrderLayoutIndex.as_view(), name='purchase_order_layout'),
     path('tiles/', TilesIndex.as_view(), name='tiles'),
+    path('banner-tiles/', BannerTilesIndex.as_view(), name='banner_tiles'),
 
     path('treegrid/', TreegridBasicExample.as_view(), name='treegrid'),
     path('treegrid/editable/', TreegridEditableExample.as_view(), name='treegrid_editable'),
@@ -105,6 +107,7 @@ urlpatterns = [
     path('treegrid/sortable/', TreegridSortableExample.as_view(), name='treegrid_sortable'),
     path('treegrid/drag-drop/', TreegridDragDropExample.as_view(), name='treegrid_drag_drop'),
     path('treegrid/toolbar-slots/', TreegridToolbarSlotsExample.as_view(), name='treegrid_toolbar_slots'),
+    path('treegrid/escaped-text/', TreegridEscapedTextExample.as_view(), name='treegrid_escaped_text'),
 
     path('panel-layout/sidebar/', PanelLayoutSidebarExample.as_view(), name='panel_sidebar'),
     path('panel-layout/three-column/', PanelLayoutThreeColumnExample.as_view(), name='panel_three_col'),

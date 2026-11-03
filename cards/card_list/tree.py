@@ -14,7 +14,10 @@ class CardTreeMixin(CardListBaseMixin):
     Typically used in views that require a tree navigation sidebar and a corresponding details panel.
 
     Attributes:
-        show_details_for_parents (bool): If True, allows parent nodes to show detail views.
+        show_details_for_parents (bool): If True, allows parent nodes to show detail views. Otherwise a node
+            dict that carries ``'is_group': False`` (a key on the node itself, beside ``id`` and ``text`` --
+            not under jstree's ``data``, which jstree strips) opens its details even when it has children,
+            one that carries ``True`` never does, and one that carries neither is a group when it has children.
     """
 
     show_details_for_parents = False

@@ -21,8 +21,10 @@
 </head>
 <body>
  <nav class="navbar navbar-expand-lg bg-dark navbar-dark active-bar">
-        {# The example app's own chrome, spelled for whichever version this page serves -- the
-           cards themselves come from the matching django-cards template pack. #}
+        {% comment %}
+            The example app's own chrome, spelled for whichever version this page serves -- the
+            cards themselves come from the matching django-cards template pack.
+        {% endcomment %}
         <button class="navbar-toggler" type="button"
                 {% if bootstrap_version == '5' %}data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"{% else %}data-toggle="collapse" data-target="#navbarSupportedContent"{% endif %}
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">

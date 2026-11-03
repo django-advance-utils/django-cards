@@ -45,6 +45,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:treegrid_sortable', 'Sortable'),
                 ('cards_examples:treegrid_drag_drop', 'Drag & Drop'),
                 ('cards_examples:treegrid_toolbar_slots', 'Toolbar Slots'),
+                ('cards_examples:treegrid_escaped_text', 'Escaped Text'),
             )),
             MenuItem(menu_display='Accordion', dropdown=(
                 ('cards_examples:accordion', 'Basic'),
@@ -73,6 +74,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:new_features_2', 'New Features 2'),
                 ('cards_examples:image_gallery', 'Image Gallery'),
                 ('cards_examples:tiles', 'Tiles'),
+                ('cards_examples:banner_tiles', 'Banner Tiles'),
                 ('cards_examples:card_borders', 'Card Borders'),
                 ('cards_examples:purchase_order_layout', 'Purchase Order Layout'),
                 ('cards_examples:column_search', 'Column Search'),

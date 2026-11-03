@@ -1,0 +1,107 @@
+{# Arrows and dots for add_banner_tiles(slider=True). The track scrolls natively, so touch and trackpads need nothing here; #}
+{# this only moves it a slide at a time and keeps the dots and the arrows' disabled state in step with where it is.      #}
+<script>
+(function () {
+    var slider = document.getElementById('{{ card.code|escapejs }}_slider');
+    if (!slider) { return; }
+    var track = slider.querySelector('.django-card__banner-tiles');
+    var prev = slider.querySelector('.django-card__banner-tile-slider-arrow--prev');
+    var next = slider.querySelector('.django-card__banner-tile-slider-arrow--next');
+    var dotRow = slider.querySelector('.django-card__banner-tile-slider-dots');
+    var dots = dotRow.querySelectorAll('button');
+    var slides = function () { return track.querySelectorAll(':scope > .django-card__banner-tile'); };
+    // A slide snaps to the track's padding, not its edge, so its resting scrollLeft is offsetLeft
+    // less that. The padding is read once per call below, not once per slide.
+    var padding = function () { return parseFloat(getComputedStyle(track).paddingLeft) || 0; };
+    var overflows = function () { return track.scrollWidth - track.clientWidth > 1; };
+    var atEnd = function () { return track.scrollLeft + track.clientWidth >= track.scrollWidth - 1; };
+    // The slide a dot or arrow last asked for. Near the end of the track several slides cannot
+    // scroll to its left edge, so the track stops at its end for each of them; this says which
+    // one was meant. A swipe, wheel or drag is the user's own scrolling, so it forgets it.
+    var target = null;
+    ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (type) {
+        track.addEventListener(type, function () { target = null; }, {passive: true});
+    });
+
+    function current() {
+        var items = slides(), pad = padding(), best = 0, bestDistance = Infinity;
+        for (var i = 0; i < items.length; i++) {
+            var distance = Math.abs(items[i].offsetLeft - pad - track.scrollLeft);
+            if (distance < bestDistance) { best = i; bestDistance = distance; }
+        }
+        // At the end of the track the last slides may never reach its left edge, so the nearest
+        // one would be lit for all of them: light the one asked for, or after a swipe the last.
+        // Only when the track scrolls at all: when every slide fits it is at its start and its
+        // end at once, and the first dot is the right one.
+        if (overflows() && atEnd()) {
+            var maxLeft = track.scrollWidth - track.clientWidth;
+            var asked = target !== null && items[target] && items[target].offsetLeft - pad >= maxLeft - 1;
+            best = asked ? target : items.length - 1;
+        }
+        return best;
+    }
+
+    function go(index) {
+        var items = slides();
+        if (!items.length) { return; }
+        index = Math.max(0, Math.min(items.length - 1, index));
+        target = index;
+        track.scrollTo({left: items[index].offsetLeft - padding(), behavior: 'smooth'});
+    }
+
+    // The arrows step to the nearest slide starting before or after where the track is, not to
+    // current() +/- 1: with several slides on screen the track can be at its end with current()
+    // on the last dot, and the slide before that may start beyond where the track can scroll.
+    function step(direction) {
+        var items = slides(), pad = padding(), left = track.scrollLeft;
+        // At the end, the slides that cannot reach the left edge are stepped one dot at a time,
+        // since moving among them does not move the track.
+        if (overflows() && atEnd()) {
+            var at = current(), maxLeft = track.scrollWidth - track.clientWidth;
+            var neighbour = items[at + direction];
+            if (neighbour && neighbour.offsetLeft - pad >= maxLeft - 1) { go(at + direction); update(); return; }
+        }
+        for (var i = 0; i < items.length; i++) {
+            var j = direction > 0 ? i : items.length - 1 - i;
+            var resting = items[j].offsetLeft - pad;
+            if (direction > 0 ? resting > left + 1 : resting < left - 1) { go(j); return; }
+        }
+    }
+
+    function update() {
+        var index = current();
+        // When every slide fits there is nothing to move to: the arrows hide, and so do the dots.
+        dotRow.style.display = overflows() ? '' : 'none';
+        dots.forEach(function (dot, i) { dot.classList.toggle('active', i === index); });
+        prev.disabled = track.scrollLeft <= 1;
+        next.disabled = !overflows() || (atEnd() && index === slides().length - 1);
+    }
+
+    prev.addEventListener('click', function () { step(-1); });
+    next.addEventListener('click', function () { step(1); });
+    // At the end of the track go() may not scroll at all, so update the dots here too.
+    dots.forEach(function (dot, i) { dot.addEventListener('click', function () { go(i); update(); }); });
+    var pending = false;
+    track.addEventListener('scroll', function () {
+        if (pending) { return; }
+        pending = true;
+        requestAnimationFrame(function () { pending = false; update(); });
+    });
+
+    // Watch the track's own size rather than the window's: it also changes when a collapsed card,
+    // tab or modal holding the slider is first shown, which fires no window resize, and a slider
+    // hidden at load measures 0 wide. A reload of the card replaces this slider and runs this
+    // script again, so each listener lets go once its slider has left the page; otherwise every
+    // reload would leave one behind, holding the old slider in memory.
+    // A browser without ResizeObserver (none current) keeps the arrows and dots as they were
+    // set at load; scrolling still updates them, and the track itself still scrolls.
+    if (window.ResizeObserver) {
+        var observer = new ResizeObserver(function () {
+            if (!slider.isConnected) { observer.disconnect(); return; }
+            update();
+        });
+        observer.observe(track);
+    }
+    update();
+})();
+</script>

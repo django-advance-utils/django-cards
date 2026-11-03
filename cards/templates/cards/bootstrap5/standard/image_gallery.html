@@ -1,4 +1,4 @@
-<style>
+{% load django_cards_tags %}<style>
     .image-gallery-grid {
         display: flex;
         flex-wrap: wrap;
@@ -154,7 +154,7 @@
         <div class="d-flex align-items-center">
             <h5 class="me-auto">{% if card.header_icon %}<i class="{{ card.header_icon }}"></i> {% endif %}{{ card.title }}</h5>
             {{ card.menu.render }}
-            {% include 'cards/standard/_reload_button.html' %}
+            {% pack_path 'cards/standard/_reload_button.html' as pack_include %}{% include pack_include %}
             {% if card.enable_collapse %}
             <div class="section-header-right {% if card.collapsed %} collapsed{% endif %}" data-bs-target="#{{ card.code }}_body" data-bs-toggle="collapse">
                 <i class="expandicon"></i>
@@ -210,7 +210,7 @@
         <div class="modal-content">
             <div class="modal-header py-2">
                 <h6 class="modal-title" id="{{ card.code }}_lightbox_title"></h6>
-                {% include 'cards/standard/_lightbox_close.html' %}
+                {% pack_path 'cards/standard/_lightbox_close.html' as pack_include %}{% include pack_include %}
             </div>
             <div class="modal-body">
                 <button class="gallery-nav gallery-nav-prev" id="{{ card.code }}_nav_prev" onclick="galleryNav_{{ card.code }}(-1)" style="display:none"><i class="fas fa-chevron-left"></i></button>

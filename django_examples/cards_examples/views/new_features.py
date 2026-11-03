@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 from django.utils.html import format_html
 
-from cards.standard import CardMixin, Tile
+from cards.standard import CardMixin, Tile, BannerTile
 from django_menus.menu import MenuItem
 from cards_examples.bootstrap import col
 
@@ -949,3 +949,158 @@ class TilesIndex(MainMenu, CardMixin, TemplateView):
     def add_empty_card(self):
         card = self.add_card('empty_tiles', title='Empty')
         card.add_tiles([], empty_message='No tiles yet. Use Add above to add one.')
+
+
+class BannerTilesIndex(MainMenu, CardMixin, TemplateView):
+    """add_banner_tiles(): larger tiles with a banner, progress and an action, in a master card."""
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        # Promotions in a slider, with no box around them: layout='feature' is the wide slide,
+        # and one with no banner_icon is the plain grey one.
+        promotions = self.add_card('promotions', border='none')
+        promotions.add_banner_tiles([
+            BannerTile(key='promo_path', layout='feature',
+                       banner_icon='fas fa-drafting-compass',
+                       title='Your path as an Estimator',
+                       description='0 of 2 steps done. Up next: Getting Started.',
+                       action_label='Continue your path', action_url='javascript:alert("Path")'),
+            BannerTile(key='promo_crm', layout='feature',
+                       title='New: CRM: Know every Customer',
+                       description='The CRM keeps all contacts, conversations, leads, projects, '
+                                   'invoices, and files in one place.',
+                       action_label='Take a look', action_url='javascript:alert("CRM")'),
+            BannerTile(key='promo_webinar', layout='feature',
+                       banner_icon='fas fa-video',
+                       banner_background='#e6f0fb',
+                       title='Live webinar: Quoting faster',
+                       description='Thursday at 2pm. Bring your questions.',
+                       action_label='Book a place', action_url='javascript:alert("Webinar")'),
+        ], slider=True)
+
+        # A wide dark panel with a list of points and a mosaic of panels on the right.
+        system_map = self.add_card('system_map', border='none')
+        system_map.add_banner_tiles([
+            BannerTile(key='system_map_1', layout='showcase',
+                       title='See how it all fits together',
+                       description='One map of the whole system, drawn from how it really works.',
+                       points=[('fas fa-cubes', 'Every area of the system'),
+                               ('fas fa-cog', 'The settings behind each one'),
+                               ('fas fa-random', 'What affects what'),
+                               ('fas fa-user-check', 'The areas your role works in')],
+                       banner_icon='fas fa-project-diagram',
+                       flow=['CRM', 'Projects', 'Gantt'],
+                       panel_icon='fas fa-cog',
+                       action_label='Open the map', action_url='javascript:alert("Map")'),
+        ])
+
+        card = self.add_card('training', title='Your training', header_icon='fas fa-graduation-cap')
+        card.add_banner_tiles([
+            # The learning path the courses belong to, filled rather than bannered, first in
+            # the grid so it reads as the heading of the row.
+            BannerTile(key='path_estimator', layout='highlight',
+                       banner_label='Your learning path', banner_icon='fas fa-drafting-compass',
+                       title='Estimator',
+                       description='Customers, enquiries, quotes and projects, from the first '
+                                   'call to the order.',
+                       status='0 of 2 steps done', progress=0,
+                       action_label='Continue: Getting Started',
+                       action_url='javascript:alert("Continue")'),
+            BannerTile(key='course_1',
+                       title='Getting Started',
+                       description='This course covers the first steps, from setting up '
+                                   'your initial user through to creating your first project.',
+                       banner_label='Projects', banner_icon='fas fa-folder-open',
+                       step='Step 1 of 2', badge='Required for your role',
+                       stats=[('far fa-play-circle', '13 lessons'),
+                              ('far fa-question-circle', '8 quizzes')],
+                       progress=0, status='Not started',
+                       footer_label='Projects', footer_icon='fas fa-folder-open',
+                       action_label='Start', action_url='javascript:alert("Start")'),
+            BannerTile(key='course_2',
+                       title='Quoting and Estimating',
+                       description='Build a quote from a drawing, price it and send it.',
+                       banner_label='Sales', banner_icon='fas fa-file-invoice',
+                       banner_background='linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)',
+                       step='Step 2 of 2',
+                       stats=[('far fa-play-circle', '9 lessons'),
+                              ('far fa-question-circle', '4 quizzes')],
+                       progress=45, status='45% complete',
+                       footer_label='Sales', footer_icon='fas fa-file-invoice',
+                       action_label='Continue', action_url='javascript:alert("Continue")'),
+            BannerTile(key='course_3',
+                       title='Reporting basics',
+                       stats=['3 lessons'],
+                       progress=100, status='Completed',
+                       action_label='Review', action_url='javascript:alert("Review")',
+                       action_css_class='btn btn-sm btn-outline-secondary'),
+        ], empty_message='No courses assigned yet.')
+
+        empty = self.add_card('no_training', title='Empty')
+        empty.add_banner_tiles([], empty_message='No courses assigned yet.')
+
+        # The detail layout: one course, as the sidebar on its own page. border='none' drops
+        # the master card's box so the tile is the only frame.
+        sidebar = self.add_card('course_sidebar', border='none')
+        sidebar.add_banner_tiles([
+            BannerTile(key='course_detail_1', layout='detail',
+                       banner_icon='fas fa-folder-open',
+                       banner_url='javascript:alert("Preview")',
+                       banner_caption='Preview this course',
+                       callout_icon='fas fa-route',
+                       callout_title='On your Estimator path',
+                       callout_text='Step 1 of 2, required for your role.',
+                       callout_link_label='See your path',
+                       callout_link_url='javascript:alert("Path")',
+                       stats=[('far fa-play-circle', '13 lessons in 2 sections'),
+                              ('far fa-question-circle', '8 quizzes to check your understanding'),
+                              ('fas fa-award', 'Certificate of completion')],
+                       action_label='Start this course',
+                       action_url='javascript:alert("Start")',
+                       secondary_label='Save for later', secondary_icon='far fa-bookmark',
+                       secondary_url='javascript:alert("Saved")',
+                       note='Your progress is saved as you go.'),
+        ], width='320px')
+
+        # A plain tile introducing the grid after it: no box, just a title (markup, for the
+        # italic word -- format_html, though here there is nothing to escape) and a line of text.
+        stages = self.add_card('stages', border='none')
+        stages.add_banner_tiles(
+            [BannerTile(key='stages_intro', layout='plain',
+                        title_html=format_html('Learn <em>every</em> part of {}', 'the system'),
+                        description='From the first enquiry to the last invoice: pick a stage of '
+                                    'your work to see the courses that teach it.')]
+            + [BannerTile(key=f'stage_{n}', title=name, banner_label=name, banner_icon=icon,
+                          banner_background=background,
+                          stats=[('far fa-play-circle', f'{courses} courses')],
+                          action_label='See courses', action_url=f'javascript:alert("{name}")')
+               for n, (name, icon, background, courses) in enumerate([
+                   ('Enquiries', 'fas fa-phone', 'linear-gradient(135deg, #2b3fd6 0%, #2a2f8f 100%)', 3),
+                   ('Quotes', 'fas fa-file-invoice', 'linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)', 4),
+                   ('Production', 'fas fa-industry', 'linear-gradient(135deg, #0f9d8a 0%, #0b5e57 100%)', 5),
+                   ('Invoicing', 'fas fa-pound-sign', 'linear-gradient(135deg, #e0761b 0%, #9c4a0c 100%)', 2),
+               ])])
+
+        more = self.add_card('more_courses', title='More courses (any tile in a slider)')
+        more.add_banner_tiles([
+            BannerTile(key=f'more_{n}', title=name, description='A short course.',
+                       banner_label=label, banner_icon=icon,
+                       stats=[('far fa-play-circle', f'{lessons} lessons')],
+                       footer_label=label, footer_icon=icon,
+                       action_label='Start', action_url=f'javascript:alert("{name}")')
+            for n, (name, label, icon, lessons) in enumerate([
+                ('Surveying', 'Projects', 'fas fa-folder-open', 6),
+                ('Pricing rules', 'Sales', 'fas fa-file-invoice', 4),
+                ('Cutting lists', 'Production', 'fas fa-cut', 8),
+                ('Deliveries', 'Logistics', 'fas fa-truck', 5),
+                ('Invoicing', 'Accounts', 'fas fa-pound-sign', 7),
+            ])
+        ], slider=True)
+
+        self.add_card_group('promotions', div_css_class='col-12')
+        self.add_card_group('system_map', div_css_class='col-12')
+        self.add_card_group('training', div_css_class='col-12')
+        self.add_card_group('no_training', div_css_class=col('col-8', self.request))
+        self.add_card_group('course_sidebar', div_css_class=col('col-4', self.request, 'right'))
+        self.add_card_group('stages', div_css_class='col-12', div_css='clear:both')
+        self.add_card_group('more_courses', div_css_class='col-12')

@@ -812,7 +812,15 @@ class CategoryTreeView(CardTree, TemplateView):
         card.add_entry(value=details_object, label='Selected ID')
 ```
 
-Override `get_tree_data(selected_id)` to return a list of node dicts with `id`, `parent` (`'#'` for root), `text`, and optionally `icon` and `state`.
+Override `get_tree_data(selected_id)` to return a list of node dicts with `id`, `parent` (`'#'` for root), `text`, and optionally `icon`, `state` and `is_group`.
+
+With `show_details_for_parents` off (the default), clicking a node loads its details unless the node is a
+group: a parent with nothing of its own to show. A node says which with `'is_group': True` or `False` on
+the dict itself, beside `id` and `text` (not under jstree's `data`, which jstree strips); one that says
+neither is a group when it has children. The first load on opening the page follows the same rule.
+
+**Fixed in 1.8.6.** The tree took every node with children for a group, so a node that is both a thing
+to show and a parent -- a mail folder holding sub-folders -- could not be opened; `is_group` is new.
 
 ---
 
@@ -1116,6 +1124,182 @@ Retint the chrome without out-specifying anything by setting the custom properti
 
 See the `/tiles/` page in `django_examples` for a tile with every field, one with none of the
 optional ones, both shapes above, and the empty state.
+
+---
+
+## Banner Tiles
+
+`add_banner_tiles()` makes a card a master card whose body is a set of larger cards: courses,
+learning paths, promotions. The master card keeps its own header, menu and footer; each
+`BannerTile` is a card of its own inside it, laid out as a grid or, with `slider=True`, as a
+swipeable row.
+
+```python
+from cards.standard import CardMixin, BannerTile
+
+card = self.add_card('training', title='Your training')
+card.add_banner_tiles(
+    [
+        BannerTile(
+            key=f'course_{course.pk}',            # stable id -> the tile's DOM id
+            title=course.name,                    # escaped
+            description=course.summary,           # cut to two lines; full text in the title attribute
+            banner_label=course.category.name,
+            banner_icon='fas fa-folder-open',
+            step=f'Step {n} of {len(courses)}',
+            badge='Required for your role' if course.required else None,
+            stats=[('far fa-play-circle', f'{course.lessons} lessons'),
+                   ('far fa-question-circle', f'{course.quizzes} quizzes')],
+            progress=course.progress_for(user),   # 0-100; None for no bar
+            status='Not started',
+            footer_label=course.category.name,
+            footer_icon='fas fa-folder-open',
+            action_label='Start',
+            action_url=course.get_absolute_url(),
+        )
+        for n, course in enumerate(courses, 1)
+    ],
+    empty_message='No courses assigned yet.',
+)
+```
+
+`add_banner_tiles()` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `tiles` | list | required | `BannerTile` objects, or dicts of the same fields |
+| `empty_message` | str | `None` | Shown in place of the tiles when there are none. Nothing is drawn without one |
+| `width` | str | `260px` | The width of one grid tile, as a CSS length |
+| `slider` | bool | `None` | `True` for a slider, `False` for a grid; `None` keeps what an earlier call set (a grid if none did) |
+
+As with `add_tiles()`, it sets the card's template, adds to the tiles when called more than once,
+and returns the card so the call can be chained onto `add_card()`. For a single tile with no box
+around it, give `add_card()` `border='none'`.
+
+### Layouts
+
+`BannerTile(layout=...)` picks one of six shapes. Every field but `key` is optional, and a tile
+draws only the parts it was given -- except the banner of a `compact` or `detail` tile, which is
+always drawn, in the default blue gradient when no banner field is set.
+
+| Layout | Use | Fields it draws |
+| --- | --- | --- |
+| `'compact'` (default) | An item in a grid | `banner_*`, `image_url`, `step`, `title`, `description`, `badge`, `stats` in a row, `progress`, `status`, `footer_*`, action in the footer |
+| `'detail'` | One item in a sidebar | `banner_url` (a play button over the banner) with `banner_caption`, `callout_*`, `stats` one per line, a full-width action, `secondary_*`, `note` |
+| `'highlight'` | A learning path at the head of a grid | A filled tile: `banner_icon`/`banner_label` as a small line, `title`, `description`, then `status`, `progress` and a white action pinned to the bottom |
+| `'feature'` | A wide promotional slide | `title`, `description` and action over a `banner_background` tint; shapes and `banner_icon` in a white tile on the right. No icon draws one grey shape |
+| `'plain'` | Text introducing the tiles after it | `title` (or `title_html`) large, `description`, an optional action as a link. No box |
+| `'showcase'` | A wide dark panel | `title`, `description`, `points` in two columns, a white action; on the right a tall `banner_icon` panel, a `flow` diagram and a `panel_icon` panel |
+
+`feature` and `showcase` take the whole row in a grid. `highlight` and `plain` take one cell and
+stretch to the row's height, so they line up with the tiles beside them.
+
+```python
+# One course as the sidebar on its own page.
+BannerTile(key='course_12', layout='detail',
+           banner_icon='fas fa-folder-open', banner_url=course.preview_url,
+           banner_caption='Preview this course',
+           callout_icon='fas fa-route', callout_title='On your Estimator path',
+           callout_text='Step 1 of 2, required for your role.',
+           callout_link_label='See your path', callout_link_url=path_url,
+           stats=[('far fa-play-circle', '13 lessons in 2 sections'),
+                  ('fas fa-award', 'Certificate of completion')],
+           action_label='Start this course', action_url=course.start_url,
+           secondary_label='Save for later', secondary_icon='far fa-bookmark',
+           secondary_url=save_url, note='Your progress is saved as you go.')
+
+# A dark panel with a list of points and a small diagram.
+BannerTile(key='system_map', layout='showcase',
+           title='See how it all fits together',
+           description='One map of the whole system, drawn from how it really works.',
+           points=[('fas fa-cubes', 'Every area of the system'),
+                   ('fas fa-cog', 'The settings behind each one', '#fbe3a1')],
+           banner_icon='fas fa-project-diagram',
+           flow=['CRM', 'Projects', 'Gantt'],
+           panel_icon='fas fa-cog',
+           action_label='Open the map', action_url=map_url)
+```
+
+`BannerTile` fields:
+
+| Field | Purpose |
+| --- | --- |
+| `key` | Stable identifier; becomes the tile's DOM id, so it must be unique on the page |
+| `layout` | `'compact'`, `'detail'`, `'highlight'`, `'feature'`, `'plain'` or `'showcase'` |
+| `title` | The tile's heading. **Escaped** |
+| `title_html` | The heading as markup, for one with a word in italics. **Rendered as-is** -- see below |
+| `description` | A short paragraph under the title. **Escaped** |
+| `banner_label`, `banner_icon` | The banner's caption and icon; the icon is also drawn large and faded |
+| `banner_background` | CSS `background` for the banner (or the whole tile in `highlight`/`feature`). **Code only** |
+| `banner_url`, `banner_caption` | Makes the banner a link with a play button, and a line under it |
+| `image_url` | A banner image, drawn instead of the background and icon |
+| `step` | A flag in the banner's corner (`'Step 1 of 2'`) |
+| `badge` | A pill under the description |
+| `stats` | Short facts: a string or an `(icon_classes, text)` pair |
+| `progress` | 0-100, clamped and rounded. `0` draws an empty bar; `None` draws none |
+| `status` | A quiet line under the progress bar |
+| `footer_label`, `footer_icon` | The footer's left side |
+| `action_label`, `action_url`, `action_css_class` | The button. Its classes default per layout |
+| `callout_title`, `callout_text`, `callout_icon`, `callout_link_label`, `callout_link_url` | `detail`'s tinted box |
+| `secondary_label`, `secondary_url`, `secondary_icon` | `detail`'s quiet link under the button |
+| `note` | `detail`'s small line at the bottom |
+| `points` | `showcase`'s list: `(icon_classes, text)` or `(icon_classes, text, colour)`. Text **escaped**; colour **code only** |
+| `flow` | `showcase`'s diagram: names drawn as boxes joined by lines |
+| `panel_icon` | `showcase`'s small icon panel |
+| `css_class` | Extra classes on the tile |
+
+A misspelled field in a dict, an unknown `layout`, a malformed `stats`/`points` entry, a bare
+string for `stats`, `points` or `flow`, or a `progress` that is not a number raises when the tile
+is built. Fields the tile's layout does not draw (`stats` on a `highlight` tile, say) are
+ignored, so one set of fields can be shown in more than one layout.
+
+### Slider
+
+```python
+promotions = self.add_card('promotions', border='none')
+promotions.add_banner_tiles([...], slider=True)
+```
+
+The track is a native horizontal scroller with snap points, so swiping and trackpads need no
+script. A small script adds prev/next arrows, which hide at each end, and a dot per tile that
+jumps to it; the current tile's dot widens into a pill. Any layout can be a slide: `feature` and
+`showcase` slides are about 88% of the track wide, so the next one peeks in, and the rest keep
+their grid width.
+
+### Escaping
+
+Everything a tile shows is escaped **except `title_html`**, named for it in the same way as
+`Tile.heading_html`. Build it with `format_html`, which still escapes what goes into it:
+
+```python
+from django.utils.html import format_html
+
+BannerTile(key='intro', layout='plain',
+           title_html=format_html('Learn <em>every</em> part of {}', product_name),
+           description='Pick a stage of your work to see the courses that teach it.')
+```
+
+`banner_background`, the `points` colours and `add_banner_tiles(width=...)` are written into
+`style` attributes, so they must come from your code, never from a form or a model field.
+
+The URL fields -- `action_url`, `banner_url`, `callout_link_url`, `secondary_url` and
+`image_url` -- are escaped, but escaping does not stop a `javascript:` URL from running. That is
+deliberate, as with `Tile.edit_url`: a `javascript:` URL that opens a modal is a normal button.
+So build them in your code (`reverse()`, `get_absolute_url()`, a modal call), and never pass a URL
+a user typed in without checking its scheme first.
+
+### Styling
+
+The chrome is in `cards/css/cards.css` under `.django-card__banner-tile-*`, injected once per request.
+On narrow screens the decorative shapes and panels hide and the showcase's points drop to one
+column. Colours are custom properties, so a project can retint them without out-specifying
+anything: `--django-card-banner-tile-accent`, `--django-card-banner-tile-banner-bg`,
+`--django-card-banner-tile-highlight-bg`, `--django-card-banner-tile-feature-bg`,
+`--django-card-banner-tile-showcase-bg`, `--django-card-banner-tile-progress-bg`,
+`--django-card-banner-tile-badge-bg`, `--django-card-banner-tile-muted-color`, among others.
+
+See the `/banner-tiles/` page in `django_examples` for every layout, both sliders and the empty
+state.
 
 ---
 
@@ -1425,6 +1609,7 @@ Any card type can be placed inside an accordion panel. The panel automatically h
 - HTML cards
 - Image gallery cards
 - Tile cards
+- Banner tile cards
 - Other card types
 
 ### Layout Example — Accordion with Side Panel
@@ -2213,6 +2398,44 @@ self.add_treegrid_card(
 - Click **All** in a filter block header to re-check every value in that block.
 - Works in both paginated and non-paginated modes.
 - In paginated mode the panel filters combine with the toolbar search box — both must match for a row to appear.
+
+### Titles and `html` Columns Are Markup
+
+A node's `title`, and a cell in a `type='html'` column, is drawn as HTML, so text bound for one
+has to be escaped first; every other column is drawn as text and takes its value as it is:
+
+```python
+from django.utils.html import escape, format_html
+
+node = {
+    'title': escape(product.name),                   # "Nuts &amp; Bolts"
+    'key': f'product_{product.pk}',
+    'data': {'type': 'product',
+             'section': escape(product.section),     # a type='html' column
+             'code': product.code},                  # a text column: as it is
+}
+# A title carrying an icon as well: format_html escapes the name inside the markup.
+node['title'] = format_html('<i class="fas fa-link"></i> {}', product.name)
+```
+
+The search box, the column filters and the side-panel filters all work on the text a reader
+sees in those cells -- entities decoded, tags dropped -- so `nuts & b` finds "Nuts &amp; Bolts",
+`filter_options=True` offers it as "Nuts & Bolts", and a side-panel option is labelled that way
+too. An option from a `filter_options` list you write is matched against the markup as sent as
+well as its text, so it can name something only the tags hold -- `{'label': 'Yes', 'value':
+'check'}` for a tick drawn as `<i class="fas fa-check"></i>`. The side-panel option still filters by the value itself, so two values that read the same
+(`Bolts` and `<b>Bolts</b>`) stay two options. Search highlighting marks the text inside the
+markup and leaves the tags, an icon in a title included, as they were; a match that crosses a
+tag (`screws & p` in `Screws <b>&amp;</b> Plugs`) is marked on each side of it.
+
+**Fixed in 1.8.5.** The grid used to compare what was typed with the escaped string, and
+fancytree's own filter decodes a title only when it holds a tag, so `nuts & b` and `o'neill`
+found nothing, `amp` matched the entity behind an `&`, and a side-panel option read "Nuts &amp; Bolts".
+The search highlight in a paginated grid also handed a cell's decoded text back to the HTML
+parser, so an escaped `&lt;img …&gt;` in an `html` column came back as a real element whenever a
+search matched that cell. Each match is now built as a `<mark>` element, and markup is decoded
+for matching in an inert `DOMParser` document, never through `innerHTML` on the page.
+The example page *Treegrid → Escaped Text* shows both grid modes.
 
 ### Multi-Row Headers
 
