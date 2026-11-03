@@ -543,7 +543,9 @@ class TestBannerTileInlineStyles(TestCase):
 
     def test_a_colour_or_gradient_background_is_drawn_in_every_layout(self):
         for background in ('#123456', 'linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)',
-                           'radial-gradient(circle at top, var(--a, #fff), transparent)'):
+                           'radial-gradient(circle at top, var(--a, #fff), transparent)',
+                           'linear-gradient(red, blue), linear-gradient(green, yellow)',
+                           '#e6f0fb center / cover no-repeat'):
             for layout in ('compact', 'detail', 'highlight', 'feature', 'showcase'):
                 with self.subTest(background=background, layout=layout):
                     html = self.render([BannerTile(key='t1', title='T', layout=layout,
@@ -560,11 +562,17 @@ class TestBannerTileInlineStyles(TestCase):
                     self.assertNotIn(background, html)
                     self.assertNotIn('position:fixed', html)
                     self.assertNotIn('url(https://example.com', html)
+                    # Dropped, not written empty: an inline `background:` of nothing would still
+                    # override the stylesheet's default.
+                    self.assertNotIn('style="background:', html)
+                    self.assertNotIn('None', html)
 
     def test_a_point_colour_is_kept_when_it_is_one(self):
-        html = self.render([BannerTile(key='s1', title='T', layout='showcase',
-                                       points=[('fas fa-check', 'One', 'var(--ok, green)')])])
-        self.assertIn('style="background: var(--ok, green)"', html)
+        for colour in ('var(--ok, green)', 'linear-gradient(135deg, #7b2ff7, #3d1a8c)'):
+            with self.subTest(colour=colour):
+                html = self.render([BannerTile(key='s1', title='T', layout='showcase',
+                                               points=[('fas fa-check', 'One', colour)])])
+                self.assertIn(f'style="background: {colour}"', html)
 
     def test_a_point_colour_that_is_not_one_takes_its_turn(self):
         html = self.render([BannerTile(key='s1', title='T', layout='showcase',

@@ -66,48 +66,60 @@ _BACKGROUND_FUNCTIONS = _COLOUR_FUNCTIONS | frozenset({
 
 
 def css_background(background):
-    """``background`` when it is a colour or a gradient safe to write into a ``style``, else ``None``.
+    """``background`` when it is safe to write into a ``style`` as a ``background``, else ``None``.
 
-    :func:`css_colour`'s rules, with the gradient functions allowed as well
-    (``linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)``). Still no ``url()``: a banner image has
-    a field of its own.
+    :func:`_checked_css`'s rules, with the gradient functions allowed as well, and the shorthand's
+    other parts: layers side by side (``linear-gradient(...), linear-gradient(...)``) and the
+    position, size and repeat keywords (``#e6f0fb center / cover no-repeat``). Still no ``url()``:
+    a banner image has a field of its own.
     """
-    return _checked_css(background, _BACKGROUND_FUNCTIONS)
+    return _checked_css(background, _BACKGROUND_FUNCTIONS, single=False, max_length=500)
 
 
 def css_colour(colour):
-    """``colour`` when it is a css colour that is safe to write into a ``style``, else ``None``.
+    """``colour`` when it is one css colour that is safe to write into a ``style``, else ``None``.
 
-    A colour handed to a card is printed inside ``style="..."``, where html-escaping is the wrong
+    :func:`_checked_css`'s rules, as a single value: a name (``green``, ``currentColor``), ``#``
+    and hex digits, or one of `_COLOUR_FUNCTIONS` -- nested, with a fallback, in modern syntax:
+    ``var(--ok, green)``, ``rgb(var(--r) 0 0)``, ``oklch(70% 0.1 150)``,
+    ``color-mix(in srgb, red, blue)``. Not a gradient: that is a background, not a colour.
+    """
+    return _checked_css(colour, _COLOUR_FUNCTIONS, single=True, max_length=200)
+
+
+def _checked_css(value, functions, single, max_length):
+    """``value`` if it is safe to write into a ``style`` attribute as a property's value, else ``None``.
+
+    A value handed to a card is printed inside ``style="..."``, where html-escaping is the wrong
     tool: the character that does the damage is a semicolon, and escaping leaves it alone, so a
     stored ``red;position:fixed;inset:0`` would arrive as more declarations and lift the element
     over the page. So the shape is checked instead, and anything else dropped, which a template
-    draws as no colour at all.
+    draws as no value at all.
 
-    Taken: a name (``green``, ``currentColor``), ``#`` and hex digits, or one of
-    `_COLOUR_FUNCTIONS` -- nested, with a fallback, in modern syntax: ``var(--ok, green)``,
-    ``rgb(var(--r) 0 0)``, ``oklch(70% 0.1 150)``, ``color-mix(in srgb, red, blue)``. Checked for
-    safety rather than validity: a malformed colour that gets through is one the browser ignores.
+    The rules: only `_COLOUR_CHARS` (nothing that can end the declaration, start another or
+    leave the attribute); every function one of ``functions``, its brackets balanced, a ``var()``
+    naming a custom property; every ``#`` followed by 3, 4, 6 or 8 hex digits. With ``single``,
+    one value and no more -- a name, a hex colour or one function -- as a colour is. No longer
+    than ``max_length``, so a stored value cannot make the check, or the page, carry an essay.
+    Checked for
+    safety rather than validity: a malformed value that gets through is one the browser ignores.
     """
-    return _checked_css(colour, _COLOUR_FUNCTIONS)
-
-
-def _checked_css(colour, functions):
-    """``colour`` if it is one css value built only from ``functions``, else ``None``."""
-    if colour is None:
+    if value is None:
         return None
-    colour = str(colour).strip()
-    if not colour or len(colour) > 200 or not _COLOUR_CHARS.fullmatch(colour):
+    value = str(value).strip()
+    if not value or len(value) > max_length or not _COLOUR_CHARS.fullmatch(value):
         return None
-    if '(' not in colour and ')' not in colour:
-        if colour.startswith('#'):
-            return colour if re.fullmatch('#' + HEX_COLOUR_DIGITS, colour) else None
-        return colour if re.fullmatch('[A-Za-z]+', colour) else None
+    if not all(re.fullmatch(HEX_COLOUR_DIGITS, digits) for digits in re.findall(r'#([0-9A-Za-z]*)', value)):
+        return None
+    if '(' not in value and ')' not in value:
+        if single:
+            return value if re.fullmatch('#' + HEX_COLOUR_DIGITS + '|[A-Za-z]+', value) else None
+        return value
     depth = 0
-    for match in _COLOUR_TOKEN.finditer(colour):
+    for match in _COLOUR_TOKEN.finditer(value):
         token = match.group(0)
         if token == ' ':
-            if depth == 0:  # two values side by side, not one colour
+            if single and depth == 0:  # two values side by side, not one colour
                 return None
         elif token == ')':
             depth -= 1
@@ -117,14 +129,12 @@ def _checked_css(colour, functions):
             name = (match.group(1) or '').lower()
             if name not in functions:
                 return None
-            if name == 'var' and not colour[match.end():].lstrip().startswith('--'):
+            if name == 'var' and not value[match.end():].lstrip().startswith('--'):
                 return None
             depth += 1
-    if depth or not colour.endswith(')'):
+    if depth or (single and not value.endswith(')')):
         return None
-    if not all(re.fullmatch(HEX_COLOUR_DIGITS, digits) for digits in re.findall(r'#([0-9A-Za-z]*)', colour)):
-        return None
-    return colour
+    return value
 
 
 def _is_percentage(value):
@@ -543,8 +553,8 @@ class BannerTile:
         points (list, optional): The showcase layout's list. Each is ``(icon_classes, text)``
             or ``(icon_classes, text, colour)``, the colour filling the icon's circle; without
             one the circles take turns through four soft colours. The text is escaped; the
-            colour is written into a ``style`` attribute, so it is checked (:func:`css_colour`),
-            and one that is not a colour takes its turn like a point given none.
+            colour is written into a ``style`` attribute, so it is checked (:func:`css_background`),
+            and one that is not a colour or a gradient takes its turn like a point given none.
         flow (list, optional): Names drawn as boxes joined by lines in a showcase panel
             (``['CRM', 'Projects', 'Gantt']``). Escaped.
         panel_icon (str, optional): Icon classes for the showcase's small icon panel.
@@ -690,9 +700,10 @@ class BannerTile:
                 raise ValueError(f'A point is (icon_classes, text) or (icon_classes, text, colour); '
                                  f'got {point!r}')
             icon, text = point[0], point[1]
-            # Written into `style="background: ..."`: checked, and a colour that is not one takes
-            # its turn from POINT_COLOURS as a point with none does.
-            colour = css_colour(point[2]) if len(point) == 3 else None
+            # Written into `style="background: ..."`, so checked as a background (a gradient
+            # fills a circle as well as a colour does); one that is not takes its turn from
+            # POINT_COLOURS as a point with none does.
+            colour = css_background(point[2]) if len(point) == 3 else None
             if colour is None:
                 colour = self.POINT_COLOURS[index % len(self.POINT_COLOURS)]
             items.append({'icon': icon or '', 'text': text, 'colour': colour})

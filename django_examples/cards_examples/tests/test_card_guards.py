@@ -112,7 +112,10 @@ class TestCssBackground(SimpleTestCase):
     def test_colours_and_gradients_are_kept(self):
         for background in ('green', '#fff', 'linear-gradient(135deg, #7b2ff7 0%, #3d1a8c 100%)',
                            'repeating-linear-gradient(to right, red 0 10px, blue 10px 20px)',
-                           'conic-gradient(from 90deg at 50% 50%, red, blue)'):
+                           'conic-gradient(from 90deg at 50% 50%, red, blue)',
+                           'linear-gradient(red, blue), linear-gradient(green, yellow)',
+                           'linear-gradient(red, blue) no-repeat', '#e6f0fb center / cover',
+                           'center / cover no-repeat #fff'):
             with self.subTest(background=background):
                 self.assertEqual(css_background(background), background)
 
@@ -121,7 +124,9 @@ class TestCssBackground(SimpleTestCase):
 
     def test_urls_and_extra_declarations_are_dropped(self):
         for background in (STYLE_PAYLOAD, 'url(x)', 'linear-gradient(red, blue), url(x)',
-                           'image-set(x 1x)', 'linear-gradient(red, blue);top:0', None):
+                           'image-set(x 1x)', 'linear-gradient(red, blue);top:0', None,
+                           'red url(x) no-repeat', '#12345 center', 'linear-gradient(red, blue',
+                           'center:cover', 'red\\;top:0'):
             with self.subTest(background=background):
                 self.assertIsNone(css_background(background))
 
