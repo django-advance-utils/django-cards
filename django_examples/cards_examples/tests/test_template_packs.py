@@ -125,6 +125,7 @@ FLAT_TEMPLATES = {
                                      'the sections\' own, and its controls come from the pack\'s '
                                      'own partials',
     'standard/_section_stack_script.html': 'script',
+    'standard/_section_redraw_script.html': 'script',
     'standard/_header_controls.html': 'a card header\'s search, export and reload controls, shared by '
                                       'both packs; it only includes the pack\'s own partials',
     'standard/_search_script.html': 'script',

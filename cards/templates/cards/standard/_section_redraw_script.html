@@ -1,0 +1,4 @@
+{# After a reload's redrawn section body: put back the fold the reader left the section in, or #}
+{# the server's where they chose none. On the body, sent after the header, so a section it   #}
+{# opens re-measures this body's datatables, and the body's scripts bind to the new header.  #}
+<script>window.djangoCardsApplySectionFolds && djangoCardsApplySectionFolds(document.getElementById('{{ section.id|escapejs }}'), {% if section.folded %}true{% else %}false{% endif %});</script>

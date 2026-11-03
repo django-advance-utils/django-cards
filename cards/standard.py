@@ -173,17 +173,14 @@ class CardMixin:
         """
         cards = []
         for card in args:
-            if not isinstance(card, str) and find_section(self, card) is not None:
+            if isinstance(card, str):
+                if not (error_if_not_found or card in self.cards):
+                    continue
+                card = self.cards[card]
+            if find_section(self, card) is not None:
                 raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
                                  f'a card in two places has its DOM ids there twice')
-            if isinstance(card, str):
-                if error_if_not_found or card in self.cards:
-                    if card in self.cards and find_section(self, self.cards[card]) is not None:
-                        raise ValueError(f'Card {card!r} is in a section stack, and is drawn there; '
-                                         f'a card in two places has its DOM ids there twice')
-                    cards.append(self.cards[card])
-            else:
-                cards.append(card)
+            cards.append(card)
 
         if group_code not in self.card_groups:
             self.card_groups[group_code] = []
@@ -1248,17 +1245,13 @@ class CardMixin:
                 # outside the card, so it is redrawn too -- the title, menu and actions may have
                 # changed -- and the card is drawn as its section draws it, without a header.
                 check_section_ids(card, [section])
-                # The body first, then the header, whose script puts the fold back: a section it
-                # opens re-measures the new body's datatables, not the old one's.
-                if not card.ajax_reload:
-                    # No #<code>_ajax around a card that does not reload: its section's body is
-                    # where it is drawn, so header and body change together.
-                    self.add_command('html', selector=f'#{section.id}-body', html=section.render_body())
-                else:
-                    self.add_command('html', selector=f'#{card.code}_ajax',
-                                     html=card._render_template({'show_header': False}))
-                return self.command_response('html', selector=f'#{section.id}-header',
-                                             html=section.render_header(redraw=True))
+                # The header first, then the body, which carries the fold script: the body's own
+                # scripts (a search box's) bind to the new header's controls, and a section the
+                # script opens re-measures the new body. The body is the section's -- the card
+                # in its #<code>_ajax wrapper where it reloads -- so one selector serves both.
+                self.add_command('html', selector=f'#{section.id}-header', html=section.render_header())
+                return self.command_response('html', selector=f'#{section.id}-body',
+                                             html=section.render_body(redraw=True))
             return self.command_response('html', selector=f'#{card.code}_ajax', html=card._render_template())
         return self.command_response('null')
 

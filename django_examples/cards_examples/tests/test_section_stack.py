@@ -454,19 +454,24 @@ class TestReload(SimpleTestCase):
             title = 'Contact (2)'
 
         commands = _reload(Renamed)
-        # the body first, so the header's fold script re-measures the new body
-        self.assertEqual([c.get('selector') for c in commands], ['#contact_ajax', '#contact-section-header'])
-        self.assertIn('Contact (2)', commands[1]['html'])
-        self.assertNotIn('card-header', commands[0]['html'])
-        self.assertIn('Brass &amp; Co', commands[0]['html'])
+        # the header first, so the body's scripts bind to its new controls; the body, carrying the
+        # fold script, after it, so a section it opens re-measures the new body
+        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-header', '#contact-section-body'])
+        self.assertIn('Contact (2)', commands[0]['html'])
+        self.assertNotIn('djangoCardsApplySectionFolds', commands[0]['html'])
+        body = commands[1]['html']
+        self.assertNotIn('card-header', body)
+        self.assertIn('Brass &amp; Co', body)
+        self.assertIn('id="contact_ajax"', body)
+        self.assertLess(body.index('Brass &amp; Co'), body.index('djangoCardsApplySectionFolds'))
 
     def test_a_card_that_does_not_reload_is_redrawn_into_its_section_body(self):
         class Plain(_ReloadView):
             reloads = False
 
         commands = _reload(Plain)
-        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-body', '#contact-section-header'])
-        self.assertNotIn('card-header', commands[0]['html'])
+        self.assertEqual([c.get('selector') for c in commands], ['#contact-section-header', '#contact-section-body'])
+        self.assertNotIn('card-header', commands[1]['html'])
 
     def test_a_reload_re_checks_the_sections_ids(self):
         class Late(_ReloadView):
@@ -550,7 +555,7 @@ class TestTheScript(SimpleTestCase):
         call = 'window.djangoCardsApplySectionFolds && djangoCardsApplySectionFolds('
         self.assertEqual(html.count(call), 1)
         self.assertIn(f"getElementById('{escapejs('customer-sections')}')", html)
-        redraw = find_section(view, view.cards['tags']).render_header(redraw=True)
+        redraw = find_section(view, view.cards['tags']).render_body(redraw=True)
         self.assertIn(call, redraw)
         self.assertIn(f"getElementById('{escapejs('tags-section')}'), true)", redraw)
 
@@ -656,3 +661,56 @@ class TestReviewNineFixes(SimpleTestCase):
         card.add_sections([tags, site])
         self.assertEqual(card.extra_card_info['html'], first)
         self.assertIn('id="site-section"', card.render())
+
+
+class TestReviewTenFixes(SimpleTestCase):
+
+    def test_a_card_in_a_card_group_or_layout_first_cannot_be_stacked(self):
+        view = _view()
+        contact, _tags, site = _cards(view)
+        view.add_card_group('contact')
+        with self.assertRaisesMessage(ValueError, 'in a card group already'):
+            view.add_card('customer', title='Customer').add_sections([contact])
+        layout = view.add_layout_card('layout')
+        layout.add_child_card_group(site)
+        with self.assertRaisesMessage(ValueError, 'in a card group already'):
+            view.add_card('other', title='Other').add_sections([site])
+
+    def test_a_card_class_without_the_html_template_says_so_up_front(self):
+        class NoHtml(CardBase):
+            templates = {'default': CardBase.templates['default']}
+
+        class View(CardMixin, TemplateView):
+            card_cls = NoHtml
+
+        view = View()
+        view.request = RequestFactory().get('/')
+        contact = view.add_card('contact', title='Contact')
+        with self.assertRaisesMessage(ValueError, "no 'html' entry"):
+            view.add_card('customer', title='Customer').add_sections([contact])
+
+    def test_a_pages_own_stack_id_does_not_become_a_stacks(self):
+        view = _view()
+        html = render_to_string('cards/standard/_section_stack_body.html',
+                                {'sections': build_sections(_cards(view)), 'request': view.request,
+                                 'stack_id': 'sidebar'})
+        self.assertIn('id="contact-section-stack"', html)
+        self.assertNotIn('id="sidebar"', html)
+
+    def test_a_table_already_added_is_refused_up_front(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        card = view.add_card('customer', title='Customer')
+        card.extra_card_info['datatable'] = object()  # as add_table() leaves it
+        with self.assertRaisesMessage(ValueError, 'already has one'):
+            card.add_sections([contact])
+
+    def test_something_card_shaped_that_is_not_a_card_is_a_type_error(self):
+        class Lookalike:
+            code = 'x'
+
+            def render(self):
+                return ''
+
+        with self.assertRaises(TypeError):
+            _view().add_card('customer', title='Customer').add_sections([Lookalike()])

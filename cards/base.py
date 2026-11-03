@@ -555,7 +555,7 @@ class CardSection:
     """
 
     def __init__(self, card, title=None, menu=None, folded=None):
-        if not (hasattr(card, 'render') and hasattr(card, 'code')):
+        if not all(hasattr(card, name) for name in ('render', 'code', 'as_menu')):
             raise TypeError(f'A section is a card, a dict of CardSection fields or a CardSection; got {card!r}')
         self.card = card
         self._title = title
@@ -636,16 +636,25 @@ class CardSection:
             return True
         return full_controls and bool(getattr(card, 'searchable', False) or getattr(card, 'exportable', False))
 
-    def render_body(self):
-        """The card, without its own header: the section's is the one it shows."""
-        return self.card.render({'show_header': False})
+    def render_body(self, redraw=False):
+        """The card, without its own header: the section's is the one it shows.
 
-    def render_header(self, redraw=False):
+        ``redraw`` is a reload's, sent after the redrawn header: the body then puts back the fold
+        the reader left the section in (or the server's, where they chose none), so a section it
+        opens re-measures the new body's datatables, and the body's own scripts (a search box's)
+        bind to the new header's controls.
+        """
+        html = self.card.render({'show_header': False})
+        if not redraw:
+            return html
+        return mark_safe(f'{html}' + render_to_string('cards/standard/_section_redraw_script.html',
+                                                      {'section': self}))
+
+    def render_header(self):
         """The section's header, inside its ``-header`` element: what a reload redraws.
 
         Read from the card now, so the title is checked now: one set in ``cards_ready()`` counts,
-        and one cleared there is caught. ``redraw`` is a reload's: the redrawn header then takes
-        back the fold the reader left the section in.
+        and one cleared there is caught.
         """
         if not self.title:
             raise ValueError(f'The section for card {self.card.code!r} has no title, and its toggle is '
@@ -657,7 +666,7 @@ class CardSection:
         has_menu = bool(str(menu_html).strip())
         full_controls = self.full_controls
         return mark_safe(render_to_string('cards/standard/_section_header.html', {
-            'section': self, 'card': self.card, 'request': self.card.request, 'redraw': redraw,
+            'section': self, 'card': self.card, 'request': self.card.request,
             'menu_html': menu_html, 'has_actions': has_menu or self.has_controls(full_controls),
             'full_controls': full_controls}))
 
@@ -723,6 +732,22 @@ def find_section(view, card):
     return None
 
 
+def placed_in_group(view, card):
+    """Whether ``card`` is placed in one of ``view``'s card groups, or a layout or group card's
+    child groups, this build."""
+    if view is None:
+        return False
+    for groups in (getattr(view, 'card_groups', None) or {}).values():
+        for group in groups:
+            if any(placed is card for placed in group.get('cards', ())):
+                return True
+    for holder in (getattr(view, 'cards', None) or {}).values():
+        for group in getattr(holder, 'child_card_groups', None) or ():
+            if any(placed is card for placed in group.get('cards', ())):
+                return True
+    return False
+
+
 def _validate_sections(sections, stack=None):
     """Raise, before anything is changed, for a section stack that would put a card in two places,
     hold itself, fold a card that folds itself, or write an id another card, table or section on
@@ -743,6 +768,9 @@ def _validate_sections(sections, stack=None):
         if id(stacked) in seen or id(stacked) in taken_cards:
             raise ValueError(f'Card {stacked.code!r} is in a section stack already; a card is in one '
                              f'place on a page, or its DOM ids are there twice')
+        if placed_in_group(view, stacked):
+            raise ValueError(f'Card {stacked.code!r} is in a card group already, and is drawn there; '
+                             f'a card is in one place on a page, or its DOM ids are there twice')
         seen.add(id(stacked))
         # By id as well as by card: two cards may share a code (two untitled cards, say), and a
         # section's ids are made from it.
@@ -839,7 +867,7 @@ class _SectionsHtml:
         # later in setup_cards() or in cards_ready(), could take a section's id.
         check_section_ids(card, sections, {stack_id(card)})
         return mark_safe(render_to_string('cards/standard/_section_stack_body.html', {
-            'sections': sections, 'request': card.request, 'stack_id': stack_id(card)}))
+            'sections': sections, 'request': card.request, 'django_cards_stack_id': stack_id(card)}))
 
 
 @dataclass
@@ -2869,11 +2897,16 @@ class CardBase:
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
         """
+        if 'html' not in self.templates:
+            raise ValueError(f'{type(self).__name__}.templates has no \'html\' entry, which draws a section '
+                             f'stack: add one (cards/standard/html.html), as add_html_card needs too')
         if 'sections' not in self.extra_card_info:
             # What the card already is would be dropped for the stack without a word: an empty
             # card's message, a datatable registered on the view but never drawn, its own rows,
             # or a body another method set its template for (tiles, banner tiles, a template_name).
-            if self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows or self.template_name:
+            info = self.extra_card_info
+            if (self.is_empty or self.group_type != CARD_TYPE_STANDARD or self.rows or self.template_name
+                    or info.get('datatable') is not None or info.get('tiles') or info.get('banner_tiles')):
                 raise ValueError(f'add_sections() makes a card\'s body its stack, and card {self.code!r} '
                                  f'already has one (empty, rows, or not a standard card)')
         # Built and checked before anything is changed, so a bad entry or a clash changes nothing.
