@@ -1163,7 +1163,11 @@ self.add_card('customer', title='Customer').add_sections([contact, site_card, ta
   hidden) and fires a bubbling `django-cards:section-toggle` event, with `detail.folded`. A fold the
   reader makes is remembered for the page, so an ajax redraw puts it back; where the reader made
   none, a redrawn section takes the server's (a card just emptied folds). Not kept across page loads.
-- An ajax reload of a section's card redraws its section's header and its body.
+- An ajax reload of a section's card redraws its section's header and its body. Stack a card the
+  same way on every build: a reload draws it as this build stacks it, so a card stacked on the page
+  but not on the reload (or under another card) comes back drawn as a card of its own.
+- A card is placed once: a stacked card refuses a card group, a layout's child group, an accordion
+  panel or a panel layout region, and a card already placed in one refuses a stack.
 - For a template of your own, build the sections with `build_sections(cards)`
   (`from cards.standard import build_sections`) in `setup_cards()`, keep them on the view, and
   include `cards/standard/_section_stack_body.html` with `sections=` them. The card stylesheet and

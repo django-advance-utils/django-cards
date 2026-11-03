@@ -112,9 +112,13 @@ class TestTheStack(SimpleTestCase):
         header = _between(html, 'id="contact-section-header"', 'id="contact-section-body"')
         self.assertLess(header.index('class="django-card__section-toggle"'), header.index('class="django-card__section-menu"'))
         self.assertLess(header.index('class="django-card__section-menu"'), header.index('class="django-card__section-chevron-button"'))
-        chevron = [b for b in _Page(header).find('button') if b.get('class') == 'django-card__section-chevron-button'][0]
-        self.assertEqual((chevron.get('tabindex'), chevron.get('aria-hidden')), ('-1', 'true'))
-        self.assertIn(f"getElementById('{escapejs('contact-section')}-toggle')", chevron.get('onclick'))
+        # the chevron is decorative -- no hidden button -- and a click on the bar's free space
+        # toggles; the toggle is the one control a keyboard or screen reader meets
+        self.assertEqual([b for b in _Page(header).find('button') if 'chevron' in (b.get('class') or '')], [])
+        chevron = [a for a in _Page(header).find('span') if a.get('class') == 'django-card__section-chevron-button'][0]
+        self.assertEqual(chevron.get('aria-hidden'), 'true')
+        bar = [a for a in _Page(header).find('div') if (a.get('class') or '').startswith('django-card__section-bar')][0]
+        self.assertEqual(bar.get('onclick'), 'djangoCardsSectionBarClick(event)')
 
     def test_an_empty_card_starts_folded_and_the_rest_open(self):
         _view_, _card, html = _stack()
@@ -269,7 +273,7 @@ class TestTheHeadersControls(SimpleTestCase):
             return [locked, hidden]
 
         _view_, _card, html = _stack(entries)
-        self.assertNotIn('django-card__section-menu', html)
+        self.assertNotIn('class="django-card__section-menu"', html)
 
     def test_a_menus_items_are_asked_once_per_header(self):
         asked = []
@@ -650,7 +654,7 @@ class TestReviewNineFixes(SimpleTestCase):
         contact, _tags, _site = _cards(view)
         stack = view.add_card('customer', title='Customer').add_sections([contact])
         stack.extra_card_info['datatable'] = object()  # as add_table() leaves it
-        with self.assertRaisesMessage(ValueError, 'a table or tiles'):
+        with self.assertRaisesMessage(ValueError, 'a body of its own after it'):
             stack.render()
 
     def test_one_renderer_serves_every_add_sections_call(self):
@@ -669,11 +673,11 @@ class TestReviewTenFixes(SimpleTestCase):
         view = _view()
         contact, _tags, site = _cards(view)
         view.add_card_group('contact')
-        with self.assertRaisesMessage(ValueError, 'in a card group already'):
+        with self.assertRaisesMessage(ValueError, 'placed on the page already'):
             view.add_card('customer', title='Customer').add_sections([contact])
         layout = view.add_layout_card('layout')
         layout.add_child_card_group(site)
-        with self.assertRaisesMessage(ValueError, 'in a card group already'):
+        with self.assertRaisesMessage(ValueError, 'placed on the page already'):
             view.add_card('other', title='Other').add_sections([site])
 
     def test_a_card_class_without_the_html_template_says_so_up_front(self):
@@ -741,3 +745,74 @@ class TestReviewElevenFixes(SimpleTestCase):
         card = view.add_card('customer', title='Customer', extra_card_context={'card_body_css_class': 'card-body bg-light'})
         card.add_sections([contact])
         self.assertIn('card-body bg-light', card.render())
+
+
+class TestFollowUp(SimpleTestCase):
+
+    def test_a_card_in_a_panel_layout_region_or_tab_and_a_stack_raises_either_way(self):
+        view = _view()
+        contact, tags, _site = _cards(view)
+        layout = view.add_panel_layout(card_name='shell', persist=False)
+        layout.root.add_region('side', size='240px').add_card(contact)
+        layout.root.add_region('main', size='1fr').add_tab('one', title='One').add_card(tags)
+        for card in (contact, tags):
+            with self.subTest(card=card.code):
+                with self.assertRaisesMessage(ValueError, 'placed on the page already'):
+                    view.add_card(f'stack_{card.code}', title='Stack').add_sections([card])
+        other = _view()
+        stacked, _t, _s = _cards(other)
+        other.add_card('customer', title='Customer').add_sections([stacked])
+        later = other.add_panel_layout(card_name='later', persist=False)
+        later.root.add_region('main', size='1fr').add_card(stacked)
+        with self.assertRaisesMessage(ValueError, 'a panel layout region'):
+            str(later.render().render())
+
+    def test_a_card_in_an_accordion_panel_and_a_stack_raises_either_way(self):
+        view = _view()
+        contact, _tags, site = _cards(view)
+        view.add_accordion_card(card_name='acc', title='Acc', panels=[{'title': 'Contact', 'card': contact}])
+        with self.assertRaisesMessage(ValueError, 'placed on the page already'):
+            view.add_card('customer', title='Customer').add_sections([contact])
+        view.add_card('other', title='Other').add_sections([site])
+        with self.assertRaisesMessage(ValueError, 'an accordion panel'):
+            view.add_accordion_card(card_name='acc2', title='Acc 2', panels=[{'title': 'Site', 'card': site}])
+
+    def test_a_stack_of_your_own_re_checks_its_ids_when_it_renders(self):
+        view = _view()
+        sections = build_sections(_cards(view))
+        view.add_card('contact-section-body', title='Added later')
+        with self.assertRaisesMessage(ValueError, 'contact-section-body'):
+            render_to_string('cards/standard/_section_stack_body.html', {'sections': sections, 'request': view.request})
+
+    def test_a_table_added_after_the_stack_raises_at_the_call(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        with self.assertRaisesMessage(ValueError, 'holds a section stack'):
+            stack.add_table(Company)
+
+    def test_a_click_on_the_bars_free_space_folds_and_the_controls_are_left_alone(self):
+        script = render_to_string('cards/standard/_section_stack_script.html')
+        self.assertIn("event.target.closest('.django-card__section-toggle, .django-card__section-menu')", script)
+
+
+class TestFollowUpReview(SimpleTestCase):
+
+    def test_a_header_controls_template_added_later_counts(self):
+        view = _view()
+        rows = view.add_card('rows', title='Rows', template_name='late', searchable=True)
+        rows.add_entry(value='x', label='X')
+        CardBase.templates['late'] = {'name': 'cards/standard/table.html', 'header_controls': True}
+        try:
+            self.assertTrue(CardSection(rows).full_controls)
+        finally:
+            del CardBase.templates['late']
+        self.assertFalse(CardSection(rows).full_controls)
+
+    def test_a_stack_card_made_empty_after_says_what_happened(self):
+        view = _view()
+        contact, _tags, _site = _cards(view)
+        stack = view.add_card('customer', title='Customer').add_sections([contact])
+        stack.is_empty = True
+        with self.assertRaisesMessage(ValueError, 'made empty'):
+            stack.render()

@@ -655,7 +655,26 @@ class PanelLayout:
         }
         return context
 
+    def placed_cards(self):
+        """Every card in the layout's regions and tabs, nested splits included (not its slots)."""
+        cards = []
+
+        def walk(node):
+            if isinstance(node, PanelRegion):
+                cards.extend(node.cards)
+                for tab in node.tabs:
+                    cards.extend(tab.cards)
+            elif isinstance(node, PanelSplit):
+                for child in node.children:
+                    walk(child)
+
+        walk(self.root)
+        return [card for card in cards if not isinstance(card, PanelSlot)]
+
     def _render_html(self):
+        from cards.base import refuse_if_stacked
+        for card in self.placed_cards():
+            refuse_if_stacked(self.view, card, 'a panel layout region')
         self._process_menus(self.root)
         context = self.get_render_html_context()
         return mark_safe(render_to_string('cards/standard/panel_layout.html', context))

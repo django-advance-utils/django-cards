@@ -1144,6 +1144,10 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     font-size: 0.75rem;
 }
 
+.django-card__section-bar {
+    cursor: pointer;
+}
+
 .django-card__section-chevron {
     transition: transform 0.15s ease;
 }

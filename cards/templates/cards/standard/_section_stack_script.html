@@ -27,6 +27,13 @@
     // `serverFolded` is a redrawn section header's: the fold the server now gives the section (its
     // card has just been emptied, say), taken where the reader has not chosen one. Without it --
     // a fresh stack -- the markup's own fold stands.
+    // A click on a section bar's free space -- the chevron, or the gaps -- folds it as the toggle
+    // does. The toggle handles its own clicks, and the card's controls are left to theirs.
+    window.djangoCardsSectionBarClick = window.djangoCardsSectionBarClick || function (event) {
+        if (event.target.closest('.django-card__section-toggle, .django-card__section-menu')) { return; }
+        var toggle = event.currentTarget.querySelector('.django-card__section-toggle');
+        if (toggle) { window.djangoCardsToggleSection(toggle); }
+    };
     window.djangoCardsApplySectionFolds = window.djangoCardsApplySectionFolds || function (root, serverFolded) {
         if (!root) { return; }
         var sections = root.classList && root.classList.contains('django-card__section')

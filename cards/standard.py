@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
 # Re-exported so a view building tiles imports Tile from the same place as CardMixin.
 from cards.base import Tile, BannerTile, CardSection, build_sections  # noqa: F401
-from cards.base import check_section_ids, find_section, reset_section_stacks
+from cards.base import check_section_ids, find_section, refuse_if_stacked, register_panel_layout, reset_section_stacks
 from cards.panel_layout import PanelLayout, PanelSplit
 
 
@@ -177,9 +177,7 @@ class CardMixin:
                 if not (error_if_not_found or card in self.cards):
                     continue
                 card = self.cards[card]
-            if find_section(self, card) is not None:
-                raise ValueError(f'Card {card.code!r} is in a section stack, and is drawn there; '
-                                 f'a card in two places has its DOM ids there twice')
+            refuse_if_stacked(self, card, 'a card group')
             cards.append(card)
 
         if group_code not in self.card_groups:
@@ -388,6 +386,7 @@ class CardMixin:
             css_style=css_style,
             persist=persist,
         )
+        register_panel_layout(self, layout)
         return layout
 
     def add_list_card(self, list_entries, card_name=None, list_title='Entries',
