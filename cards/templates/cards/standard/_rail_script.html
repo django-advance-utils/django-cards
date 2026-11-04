@@ -1,0 +1,195 @@
+<style>
+    /* add_rail_card: a column of icons down the card's left side, any nested column beside it,
+       and the open pane filling the rest and scrolling on its own. Colours are custom properties
+       so a theme can retint the rail: .my-theme { --django-card-rail-bg: #222 } */
+    .django-card-rail { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .django-card-rail > .django-card-rail__body { flex: 1 1 auto; min-height: 0; display: flex !important; flex-direction: row !important; overflow: hidden !important; }
+    .django-card-rail__column {
+        flex: none;
+        width: var(--django-card-rail-width, 52px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        background: var(--django-card-rail-bg, #f1f3f5);
+        border-right: 1px solid var(--django-card-rail-line, #dee2e6);
+    }
+    .django-card-rail__column + .django-card-rail__column { background: var(--django-card-rail-nested-bg, #f8f9fa); }
+    .django-card-rail__column[hidden], .django-card-rail__pane[hidden] { display: none !important; }
+    .django-card-rail__btn {
+        position: relative;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--django-card-rail-icon, #6c757d);
+        font-size: 17px;
+        cursor: pointer;
+    }
+    .django-card-rail__btn:hover { background: var(--django-card-rail-hover, rgba(0, 0, 0, .06)); color: var(--django-card-rail-icon-active, #212529); }
+    .django-card-rail__btn.active {
+        background: var(--django-card-rail-active-bg, #fff);
+        color: var(--django-card-rail-icon-active, #212529);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+    }
+    .django-card-rail__btn:focus { outline: none; }
+    .django-card-rail__btn:focus-visible { outline: 2px solid var(--django-card-rail-focus, #0d6efd); outline-offset: -2px; }
+    /* A button that opens a column, not a pane: a small arrow pointing the way it opens. */
+    .django-card-rail__btn--group::after {
+        content: '';
+        position: absolute;
+        right: 3px;
+        bottom: 4px;
+        border: 3px solid transparent;
+        border-left: 4px solid currentColor;
+        border-right-width: 0;
+        opacity: .7;
+    }
+    .django-card-rail__letter { font-size: 15px; font-weight: 600; }
+    .django-card-rail__panes { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .django-card-rail__pane { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .django-card-rail__pane-title {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 14px;
+        background: var(--django-card-rail-title-bg, #fff);
+        border-bottom: 1px solid var(--django-card-rail-line, #dee2e6);
+        font-weight: 600;
+    }
+    .django-card-rail__pane-title > i { color: var(--django-card-rail-icon, #6c757d); }
+    /* The pane's card is drawn under the pane's own title: its header would say it again. */
+    .django-card-rail__body--titled > .django-card-rail__panes > .django-card-rail__pane > .card.django-card > .card-header,
+    .django-card-rail__body--titled > .django-card-rail__panes > .django-card-rail__pane > .django-card__ajax > .card.django-card > .card-header { display: none; }
+    .django-card-rail__pane > .card.django-card,
+    .django-card-rail__pane > .django-card__ajax > .card.django-card { border: none; margin: 0; }
+</style>
+<script>
+    // add_rail_card. One listener for the page, so a rail drawn later -- a card reloaded over
+    // ajax, a modal -- works with nothing to set up. A click marks its button active in its
+    // column; the columns and pane on show are then those the active buttons lead to from the
+    // rail's first column, so a column opened again opens where it was left.
+    window.djangoCardsRail = window.djangoCardsRail || (function () {
+        function own(body, cls) {
+            var out = [];
+            for (var i = 0; i < body.children.length; i++) {
+                if (body.children[i].classList.contains(cls)) { out.push(body.children[i]); }
+            }
+            return out;
+        }
+
+        function panesOf(body) {
+            var holder = own(body, 'django-card-rail__panes')[0];
+            return holder ? own(holder, 'django-card-rail__pane') : [];
+        }
+
+        function activeIn(column) {
+            return own(column, 'django-card-rail__btn').filter(function (b) { return b.classList.contains('active'); })[0];
+        }
+
+        // Whether el is on show: it has a box, so nothing above it is hidden -- a hidden pane, an
+        // inactive tab, a closed accordion panel, a folded section. Asked once the pane is shown.
+        function onShow(el) {
+            return el.getClientRects().length > 0;
+        }
+
+        // A pane newly on show: its datatables, laid out while it was hidden, are measured again,
+        // and it raises shown.cards.rail, as does the open pane of any rail inside it, which has
+        // just come on show with it. detail.button is the pane's own button.
+        function shown(pane) {
+            var $ = window.jQuery;
+            if ($ && $.fn.dataTable) {
+                $(pane).find('table.dataTable').filter(function () { return onShow(this); })
+                    .each(function () { $(this).DataTable().columns.adjust(); });
+            }
+            [pane].concat([].slice.call(pane.querySelectorAll('.django-card-rail__pane')).filter(function (inner) {
+                return onShow(inner);
+            })).forEach(function (p) {
+                var detail = {button: p.getAttribute('aria-labelledby')};
+                if ($) { $(p).trigger($.Event('shown.cards.rail'), [detail]); }
+                p.dispatchEvent(new CustomEvent('shown.cards.rail', {bubbles: true, detail: detail}));
+            });
+        }
+
+        // Show what the active buttons lead to; raise shown.cards.rail on a pane newly on show.
+        function refresh(body) {
+            var columns = own(body, 'django-card-rail__column');
+            var byId = {};
+            columns.forEach(function (c) { byId[c.id] = c; });
+            var open = {}, paneId = null;
+            var column = columns.filter(function (c) { return !c.getAttribute('data-rail-parent'); })[0];
+            while (column && !open[column.id]) {
+                open[column.id] = true;
+                var button = activeIn(column);
+                if (!button) { break; }
+                if (button.hasAttribute('data-rail-column')) {
+                    column = byId[button.getAttribute('data-rail-column')];
+                } else {
+                    paneId = button.getAttribute('data-rail-pane');
+                    break;
+                }
+            }
+            columns.forEach(function (c) {
+                c.hidden = !open[c.id];
+                own(c, 'django-card-rail__btn--group').forEach(function (b) {
+                    b.setAttribute('aria-expanded', open[b.getAttribute('data-rail-column')] ? 'true' : 'false');
+                });
+            });
+            panesOf(body).forEach(function (pane) {
+                var was = !pane.hidden;
+                pane.hidden = pane.id !== paneId;
+                if (!pane.hidden && !was) { shown(pane); }
+            });
+        }
+
+        function select(button, focus) {
+            var column = button.parentElement;
+            own(column, 'django-card-rail__btn').forEach(function (b) {
+                var on = b === button;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+                b.tabIndex = on ? 0 : -1;
+            });
+            refresh(column.parentElement);
+            if (focus) { button.focus(); }
+        }
+
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest && event.target.closest('.django-card-rail__btn');
+            if (!button || !button.parentElement.classList.contains('django-card-rail__column')) { return; }
+            event.preventDefault();
+            select(button, false);
+        });
+
+        // Up and down move along a column, Home and End to its ends, as in a vertical tab list.
+        document.addEventListener('keydown', function (event) {
+            var button = event.target.closest && event.target.closest('.django-card-rail__btn');
+            if (!button || !button.parentElement.classList.contains('django-card-rail__column')) { return; }
+            if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) { return; }
+            var buttons = own(button.parentElement, 'django-card-rail__btn');
+            var at = buttons.indexOf(button), to = null;
+            if (event.key === 'ArrowDown') { to = (at + 1) % buttons.length; }
+            else if (event.key === 'ArrowUp') { to = (at - 1 + buttons.length) % buttons.length; }
+            else if (event.key === 'Home') { to = 0; }
+            else if (event.key === 'End') { to = buttons.length - 1; }
+            if (to === null) { return; }
+            event.preventDefault();
+            select(buttons[to], true);
+        });
+
+        return {select: select};
+    })();
+</script>

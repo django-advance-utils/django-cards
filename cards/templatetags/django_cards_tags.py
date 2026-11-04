@@ -168,6 +168,15 @@ def section_stack_script(context):
 
 
 @register.simple_tag(takes_context=True)
+def rail_script(context):
+    """The add_rail_card() styles and script, once per request: one document listener serves every
+    rail on the page, a rail drawn later over ajax included."""
+    from cards.base import RAIL_SCRIPT_MARK
+    return mark_safe(emit_once(RAIL_SCRIPT_MARK, context.get('request'),
+                               lambda: render_to_string('cards/standard/_rail_script.html')))
+
+
+@register.simple_tag(takes_context=True)
 def section_stack_id(context, sections):
     """The DOM id of a section stack: its card's (``<code>-sections``, as ``django_cards_stack_id``)
     or, for one in a template of an application's own, one named for its first section -- checked,

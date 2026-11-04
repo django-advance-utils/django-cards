@@ -7,7 +7,7 @@ from ajax_helpers.utils import is_ajax
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
-from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID
+from cards.base import CardBase, CARD_TYPE_HTML, CARD_TYPE_CARD_LAYOUT, CARD_TYPE_STANDARD, CARD_TYPE_CARD_MESSAGE, CARD_TYPE_LINKED_DATATABLES, CARD_TYPE_ACCORDION, CARD_TYPE_PANEL_LAYOUT, CARD_TYPE_IFRAME, CARD_TYPE_TREEGRID, CARD_TYPE_RAIL
 # Re-exported so a view building tiles imports Tile from the same place as CardMixin.
 from cards.base import Tile, BannerTile, CardSection, build_sections  # noqa: F401
 from cards.base import check_section_ids, find_section, refuse_if_stacked, register_panel_layout, reset_section_stacks
@@ -698,6 +698,75 @@ class CardMixin:
             multi_open=multi_open,
             full_height=full_height,
             min_height=min_height,
+            show_header=show_header,
+            **kwargs
+        )
+
+    def add_rail_card(self, card_name=None, title=None, panels=None, height='100%', pane_titles=True, **kwargs):
+        """
+        Adds a rail card: a column of icons down its left side, the open panel beside them.
+
+        Each icon opens its panel -- one at a time, one always open. A panel that holds
+        ``panels`` of its own opens a second column of icons beside the first rather than a
+        pane, and that column's icons open their panels (or further columns) in turn. A panel takes
+        the accordion's ``title``, ``icon``, ``card`` and ``expanded``, so an accordion's list of those
+        moves across unchanged; its ``id``, ``ajax_load`` and ``header_css_class`` are not read here.
+
+        The card is a card like any other, so it goes wherever a card goes: a panel region or
+        tab, an accordion panel, a card group. The open pane scrolls on its own and the icon
+        columns stay put.
+
+        Showing a pane raises ``shown.cards.rail`` on it (native and jQuery, bubbling, with the
+        pane's own button id as ``detail.button``), so a page can load a pane's content the first
+        time it is opened -- the pane open when the page loads raises nothing, so load that one
+        from the page's ready handler, as with an accordion's open panel. A rail inside the pane
+        raises it for its own open pane too, and the event bubbles, so a listener on an outer
+        pane sees its inner rail's: check ``event.target`` is the pane meant. Which panel is open
+        lives in the page, so a reload of the card over ajax opens the server's choice again.
+
+        Args:
+            card_name (str, optional): Unique card identifier.
+            title (str, optional): Card header title. If None, no card header is shown
+                unless ``show_header`` says otherwise.
+            panels (list): Panel dicts, each with:
+                - title (str): the panel's name -- its icon's tooltip and its pane's title.
+                - icon (str, optional): Font Awesome class for its icon. Without one the icon
+                  is the title's first letter.
+                - card (CardBase, optional): the card shown in its pane.
+                - panels (list, optional): instead of a card, the panels of a column of icons
+                  opened beside this one.
+                - expanded (bool, optional): the panel open in its column. A column always has
+                  one open: the first marked ``expanded``, or its first panel if none is -- so a
+                  list with every panel closed, or several open, opens one here.
+            height (str): The card's CSS height. ``'100%'``, the default, fills a panel region or
+                tab, and alone in a ``scroll_cards`` region it fills that; where the card's
+                container has no height of its own -- an accordion panel, a page -- give a length
+                (``'480px'``), or the card is as tall as its tallest part. A length is kept in a
+                ``scroll_cards`` region too.
+            pane_titles (bool): Head each pane with its icon and title. Default True.
+
+        Example::
+
+            self.add_rail_card(card_name='tools', panels=[
+                {'title': 'Sizes', 'icon': 'fas fa-ruler-combined', 'card': sizes_card},
+                {'title': 'Messages', 'icon': 'fas fa-comment-alt', 'card': messages_card},
+                {'title': 'Drawings', 'icon': 'fas fa-cut', 'panels': [
+                    {'title': 'Cross sections', 'icon': 'fas fa-cut', 'card': sections_card},
+                    {'title': 'Elevations', 'icon': 'fas fa-drafting-compass', 'card': elevations_card},
+                ]},
+            ])
+        """
+        if kwargs.get('collapsed') is not None:
+            raise ValueError('A rail card does not fold: it has no collapse markup, and folded it could '
+                             'not fill a region. Put it in a collapsible region or an accordion panel instead.')
+        show_header = kwargs.pop('show_header', title is not None)
+        return self.add_card(
+            card_name=card_name,
+            title=title,
+            group_type=CARD_TYPE_RAIL,
+            panels=panels or [],
+            height=height,
+            pane_titles=pane_titles,
             show_header=show_header,
             **kwargs
         )

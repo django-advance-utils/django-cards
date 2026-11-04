@@ -969,3 +969,65 @@ class PanelLayoutTreegridExample(MainMenu, CardMixin, TemplateView):
         short_tab.add_rows({'label': 'Only', 'value': 'one row'})
         tabbed.add_tab('short', title='Short').add_card(short_tab)
         self.add_card_group(layout.render(), div_css_class='col-12')
+
+
+class PanelLayoutRailExample(MainMenu, CardMixin, TemplateView):
+    """A rail down the left of a splitter: icons that open panes, one opening a second column.
+
+    The left region holds one add_rail_card. Its Drawings icon opens a second column of icons
+    beside the first, whose Details icon opens a third. The right region holds a full-height
+    accordion whose open panel stretches to the bottom of the page, and the rail in it with it.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    def setup_datatable_cards(self):
+        self.add_card('rail_companies', title='Companies', group_type=CARD_TYPE_DATATABLE, datatable_model=Company)
+
+    def setup_table_rail_companies(self, table, details_object):
+        table.add_columns('id', 'name', 'importance')
+
+    def _rows(self, name, count, text):
+        card = self.add_card(f'rail_{name}', title=name.title())
+        card.add_rows(*[{'label': f'{name.title()} {i}', 'value': text} for i in range(1, count + 1)])
+        return card
+
+    def setup_cards(self):
+        layout = self.add_panel_layout(card_name='rail_layout', min_height='560px', persist=False, scroll_cards=True)
+        root = layout.root
+        rail = self.add_rail_card(card_name='side_rail', panels=[
+            {'title': 'Sizes', 'icon': 'fas fa-ruler-combined', 'card': self._rows('sizes', 4, '1200 mm')},
+            {'title': 'Messages', 'icon': 'fas fa-comment-alt',
+             'card': self._rows('messages', 40, 'A long pane scrolls on its own; the icons stay put.')},
+            {'title': 'Companies', 'icon': 'fas fa-building', 'card': self.cards['rail_companies']},
+            {'title': 'Drawings', 'icon': 'fas fa-cut', 'panels': [
+                {'title': 'Cross sections', 'icon': 'fas fa-cut', 'card': self._rows('sections', 3, 'Section')},
+                {'title': 'Elevations', 'icon': 'fas fa-drafting-compass',
+                 'card': self._rows('elevations', 3, 'Elevation')},
+                {'title': 'Details', 'icon': 'fas fa-search-plus', 'panels': [
+                    {'title': 'Head', 'icon': 'fas fa-arrow-up', 'card': self._rows('head', 2, 'Head detail')},
+                    {'title': 'Sill', 'icon': 'fas fa-arrow-down', 'card': self._rows('sill', 2, 'Sill detail')},
+                ]},
+            ]},
+            {'title': 'Notes', 'card': self._rows('notes', 2, 'No icon: the rail shows the first letter.')},
+            {'title': 'A rail in a pane', 'icon': 'fas fa-layer-group', 'card': self.add_rail_card(
+                card_name='pane_rail', panels=[
+                    {'title': 'Inner one', 'icon': 'fas fa-dice-one', 'card': self._rows('inner_one', 2, 'Inner')},
+                    {'title': 'Inner two', 'icon': 'fas fa-dice-two', 'card': self._rows('inner_two', 2, 'Inner')},
+                ])},
+        ])
+        root.add_region('rail', size='380px', min_size=200).add_card(rail)
+
+        inner = self.add_rail_card(card_name='panel_rail', panels=[
+            {'title': 'Fittings', 'icon': 'fas fa-key', 'card': self._rows('fittings', 3, 'Fitting')},
+            {'title': 'Finishes', 'icon': 'fas fa-paint-roller', 'panels': [
+                {'title': 'Inside', 'icon': 'fas fa-home', 'card': self._rows('inside', 2, 'Inside finish')},
+                {'title': 'Outside', 'icon': 'fas fa-tree', 'card': self._rows('outside', 2, 'Outside finish')},
+            ]},
+        ])
+        accordion = self.add_accordion_card(card_name='rail_accordion', full_height=True, panels=[
+            {'title': 'A rail in an accordion panel', 'icon': 'fas fa-columns', 'card': inner},
+            {'title': 'Something else', 'icon': 'fas fa-info-circle', 'expanded': False,
+             'card': self._rows('other', 3, 'An ordinary panel')},
+        ])
+        root.add_region('main', size='1fr', min_size=200).add_card(accordion)
+        self.add_card_group(layout.render(), div_css_class='col-12')

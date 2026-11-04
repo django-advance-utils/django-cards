@@ -11,7 +11,7 @@ A Django library for building rich, interactive detail cards in your views — w
 
 django-cards gives you a Python API to build Bootstrap-styled information cards directly from your Django views. Instead of writing repetitive template HTML, you declare cards and entries in Python:
 
-- **12 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, accordion, panel layout, and iframe
+- **14 card types** — standard detail, table, HTML, datatable, ordered datatable, list selection, layout/group, message, linked datatables, accordion, icon rail, panel layout, iframe, and treegrid
 - **30+ entry display options** — badges, icons, sparklines, ratings, progress bars, status dots, popovers, copy-to-clipboard, and more
 - **Interactive features** — AJAX reload, client-side search, CSV/JSON export, collapsible cards
 - **Layout system** — card groups, layout cards, and child card groups for complex page layouts
@@ -1623,7 +1623,7 @@ $('#my_accordion_accordion').on('show.bs.collapse', function(e) {
 
 ### Full Height
 
-Set `full_height=True` to make the accordion stretch to fill the remaining viewport height. The expanded panel's content area becomes scrollable. A minimum height prevents the accordion from being too small on short viewports:
+Set `full_height=True` to make the accordion stretch to fill the remaining viewport height. The expanded panel's content area becomes scrollable, and is as tall as the panel, so a card in it with a height of `100%` -- an icon rail, say -- reaches the bottom of the page. A minimum height prevents the accordion from being too small on short viewports:
 
 ```python
 self.add_accordion_card(
@@ -1715,6 +1715,64 @@ class DashboardView(CardMixin, TemplateView):
         self.add_card_group('nav_accordion', div_css_class='col-4 float-left')
         self.add_card_group('details', div_css_class='col-8 float-left')
 ```
+
+---
+
+## Icon Rail
+
+`add_rail_card()` puts a column of icons down a card's left side with the open panel beside them, one
+panel open at a time. A panel that holds `panels` of its own opens a **second column of icons** beside the
+first, and that column's icons open their panels -- or further columns -- in turn. A panel takes the
+accordion's `title`, `icon`, `card` and `expanded`, so an accordion's list of those moves across unchanged; its
+`id`, `ajax_load` and `header_css_class` are not read here.
+
+It is a card like any other, so it goes wherever a card goes: a panel region beside a splitter, a region
+tab, an accordion panel, a card group.
+
+```python
+class ItemView(CardMixin, TemplateView):
+    def setup_cards(self):
+        rail = self.add_rail_card(card_name='tools', panels=[
+            {'title': 'Sizes', 'icon': 'fas fa-ruler-combined', 'card': sizes_card},
+            {'title': 'Messages', 'icon': 'fas fa-comment-alt', 'card': messages_card},
+            {'title': 'Drawings', 'icon': 'fas fa-cut', 'panels': [
+                {'title': 'Cross sections', 'icon': 'fas fa-cut', 'card': sections_card},
+                {'title': 'Details', 'icon': 'fas fa-search-plus', 'panels': [
+                    {'title': 'Head', 'icon': 'fas fa-arrow-up', 'card': head_card},
+                    {'title': 'Sill', 'icon': 'fas fa-arrow-down', 'card': sill_card},
+                ]},
+            ]},
+        ])
+        layout = self.add_panel_layout(card_name='item', scroll_cards=True)
+        layout.root.add_region('tools', size='380px').add_card(rail)
+        layout.root.add_region('main', size='1fr').add_card(main_card)
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `panels` | `[]` | Panel dicts: `title`, `icon`, and either `card` (shown in its pane) or `panels` (a column of icons opened beside this one); `expanded` marks the panel open in its column, the first if none is |
+| `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab, or the open panel of a `full_height` accordion, down to the bottom of the page; inside something with no height of its own -- an ordinary accordion panel, a page -- give a length such as `'480px'`, which is kept in a `scroll_cards` region too |
+| `pane_titles` | `True` | Head each pane with its icon and title, in place of the pane card's own header -- which takes that header's menu, search, export and reload buttons with it, as in an accordion; set `False` to keep the card's header |
+| `title` | `None` | Card header title; no header without one unless `show_header` says otherwise |
+
+- Each icon's tooltip and accessible name is its panel's title; a panel with no `icon` shows its title's
+  first letter. A button that opens a column carries a small arrow pointing the way it opens.
+- The open pane scrolls on its own and the icon columns stay put. A column opened again opens on the
+  panel last chosen in it.
+- Showing a pane raises `shown.cards.rail` on it (native and jQuery, bubbling, `detail.button` the
+  pane's own button id), and its datatables are measured again, as they are laid out while hidden. A rail
+  inside the pane raises it for its own open pane too, and the event bubbles, so a listener on an outer pane
+  should check `event.target`. The pane open when the page loads raises nothing: load that one from the
+  page's ready handler, as with an accordion's open panel.
+- A column always has one panel open -- the first marked `expanded`, or its first -- so an accordion list
+  with every panel closed, or several open, opens one here. The open panels live in the page: a reload of the
+  rail over ajax opens the server's choice again. A rail does not fold (`collapsed=` raises); put it in a
+  collapsible region or an accordion panel instead.
+- Up/Down, Home and End move along a column, as in a vertical tab list.
+- Colours are custom properties a theme can set: `--django-card-rail-bg`, `--django-card-rail-nested-bg`,
+  `--django-card-rail-icon`, `--django-card-rail-icon-active`, `--django-card-rail-active-bg`,
+  `--django-card-rail-hover`, `--django-card-rail-line`, `--django-card-rail-title-bg`,
+  `--django-card-rail-focus`, and `--django-card-rail-width` for the columns.
 
 ---
 
