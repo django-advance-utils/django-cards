@@ -1,5 +1,5 @@
 {% load django_cards_tags %}{# A heading row (add_heading) or a row of fact columns (add_facts). Free of Bootstrap names, so one copy serves both packs; each entry is drawn by the pack's _entry.html. #}
-{% if row.type == 'heading' %}<div class="django-card__heading"><span class="django-card__heading-title" role="heading" aria-level="3">{{ row.title }}</span>{% if row.note %}<span class="django-card__heading-note">{{ row.note }}</span>{% endif %}</div>{% else %}{% pack_path 'cards/standard/_entry.html' as entry_template %}<div class="django-card__facts">{% for column in row.columns %}
+{% if row.type == 'heading' %}<div class="django-card__heading"><span class="django-card__heading-title" role="heading" aria-level="3">{{ row.title }}</span>{% if row.note is not None and row.note != '' %}<span class="django-card__heading-note">{{ row.note }}</span>{% endif %}</div>{% else %}{% pack_path 'cards/standard/_entry.html' as entry_template %}<div class="django-card__facts">{% for column in row.columns %}
     <div class="django-card__facts-col">{% if column.title %}<div class="django-card__facts-title" role="heading" aria-level="3">{{ column.title }}</div>{% endif %}{% with row=column %}{% for entry in column.entries %}
         {% include entry_template %}{% endfor %}{% endwith %}
     </div>{% endfor %}

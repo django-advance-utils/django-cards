@@ -1214,7 +1214,8 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     gap: 0.35rem;
 }
 
-.django-card__fact > .d-flex > label {
+.django-card__fact > .d-flex > label,
+.django-card__fact > .d-flex > .list-group-item-heading {
     margin-right: 0 !important;
 }
 

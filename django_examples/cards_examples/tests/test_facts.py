@@ -63,6 +63,12 @@ class TestAddHeading(SimpleTestCase):
             with self.subTest(pack=pack, template=template_name):
                 self.assertNotIn('django-card__heading-note', html)
 
+    def test_a_note_of_zero_is_shown_and_a_title_is_needed(self):
+        card = _view().add_card('probe', title='Probe').add_heading('Open', note=0)
+        self.assertEqual(len(_with_class(_Page(card.render()), 'span', 'django-card__heading-note')), 1)
+        with self.assertRaisesMessage(ValueError, 'needs a title'):
+            card.add_heading(None)
+
     def test_escaped_unless_marked_safe(self):
         def build(card):
             card.add_heading('<b class="x">A</b>', note='<i class="y">n</i>')
@@ -144,9 +150,31 @@ class TestAddFacts(SimpleTestCase):
         self.assertEqual(len(_with_class(page, 'div', 'django-card__fact')), 1)
         self.assertNotIn('Gone', ''.join(page.text))
         self.assertEqual(len(_with_class(page, 'h4', 'probe-value')), 1)
-        # an entry's own entry_css_class is kept
+        # an entry's own entry_css_class is added to the fact's, which carries its layout
         card.add_facts({'entries': [{'label': 'Own', 'value': 'c', 'entry_css_class': 'mine'}]})
-        self.assertEqual(len(_with_class(_Page(card.render()), 'div', 'mine')), 1)
+        mine = _with_class(_Page(card.render()), 'div', 'mine')
+        self.assertEqual(len(mine), 1)
+        self.assertIn('django-card__fact', mine[0]['class'].split())
+
+    def test_a_cards_default_row_style_is_for_its_rows_not_its_facts(self):
+        card = _view().add_card('probe', title='Probe')
+        card.add_row_style('styled', '<div class="probe-style">{label}:{value}</div>', is_default=True)
+        card.add_entry(label='Row', value='r')
+        card.add_facts({'title': 'T', 'lead': '£5', 'entries': [{'label': 'L', 'value': 'V'}]})
+        card.add_facts({'entries': [{'label': 'Own', 'value': 'o', 'row_style': 'styled'}]})
+        html = card.render()
+        page = _Page(html)
+        self.assertEqual(len(_with_class(page, 'div', 'probe-style')), 2, html)  # the row, and the fact that asked
+        self.assertEqual(len(_with_class(page, 'div', 'django-card__fact--lead')), 1)
+        self.assertNotIn('None', html)
+        # and the default is still in place for the rows added after
+        card.add_entry(label='After', value='a')
+        self.assertEqual(len(_with_class(_Page(card.render()), 'div', 'probe-style')), 3)
+
+    def test_no_columns_add_no_row(self):
+        card = _view().add_card('probe', title='Probe')
+        card.add_facts()
+        self.assertEqual(card.rows, [])
 
     def test_a_lead_can_be_a_dict_of_entry_options(self):
         card = _view().add_card('probe', title='Probe')
@@ -198,4 +226,5 @@ class TestAddFacts(SimpleTestCase):
         # a fact's menu sits by its label, not at the column's far edge
         beside = css[css.index('.django-card__fact > .d-flex {'):]
         self.assertIn('justify-content: flex-start;', beside[:beside.index('}')])
-        self.assertIn('.django-card__fact > .d-flex > label {\n    margin-right: 0 !important;', css)
+        self.assertIn('.django-card__fact > .d-flex > label,\n.django-card__fact > .d-flex > .list-group-item-heading {\n'
+                      '    margin-right: 0 !important;', css)

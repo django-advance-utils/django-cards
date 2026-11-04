@@ -2003,6 +2003,8 @@ class CardBase:
             CardBase: The card, so calls can be chained.
         """
         _refuse_if_stack(self)
+        if title is None:
+            raise ValueError('add_heading() needs a title')
         self.rows.append({'type': 'heading', 'title': title, 'note': note})
         self.requires_card_css = True
         return self
@@ -2051,9 +2053,16 @@ class CardBase:
                 spec = {'field': spec}
             elif not isinstance(spec, dict):
                 raise ValueError(f'A fact is a field name or a dict of entry options, not {spec!r}')
-            built = self._add_entry_internal(**{**extra_row_kwargs, **spec})
-            if built is not None and built.get('entry_css_class') is None:
-                built['entry_css_class'] = css_class
+            # A card's default row style is for its rows: a fact keeps the fact layout, unless
+            # it names a row style of its own.
+            default_row_style, self._default_row_styles = self._default_row_styles, None
+            try:
+                built = self._add_entry_internal(**{**extra_row_kwargs, **spec})
+            finally:
+                self._default_row_styles = default_row_style
+            if built is not None:
+                # added to, not replaced: the fact's class carries its layout
+                built['entry_css_class'] = ' '.join(filter(None, (css_class, built.get('entry_css_class'))))
             return built
 
         built_columns = []
@@ -2071,8 +2080,9 @@ class CardBase:
             # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
             built_columns.append({'type': 'multiple', 'title': column.get('title'),
                                   'entries': [e for e in built if e is not None]})
-        self.rows.append({'type': 'facts', 'columns': built_columns})
-        self.requires_card_css = True
+        if built_columns:  # as add_row() with nothing to show adds no row
+            self.rows.append({'type': 'facts', 'columns': built_columns})
+            self.requires_card_css = True
         return self
 
     def add_row_style(self, name, html, is_default=False):
