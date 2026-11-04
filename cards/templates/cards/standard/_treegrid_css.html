@@ -141,6 +141,68 @@
         background-image: none;
     }
 
+    /* Group band rows ('_row_group': True in a node's data): a heading row that breaks the grid
+       into sections, a solid band across every cell. The cells carry the colour, not the row,
+       because a cell keeps its own background and would leave a gap at each column edge. A rule
+       above and below and none at the sides, so bands one after another read as separate bars.
+       A heading does not light on hover, whichever hover the grid uses. Colours come from
+       --django-card-treegrid-group-* variables, which a project sets once for its own palette. */
+    .fancytree-ext-table tbody tr.treegrid-group-row > td,
+    .fancytree-ext-table tbody tr.treegrid-group-row:hover > td,
+    .fancytree-ext-table.treegrid--row-hover tbody tr.treegrid-group-row:hover > td.treegrid-editable:hover {
+        background-color: var(--django-card-treegrid-group-bg, #495057);
+        background-image: none;
+        color: var(--django-card-treegrid-group-color, #fff);
+        border-style: solid;
+        border-color: var(--django-card-treegrid-group-gap, #fff);
+        border-width: 3px 0;
+        font-weight: var(--django-card-treegrid-group-font-weight, 700);
+        letter-spacing: var(--django-card-treegrid-group-letter-spacing, normal);
+    }
+    /* Fancytree's skin colours the title itself (black, or silver while a search dims it),
+       which beats a colour inherited from the cell. */
+    .fancytree-ext-table tr.treegrid-group-row > td span.fancytree-title {
+        color: inherit;
+        font-weight: inherit;
+    }
+    /* A search match is marked on a pale ground, which the band's own text colour won't read on. */
+    .fancytree-ext-table tr.treegrid-group-row mark {
+        color: var(--django-card-treegrid-group-bg, #495057);
+    }
+    .fancytree-ext-table tr.treegrid-group-row .fancytree-partsel span.fancytree-checkbox::before,
+    .fancytree-ext-table tr.treegrid-group-row.fancytree-partsel span.fancytree-checkbox::before {
+        color: var(--django-card-treegrid-group-color, #fff);
+    }
+    .fancytree-ext-table tr.treegrid-group-row > td .fancytree-expander {
+        color: var(--django-card-treegrid-group-color, #fff);
+    }
+    .fancytree-ext-table tr.treegrid-group-row > td .fancytree-expander:hover {
+        color: var(--django-card-treegrid-group-hover-color, rgba(255, 255, 255, .75));
+    }
+    /* A row button drawn for a white row is dark on dark here: outline it in the band's text
+       colour, and fill it on hover the way an outline button fills. */
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-dark,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-secondary,
+    .fancytree-ext-table tr.treegrid-group-row .treegrid-action-btn {
+        color: var(--django-card-treegrid-group-color, #fff);
+        border-color: rgba(255, 255, 255, .65);
+        border-color: color-mix(in srgb, var(--django-card-treegrid-group-color, #fff) 65%, transparent);
+        background-color: transparent;
+    }
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-dark:hover,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-dark:focus,
+    .fancytree-ext-table tr.treegrid-group-row .show > .btn-outline-dark,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-dark.show,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-secondary:hover,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-secondary:focus,
+    .fancytree-ext-table tr.treegrid-group-row .show > .btn-outline-secondary,
+    .fancytree-ext-table tr.treegrid-group-row .btn-outline-secondary.show,
+    .fancytree-ext-table tr.treegrid-group-row .treegrid-action-btn:hover {
+        color: var(--django-card-treegrid-group-bg, #495057);
+        background-color: var(--django-card-treegrid-group-color, #fff);
+        border-color: var(--django-card-treegrid-group-color, #fff);
+    }
+
     /* Inline checkbox */
     .fancytree-ext-table .treegrid-checkbox {
         cursor: pointer;

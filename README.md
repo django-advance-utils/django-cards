@@ -2306,6 +2306,44 @@ it survives the row re-renders Fancytree does on expand, collapse, activate and 
 should apply to a whole column, rather than to the rows that happen to carry a key for it, belongs on
 the column instead (`css_class`, see Column Definitions) — that puts it on the header too.
 
+### Group Band Rows
+
+`'_row_group': True` in a node's `data` draws the row as a band: a heading that breaks the grid into
+sections, in a solid colour across every cell, with bold text. A band can be a folder whose rows sit
+under it and open and close with it, or a heading between the rows of a flat list with nothing under it.
+
+```python
+{
+    'title': 'Materials',
+    'key': 'band_materials',
+    'folder': True,
+    'data': {'type': 'band', '_row_group': True},
+    'children': [...],
+}
+```
+
+The band has a rule above and below and none at the sides, so bands one after another read as
+separate bars. Its title, expand toggle and any outline row button (`btn-outline-dark`,
+`btn-outline-secondary`, or an `actions` column's button) are drawn in the band's text colour. A band
+does not light up on hover, whichever `treegrid_hover` the grid uses. The row carries the class
+`treegrid-group-row`, so `'_row_class': 'treegrid-group-row'` does the same. In a grid with editable
+columns, give a band `'disableEdit': True`, so its empty cells can't be edited. A band's solid colour
+hides the active-row highlight, and `treegrid_style_row(remove_class='treegrid-group-row')` doesn't
+last past the row's next re-render: leave `_row_group` off the node instead.
+
+Set the colours once in your own stylesheet, on `:root` or on one grid:
+
+| Variable | Default | |
+|---|---|---|
+| `--django-card-treegrid-group-bg` | `#495057` | The band |
+| `--django-card-treegrid-group-color` | `#fff` | Its text, toggle and buttons |
+| `--django-card-treegrid-group-gap` | `#fff` | The 3px rule above and below; set it to the page's background in a dark theme |
+| `--django-card-treegrid-group-hover-color` | `rgba(255, 255, 255, .75)` | The toggle under the pointer |
+| `--django-card-treegrid-group-font-weight` | `700` | |
+| `--django-card-treegrid-group-letter-spacing` | `normal` | |
+
+See Treegrid → Group Rows in the example app.
+
 You can also apply styles server-side after a save using the helper methods:
 
 ```python

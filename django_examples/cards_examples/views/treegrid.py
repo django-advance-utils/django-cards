@@ -1810,6 +1810,105 @@ class TreegridToolbarSlotsExample(MainMenu, CardMixin, TemplateView):
         return self.command_response()
 
 
+class TreegridGroupRowsExample(MainMenu, CardMixin, TemplateView):
+    """Group band rows: ``'_row_group': True`` in a node's data draws it as a heading band
+    across every cell.
+
+    Left: bands that open -- each group is a folder whose rows sit under it -- in a grid that
+    lights the whole row on hover. The band's title, expander and row button are drawn for the
+    band, and it does not light itself.
+
+    Right: bands as headings between the rows of a flat list, with nothing under them.
+    """
+    template_name = 'cards_examples/cards.html'
+
+    TASK_COLUMNS = [
+        {'title': '#', 'field': 'number', 'width': '8%'},
+        {'title': 'Title', 'field': 'title', 'width': '52%'},
+        {'title': 'Kind', 'field': 'kind', 'width': '15%'},
+        {'title': 'For', 'field': 'owner', 'width': '17%'},
+        {'title': '', 'field': 'actions', 'width': '8%', 'type': 'actions',
+         'actions': [{'name': 'open', 'icon': 'fas fa-ellipsis-h', 'title': 'Open'}]},
+    ]
+
+    PRICE_COLUMNS = [
+        {'title': 'Item', 'field': 'title', 'width': '60%'},
+        {'title': 'Unit', 'field': 'unit', 'width': '20%'},
+        {'title': 'Price', 'field': 'price', 'width': '20%', 'css_class': 'text-right text-end'},
+    ]
+
+    def setup_cards(self):
+        self.add_treegrid_card(
+            card_name='group_tasks',
+            title='Tasks',
+            treegrid_columns=self.TASK_COLUMNS,
+            treegrid_static_data=self._task_data(),
+            treegrid_node_column=1,
+            treegrid_expand_all=True,
+            treegrid_hover='row',
+            treegrid_height='420px',
+            treegrid_min_width='100%',
+        )
+        self.add_treegrid_card(
+            card_name='group_prices',
+            title='Price List',
+            treegrid_columns=self.PRICE_COLUMNS,
+            treegrid_static_data=self._price_data(),
+            treegrid_auto_hide_expand_buttons=True,
+            treegrid_show_search=False,
+            treegrid_height='420px',
+            treegrid_min_width='100%',
+        )
+        self.add_card_group('group_tasks', div_css_class=col('col-7', self.request))
+        self.add_card_group('group_prices', div_css_class=col('col-5', self.request))
+
+    @staticmethod
+    def _task_data():
+        groups = [
+            ('General setup', [(1, 'Book the follow-up meeting', 'Action', 'Sam')]),
+            ('Materials', [(12, 'Set up paint finishes', 'Action', 'Unassigned'),
+                           (13, 'Which timber sizes are needed?', 'Question', 'Alex'),
+                           (14, 'Confirm the cutting allowance', 'Question', 'Unassigned')]),
+            ('Hardware', [(2, 'Update the closer cost', 'Action', 'Jo'),
+                          (3, 'Add the signage cost', 'Action', 'Jo')]),
+        ]
+        return [
+            {
+                'title': name,
+                'key': f'band_{i}',
+                'folder': True,
+                'data': {'type': 'band', 'number': '', 'kind': '', 'owner': '', '_row_group': True},
+                'children': [
+                    {'title': title, 'key': f'task_{number}',
+                     'data': {'type': 'task', 'number': number, 'kind': kind, 'owner': owner}}
+                    for number, title, kind, owner in tasks
+                ],
+            }
+            for i, (name, tasks) in enumerate(groups)
+        ]
+
+    @staticmethod
+    def _price_data():
+        sections = [
+            ('Timber', [('Oak, per metre', 'm', '18.40'), ('Ash, per metre', 'm', '14.10')]),
+            ('Glass', [('Float 4mm', 'm²', '32.00'), ('Toughened 6mm', 'm²', '58.50')]),
+            ('Ironmongery', [('Butt hinge', 'pair', '6.20')]),
+        ]
+        nodes = []
+        for i, (name, items) in enumerate(sections):
+            nodes.append({'title': name, 'key': f'section_{i}',
+                          'data': {'type': 'section', 'unit': '', 'price': '', '_row_group': True}})
+            nodes += [{'title': title, 'key': f'price_{i}_{n}',
+                       'data': {'type': 'price', 'unit': unit, 'price': price}}
+                      for n, (title, unit, price) in enumerate(items)]
+        return nodes
+
+    def button_group_tasks_action(self, **kwargs):
+        self.add_command(toast_commands(
+            header='Row action', text=f"{kwargs.get('action')} on {kwargs.get('key')}"))
+        return self.command_response()
+
+
 class TreegridEscapedTextExample(MainMenu, CardMixin, TemplateView):
     """Titles and html cells holding & and ', escaped the way markup needs them.
 

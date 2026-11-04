@@ -690,6 +690,8 @@ window._treegridInit = window._treegridInit || function(CFG) {
         if (d._row_bg) $tr.css('background-color', d._row_bg);
         if (d._row_color) $tr.css('color', d._row_color);
         if (d._row_class) applyRowClass(node, $tr, d._row_class);
+        // A group band: a heading row across the grid (treegrid-group-row in _treegrid_css.html).
+        if (d._row_group) applyRowClass(node, $tr, 'treegrid-group-row');
 
         // Column-level classes (col.css_class): every cell in the column, whatever the row
         // holds. The matching header carries them too, so the two line up.
