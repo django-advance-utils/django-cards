@@ -975,8 +975,8 @@ class PanelLayoutRailExample(MainMenu, CardMixin, TemplateView):
     """A rail down the left of a splitter: icons that open panes, one opening a second column.
 
     The left region holds one add_rail_card. Its Drawings icon opens a second column of icons
-    beside the first, whose Details icon opens a third. The right region holds an accordion with a
-    smaller rail in one of its panels, given a height since an accordion panel has none to fill.
+    beside the first, whose Details icon opens a third. The right region holds a full-height
+    accordion whose open panel stretches to the bottom of the page, and the rail in it with it.
     """
     template_name = 'cards_examples/cards.html'
 
@@ -1017,14 +1017,14 @@ class PanelLayoutRailExample(MainMenu, CardMixin, TemplateView):
         ])
         root.add_region('rail', size='380px', min_size=200).add_card(rail)
 
-        inner = self.add_rail_card(card_name='panel_rail', height='320px', panels=[
+        inner = self.add_rail_card(card_name='panel_rail', panels=[
             {'title': 'Fittings', 'icon': 'fas fa-key', 'card': self._rows('fittings', 3, 'Fitting')},
             {'title': 'Finishes', 'icon': 'fas fa-paint-roller', 'panels': [
                 {'title': 'Inside', 'icon': 'fas fa-home', 'card': self._rows('inside', 2, 'Inside finish')},
                 {'title': 'Outside', 'icon': 'fas fa-tree', 'card': self._rows('outside', 2, 'Outside finish')},
             ]},
         ])
-        accordion = self.add_accordion_card(card_name='rail_accordion', panels=[
+        accordion = self.add_accordion_card(card_name='rail_accordion', full_height=True, panels=[
             {'title': 'A rail in an accordion panel', 'icon': 'fas fa-columns', 'card': inner},
             {'title': 'Something else', 'icon': 'fas fa-info-circle', 'expanded': False,
              'card': self._rows('other', 3, 'An ordinary panel')},

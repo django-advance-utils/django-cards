@@ -1623,7 +1623,7 @@ $('#my_accordion_accordion').on('show.bs.collapse', function(e) {
 
 ### Full Height
 
-Set `full_height=True` to make the accordion stretch to fill the remaining viewport height. The expanded panel's content area becomes scrollable. A minimum height prevents the accordion from being too small on short viewports:
+Set `full_height=True` to make the accordion stretch to fill the remaining viewport height. The expanded panel's content area becomes scrollable, and is as tall as the panel, so a card in it with a height of `100%` -- an icon rail, say -- reaches the bottom of the page. A minimum height prevents the accordion from being too small on short viewports:
 
 ```python
 self.add_accordion_card(
@@ -1751,7 +1751,7 @@ class ItemView(CardMixin, TemplateView):
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `panels` | `[]` | Panel dicts: `title`, `icon`, and either `card` (shown in its pane) or `panels` (a column of icons opened beside this one); `expanded` marks the panel open in its column, the first if none is |
-| `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab; inside something with no height of its own -- an accordion panel, a page -- give a length such as `'480px'`, which is kept in a `scroll_cards` region too |
+| `height` | `'100%'` | The card's CSS height. `'100%'` fills a panel region or tab, or the open panel of a `full_height` accordion, down to the bottom of the page; inside something with no height of its own -- an ordinary accordion panel, a page -- give a length such as `'480px'`, which is kept in a `scroll_cards` region too |
 | `pane_titles` | `True` | Head each pane with its icon and title, in place of the pane card's own header -- which takes that header's menu, search, export and reload buttons with it, as in an accordion; set `False` to keep the card's header |
 | `title` | `None` | Card header title; no header without one unless `show_header` says otherwise |
 

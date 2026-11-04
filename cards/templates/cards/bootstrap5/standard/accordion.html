@@ -81,6 +81,11 @@
     #{{ card.code }}_accordion .collapse {
         transition: none !important;
     }
+    /* the open panel's body is as tall as the panel, so a card in it given height: 100%
+       (a rail, say) reaches the bottom; longer content still scrolls in the panel */
+    #{{ card.code }}_accordion .collapse > .card-body {
+        height: 100%;
+    }
     #{{ card.code }}_accordion .collapsing {
         transition: none !important;
         height: auto !important;

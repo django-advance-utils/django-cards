@@ -315,6 +315,20 @@ class TestWhereARailGoes(SimpleTestCase):
         self.assertEqual(len(_columns(page)), 2)
         self.assertIn('sizes text', ''.join(page.text))
 
+    def test_the_open_panel_of_a_full_height_accordion_is_filled(self):
+        """Its body is as tall as the panel, so the rail's 100% runs to the bottom of the page."""
+        rule = '#side_accordion .collapse > .card-body {\n        height: 100%;'
+        for pack in PACKS:
+            with override_settings(DJANGO_CARDS_TEMPLATE_PACK=pack):
+                with self.subTest(pack=pack):
+                    view = _view()
+                    full = view.add_accordion_card(card_name='side', full_height=True,
+                                                   panels=[{'title': 'Tools', 'card': _rail(view)}])
+                    self.assertIn(rule, full.render())
+                    view = _view()
+                    plain = view.add_accordion_card(card_name='side', panels=[{'title': 'Tools', 'card': _rail(view)}])
+                    self.assertNotIn('.collapse > .card-body', plain.render())
+
     def test_a_card_in_a_nested_column_cannot_also_be_a_section(self):
         view = _view()
         deep = _body(view, 'deep', 'x')
