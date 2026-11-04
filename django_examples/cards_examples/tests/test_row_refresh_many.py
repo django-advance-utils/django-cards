@@ -3,7 +3,7 @@
 django-advanced-datatables' ``refresh_rows`` command (1.0.12) posts it to ask for many rows
 at once. The library's ``DatatableView`` answers it, but a cards view is not one: it builds its
 tables in ``setup_datatable_cards``, so the page got a ``CardPostError``. This builds the tables
-the cards way and leaves the reading to the table's own ``refresh_rows``.
+the cards way and leaves the reading to the table's own ``refresh_rows_command``.
 
 A capped table (``max_records``) is covered for ``row_refresh`` too: its query was sliced, and a
 sliced query cannot be narrowed to the row asked for.
@@ -63,6 +63,9 @@ class TestRowRefreshMany(TestCase):
         command, = _refresh_many(table_id='companies', row_nos=[f'i{self.tin.pk}'], seq=4)
         self.assertEqual(command['seq'], 4)
         self.assertEqual(command['rows'], {f'i{self.tin.pk}': [self.tin.pk, 'Tin']})
+        # A page's first request may be numbered 0, which a truthiness check would drop.
+        command, = _refresh_many(table_id='companies', row_nos=[f'i{self.tin.pk}'], seq=0)
+        self.assertEqual(command['seq'], 0)
 
     def test_no_seq_sent_none_added(self):
         command, = _refresh_many(table_id='companies', row_nos=[f'i{self.tin.pk}'])

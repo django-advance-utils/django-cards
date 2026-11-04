@@ -1305,7 +1305,7 @@ class CardMixin:
         django-advanced-datatables' ``refresh_rows`` command (1.0.12 and later) posts it when
         called without ``rows``. ``DatatableView`` answers it there, but a cards view builds its
         tables in ``setup_datatable_cards``, so this builds them the cards way and hands the
-        reading to the table's own ``refresh_rows``.
+        reading to the table's own ``refresh_rows_command``.
 
         Unlike ``row_refresh``, a view's ``get_<table_id>_query`` is not read: the rows come
         from the table's own query and filters.
