@@ -78,6 +78,7 @@ class MainMenu(AjaxHelpers, MenuMixin):
                 ('cards_examples:image_gallery', 'Image Gallery'),
                 ('cards_examples:tiles', 'Tiles'),
                 ('cards_examples:banner_tiles', 'Banner Tiles'),
+                ('cards_examples:facts', 'Facts'),
                 ('cards_examples:card_borders', 'Card Borders'),
                 ('cards_examples:purchase_order_layout', 'Purchase Order Layout'),
                 ('cards_examples:column_search', 'Column Search'),

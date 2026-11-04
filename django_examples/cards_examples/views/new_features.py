@@ -1104,3 +1104,58 @@ class BannerTilesIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group('course_sidebar', div_css_class=col('col-4', self.request, 'right'))
         self.add_card_group('stages', div_css_class='col-12', div_css='clear:both')
         self.add_card_group('more_courses', div_css_class='col-12')
+
+
+class FactsExample(MainMenu, CardMixin, TemplateView):
+    """add_facts(): headed columns of label-over-value entries; add_heading(): a group's heading."""
+    template_name = 'cards_examples/cards.html'
+
+    def setup_cards(self):
+        edit = [MenuItem(url='cards_examples:facts', menu_display='', font_awesome='fas fa-edit',
+                         css_classes='btn btn-sm btn-link p-0')]
+        summary = self.add_card('facts_summary', title='Little Yellow Cottage')
+        summary.add_facts(
+            {'title': 'Status', 'entries': [
+                {'label': 'State', 'value': 'Active - (Confirmed)', 'badge': 'bg-success', 'menu': edit},
+                {'label': 'Stage', 'value': 'Delivery'},
+                {'label': 'Type', 'value': 'External', 'status_dot': '#808000'},
+            ]},
+            {'title': 'Sell', 'lead': '£5,800.00', 'entries': [
+                {'label': 'Inc tax', 'value': '£6,960.00'},
+            ]},
+            {'title': 'Deadlines', 'entries': [
+                {'label': 'Customer deadline', 'value': None, 'default': 'Not set', 'menu': edit},
+                {'label': 'Internal deadline', 'value': None, 'default': 'Not set', 'menu': edit},
+                {'label': 'Estimated start', 'value': None, 'default': 'Not set'},
+            ]},
+            {'title': 'Team', 'entries': [
+                {'label': 'Salesman', 'value': 'Alice Johnson', 'menu': edit},
+                {'label': 'Estimator', 'value': None, 'default': 'Not set', 'menu': edit},
+            ]},
+            {'title': 'Record', 'entries': [
+                {'label': 'Modified', 'value': '01 Oct 2026, 09:25'},
+                {'label': 'Created', 'value': '03 Jan 2020, 09:16'},
+            ]},
+        )
+
+        account = self.add_card('facts_account', title='Cedarlite Industries')
+        account.add_heading('Account')
+        account.add_row({'label': 'Expires', 'value': '31 Jul 2027'},
+                        {'label': 'CRM ID', 'value': '5879', 'value_link': '#'},
+                        {'label': 'Lead system', 'value': 'Live', 'badge': 'bg-success'})
+        account.add_heading('Activity', note='65 logins in 90 days')
+        account.add_entry(label='Logins a day', value=[0, 0, 1, 0, 2, 3, 1, 4, 2, 5, 3, 6], sparkline=True)
+        account.add_heading('Contact and settings')
+        account.add_facts({'entries': [{'label': 'Contact person', 'value': 'John Harrison'}]},
+                          {'entries': [{'label': 'Financial year starts', 'value': 'April'}]},
+                          {'entries': [{'label': 'Timezone', 'value': 'Pacific/Auckland'}]})
+
+        table = self.add_card('facts_table', title='In a table card', template_name='table')
+        table.add_entry(label='Name', value='Cedarlite Industries')
+        table.add_heading('Totals', note='this year')
+        table.add_facts({'title': 'Sell', 'lead': '£12,400.00', 'entries': [{'label': 'Orders', 'value': 14}]},
+                        {'title': 'Cost', 'lead': '£8,150.00', 'entries': [{'label': 'Margin', 'value': '34%'}]})
+
+        self.add_card_group('facts_summary', div_css_class='col-12')
+        self.add_card_group('facts_account', div_css_class='col-md-6')
+        self.add_card_group('facts_table', div_css_class='col-md-6')

@@ -1168,3 +1168,72 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     border-radius: 0;
     box-shadow: none;
 }
+
+/* add_heading(): a small-caps heading starting a group of rows, with an aside at its end. */
+.django-card__heading {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+}
+
+.django-card__heading-title,
+.django-card__facts-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--django-card-heading-color, #6c757d);
+}
+
+.django-card__heading-note {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--django-card-heading-note-color, #6c757d);
+}
+
+/* add_facts(): columns that fill top to bottom, sharing the width and wrapping when narrow. */
+.django-card__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--django-card-facts-min-width, 10rem), 1fr));
+    gap: 0.75rem 1.5rem;
+}
+
+.django-card__facts-title {
+    margin-bottom: 0.35rem;
+}
+
+.django-card__fact {
+    margin-bottom: 0.5rem;
+}
+
+/* An entry's menu (an edit pencil, say) sits beside its label, not at the column's far edge. */
+.django-card__fact > .d-flex {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.django-card__fact > .d-flex > label,
+.django-card__fact > .d-flex > .list-group-item-heading {
+    margin-right: 0 !important;
+}
+
+.django-card__fact label {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    color: var(--django-card-fact-label-color, #6c757d);
+}
+
+.django-card__fact .list-group-item-heading {
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.django-card__fact--lead,
+.django-card__fact--lead .list-group-item-heading {
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+}

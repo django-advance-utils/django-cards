@@ -14,7 +14,7 @@ from cards_examples.views.accordion import AccordionExample, AccordionAjaxExampl
 from cards_examples.views.child_cards import ChildCardExampleIndex
 
 from cards_examples.views.row_styles import RowStyleExampleIndex
-from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample, CardBordersIndex, PurchaseOrderLayoutIndex, TilesIndex, BannerTilesIndex
+from cards_examples.views.new_features import NewFeaturesIndex, NewFeaturesTableIndex, TooltipTestIndex, NewFeatures2Index, ImageGalleryIndex, ColumnSearchExample, CardBordersIndex, PurchaseOrderLayoutIndex, TilesIndex, BannerTilesIndex, FactsExample
 from cards_examples.views.treegrid import (
     TreegridBasicExample, TreegridEditableExample, TreegridMultiLevelExample,
     TreegridCompactExample, TreegridPaymentsExample, TreegridExpandedExample,
@@ -62,6 +62,7 @@ urlpatterns = [
     path('datatable/', DatatableExample.as_view(), name='datatable'),
     path('datatable-order/', DatatableOrderExample.as_view(), name='datatable_order'),
     path('column-search/', ColumnSearchExample.as_view(), name='column_search'),
+    path('facts/', FactsExample.as_view(), name='facts'),
 
     path('linked-datatables/', LinkedDatatablesExample.as_view(), name='linked_datatables'),
     path('linked-datatables-payments/', LinkedDatatablesPaymentExample.as_view(), name='linked_datatables_payments'),
