@@ -50,7 +50,6 @@ class TestRowRefreshMany(TestCase):
 
     def test_nothing_to_repaint_answers_null(self):
         cases = {
-            'an unknown table': {'table_id': 'nope', 'row_nos': [f'i{self.brass.pk}']},
             'no row_nos': {'table_id': 'companies'},
             'a string, not a list': {'table_id': 'companies', 'row_nos': f'i{self.brass.pk}'},
             'a number': {'table_id': 'companies', 'row_nos': 12},
@@ -58,6 +57,22 @@ class TestRowRefreshMany(TestCase):
         for name, kwargs in cases.items():
             with self.subTest(name):
                 self.assertEqual(_refresh_many(**kwargs), [{'function': 'null'}])
+
+    def test_the_pages_seq_comes_back(self):
+        """Two refreshes of one table can be in flight; the page tells their replies apart by it."""
+        command, = _refresh_many(table_id='companies', row_nos=[f'i{self.tin.pk}'], seq=4)
+        self.assertEqual(command['seq'], 4)
+        self.assertEqual(command['rows'], {f'i{self.tin.pk}': [self.tin.pk, 'Tin']})
+
+    def test_no_seq_sent_none_added(self):
+        command, = _refresh_many(table_id='companies', row_nos=[f'i{self.tin.pk}'])
+        self.assertNotIn('seq', command)
+
+    def test_an_unknown_table_answers_with_no_rows_so_a_waiting_page_hears_back(self):
+        self.assertEqual(
+            _refresh_many(table_id='nope', row_nos=[f'i{self.brass.pk}'], seq=2),
+            [{'function': 'refresh_rows', 'table_id': 'nope', 'rows': {}, 'seq': 2}],
+        )
 
 
 class _Capped(_TableView):

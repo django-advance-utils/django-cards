@@ -1310,22 +1310,34 @@ class CardMixin:
         Unlike ``row_refresh``, a view's ``get_<table_id>_query`` is not read: the rows come
         from the table's own query and filters.
 
+        A ``seq`` the page sent comes back on the command, as ``row_refresh`` does, so a page with
+        two refreshes of one table in flight can tell which reply answers which. A ``table_id`` this
+        view doesn't build is answered with no rows rather than ``null``, so a page waiting on its
+        ``seq`` hears back.
+
         Args:
             **kwargs: ``row_nos`` (a list of row ids as the table writes them, e.g. ``'i12'``),
-                and optionally ``table_id`` (defaults to the view's first table).
+                and optionally ``table_id`` (defaults to the view's first table) and ``seq``.
 
         Returns:
             JsonResponse: A ``refresh_rows`` command, or a ``null`` command when ``row_nos`` is
-            not a list or the table is not one this view builds.
+            not a list, or no ``table_id`` is sent and the view builds no table.
         """
         row_nos = kwargs.get('row_nos')
         if not isinstance(row_nos, (list, tuple)):
             return self.command_response('null')
         self.setup_datatable_cards()
-        table = self.tables.get(kwargs.get('table_id') or next(iter(self.tables), None))
-        if table is None:
+        table_id = kwargs.get('table_id') or next(iter(self.tables), None)
+        if table_id is None:
             return self.command_response('null')
-        return table.refresh_rows(self.request, row_nos)
+        table = self.tables.get(table_id)
+        if table is None:
+            command = {'function': 'refresh_rows', 'table_id': table_id, 'rows': {}}
+        else:
+            command = table.refresh_rows_command(self.request, row_nos)
+        if kwargs.get('seq') is not None:
+            command['seq'] = kwargs['seq']
+        return JsonResponse([command], safe=False)
 
     def datatable_sort(self, **kwargs):
         self.setup_datatable_cards()
