@@ -216,6 +216,14 @@ class TestTheRail(SimpleTestCase):
         with self.assertRaisesMessage(ValueError, 'empty column'):
             _rail(_view(), panels=[{'title': 'Details', 'panels': []}])
 
+    def test_panels_or_title_of_none_is_as_if_left_out(self):
+        """A panel list built by code may set every key, giving None where there is nothing."""
+        view = _view()
+        rail = _rail(view, panels=[{'title': None, 'card': _body(view, 'plain', 'plain text'), 'panels': None}])
+        page = _Page(rail.render())
+        self.assertEqual(_buttons(page)[0]['aria-label'], 'Panel 1')
+        self.assertIn('plain text', ''.join(page.text))
+
     def test_no_height_is_the_default_height(self):
         rail = _rail(_view(), height=None)
         self.assertIn('style="height: 100%;"', rail.render())
@@ -324,7 +332,12 @@ class TestWhereARailGoes(SimpleTestCase):
                     view = _view()
                     full = view.add_accordion_card(card_name='side', full_height=True,
                                                    panels=[{'title': 'Tools', 'card': _rail(view)}])
-                    self.assertIn(rule, full.render())
+                    html = full.render()
+                    self.assertIn(rule, html)
+                    # a margin above the panel's card would push a full-height body past the
+                    # panel's end, leaving every panel scrollable by it
+                    self.assertIn('display: flow-root;', html)
+                    self.assertIn('#side_accordion .collapse > .card-body > .django-card-rail,', html)
                     view = _view()
                     plain = view.add_accordion_card(card_name='side', panels=[{'title': 'Tools', 'card': _rail(view)}])
                     self.assertNotIn('.collapse > .card-body', plain.render())

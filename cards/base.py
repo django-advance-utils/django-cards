@@ -2697,7 +2697,9 @@ class CardBase:
             active = next((i for i, panel in enumerate(panels) if panel.get('expanded')), 0)
             for i, panel in enumerate(panels):
                 node_id = f'{column_id}_{i}'
-                title = panel.get('title', f'Panel {i + 1}')
+                title = panel.get('title')
+                if title is None:
+                    title = f'Panel {i + 1}'
                 button = {
                     'id': node_id,
                     'title': title,
@@ -2709,7 +2711,7 @@ class CardBase:
                 }
                 buttons.append(button)
                 children = panel.get('panels')
-                if 'panels' in panel and not children:
+                if children is not None and not children:
                     raise ValueError(f'Rail panel {title!r} has an empty column of panels; leave the panel '
                                      f'out, or give it a card')
                 if children:
