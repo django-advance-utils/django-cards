@@ -1987,6 +1987,94 @@ class CardBase:
 
         self.rows.append({'type': 'html', 'html': rendered, 'exclude_td': exclude_td, **kwargs})
 
+    def add_heading(self, title, note=None):
+        """Add a small heading row that starts a group of the rows after it.
+
+        Example:
+            card.add_heading('Activity', note='65 logins in 90 days')
+            card.add_row('last_login', 'logins')
+
+        Args:
+            title (str): The heading. Escaped unless marked safe.
+            note (str, optional): A short aside at the heading's right end, such as a count.
+                Escaped unless marked safe.
+
+        Returns:
+            CardBase: The card, so calls can be chained.
+        """
+        _refuse_if_stack(self)
+        self.rows.append({'type': 'heading', 'title': title, 'note': note})
+        self.requires_card_css = True
+        return self
+
+    def add_facts(self, *columns, extra_row_kwargs=None):
+        """Add a row of fact columns: each a small heading over a stack of label-over-value entries.
+
+        Unlike :meth:`add_row`, which lays entries side by side, this fills each column top to
+        bottom, so the columns can hold different numbers of entries. The columns share the
+        row's width and wrap onto more lines when it is narrow.
+
+        Example:
+            card.add_facts(
+                {'title': 'Status', 'entries': [
+                    {'label': 'State', 'value': 'Confirmed', 'badge': 'bg-success'},
+                    'stage',
+                ]},
+                {'title': 'Sell', 'lead': {'value': '£5,800.00'}, 'entries': [
+                    {'label': 'Inc tax', 'value': '£6,960.00'},
+                ]},
+                {'title': 'Team', 'entries': [
+                    {'label': 'Salesman', 'field': 'salesman', 'default': 'Not set', 'menu': edit_menu},
+                ]},
+            )
+
+        Args:
+            *columns: One dict per column:
+
+                - ``title`` (str, optional): the column's heading. Escaped unless marked safe.
+                - ``lead`` (str or dict, optional): one value drawn large under the heading, with
+                  no label -- a total, a price. A dict takes the entry options.
+                - ``entries`` (list): the column's entries, top to bottom. Each is a field name or
+                  a dict of :meth:`add_entry` options, as in :meth:`add_row`; an entry that is
+                  hidden is left out.
+
+            extra_row_kwargs (dict, optional): Options applied to every entry.
+
+        Returns:
+            CardBase: The card, so calls can be chained.
+        """
+        _refuse_if_stack(self)
+        extra_row_kwargs = extra_row_kwargs or {}
+
+        def entry(spec, css_class):
+            if isinstance(spec, str):
+                spec = {'field': spec}
+            elif not isinstance(spec, dict):
+                raise ValueError(f'A fact is a field name or a dict of entry options, not {spec!r}')
+            built = self._add_entry_internal(**{**extra_row_kwargs, **spec})
+            if built is not None and built.get('entry_css_class') is None:
+                built['entry_css_class'] = css_class
+            return built
+
+        built_columns = []
+        for column in columns:
+            if not isinstance(column, dict):
+                raise ValueError(f'add_facts takes one dict per column, not {column!r}')
+            entries = column.get('entries') or []
+            if not isinstance(entries, (list, tuple)):
+                raise ValueError(f"A fact column's entries are a list, not {entries!r}")
+            lead = column.get('lead')
+            if lead is not None and not isinstance(lead, dict):
+                lead = {'value': lead}
+            built = [entry(lead, 'django-card__fact django-card__fact--lead')] if lead is not None else []
+            built += [entry(spec, 'django-card__fact') for spec in entries]
+            # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
+            built_columns.append({'type': 'multiple', 'title': column.get('title'),
+                                  'entries': [e for e in built if e is not None]})
+        self.rows.append({'type': 'facts', 'columns': built_columns})
+        self.requires_card_css = True
+        return self
+
     def add_row_style(self, name, html, is_default=False):
         """
         Defines a named row style for custom rendering of card entries.
@@ -3087,9 +3175,13 @@ class CardBase:
     def get_export_data(self):
         data = []
         for row in self.rows:
-            if row.get('type') == 'html':
+            if row.get('type') in ('html', 'heading'):
                 continue
-            for entry in row.get('entries', []):
+            if row.get('type') == 'facts':
+                entries = [entry for column in row['columns'] for entry in column['entries']]
+            else:
+                entries = row.get('entries', [])
+            for entry in entries:
                 label = entry.get('label', '')
                 value = entry.get('html', '')
                 if isinstance(value, str):

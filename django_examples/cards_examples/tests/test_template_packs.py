@@ -110,6 +110,7 @@ FLAT_TEMPLATES = {
     'standard/panel_layout.html': 'the panel layout container; its classes are the panel '
                                   'layout\'s own, not Bootstrap\'s',
     'standard/_card_css.html': 'a stylesheet link',
+    'standard/_facts_row.html': 'a heading or fact columns, in cards.css classes; each entry is drawn by the pack\'s _entry.html',
     'standard/_cards_on_ready.html': 'script',
     'standard/_column_search_script.html': 'script',
     'standard/_export_script.html': 'script',

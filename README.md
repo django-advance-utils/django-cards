@@ -698,6 +698,46 @@ card.add_rows(
 )
 ```
 
+### add_heading()
+
+A small-caps heading that starts a group of the rows after it, with an optional aside at its right end:
+
+```python
+card.add_heading('Account')
+card.add_row('expiry_date', 'crm_id', 'lead_system')
+card.add_heading('Activity', note='65 logins in 90 days')
+card.add_entry(label='Logins a day', value=counts, sparkline=True)
+```
+
+`title` and `note` are escaped unless marked safe.
+
+### add_facts()
+
+A row of fact columns -- the summary strip at the top of a record page. Each column is a small-caps heading over a stack of label-over-value entries, filled top to bottom, so the columns can hold different numbers of facts (`add_row()` lays entries side by side instead). The columns share the row's width and wrap onto more lines when it is narrow.
+
+```python
+card.add_facts(
+    {'title': 'Status', 'entries': [
+        {'label': 'State', 'value': 'Confirmed', 'badge': 'bg-success', 'menu': edit_menu},
+        'stage',                                       # a field of details_object
+    ]},
+    {'title': 'Sell', 'lead': '£5,800.00', 'entries': [
+        {'label': 'Inc tax', 'value': '£6,960.00'},
+    ]},
+    {'title': 'Team', 'entries': [
+        {'label': 'Salesman', 'field': 'salesman', 'default': 'Not set', 'menu': edit_menu},
+    ]},
+)
+```
+
+| Column key | Description |
+|---|---|
+| `title` | The column's heading. Escaped unless marked safe |
+| `lead` | One value drawn large under the heading, with no label -- a total, a price. A string, or a dict of entry options |
+| `entries` | The column's facts, top to bottom: field names or dicts of `add_entry()` options, as in `add_row()`. A hidden entry is left out |
+
+Every fact is an ordinary entry drawn by the same markup as a row's, so `badge`, `menu` (shown beside the label), `default`, `value_link`, `copy_to_clipboard`, `status_dot` and the rest work unchanged. `extra_row_kwargs` applies options to every fact. Both methods work in the default and `table` templates, and the export takes the facts. Set `--django-card-facts-min-width` (default `10rem`) for the narrowest a column gets before the row wraps.
+
 ---
 
 ## Custom Row Styles
