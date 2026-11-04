@@ -2326,7 +2326,10 @@ The band has a rule above and below and none at the sides, so bands one after an
 separate bars. Its title, expand toggle and any outline row button (`btn-outline-dark`,
 `btn-outline-secondary`, or an `actions` column's button) are drawn in the band's text colour. A band
 does not light up on hover, whichever `treegrid_hover` the grid uses. The row carries the class
-`treegrid-group-row`, so `'_row_class': 'treegrid-group-row'` does the same.
+`treegrid-group-row`, so `'_row_class': 'treegrid-group-row'` does the same. In a grid with editable
+columns, give a band `'disableEdit': True`, so its empty cells can't be edited. A band's solid colour
+hides the active-row highlight, and `treegrid_style_row(remove_class='treegrid-group-row')` doesn't
+last past the row's next re-render: leave `_row_group` off the node instead.
 
 Set the colours once in your own stylesheet, on `:root` or on one grid:
 

@@ -40,7 +40,7 @@ class TestTreegridGroupRows(TreegridViewTestMixin, TestCase):
         html = self._render()
         start = html.index(FACTORY)
         script = html[start:html.index('</script>', start)]
-        self.assertIn("if (d._row_group) applyRowClass(node, $tr, 'treegrid-group-row');", script)
+        self.assertRegex(script, r"d\._row_group\)\s*applyRowClass\(node,\s*\$tr,\s*'treegrid-group-row'\)")
 
     def test_the_band_is_drawn_from_the_variables(self):
         html = self._render()
@@ -49,3 +49,5 @@ class TestTreegridGroupRows(TreegridViewTestMixin, TestCase):
             self.assertIn(f'--django-card-treegrid-group-{name}', html)
         # The title's colour is the skin's own unless the band hands it down.
         self.assertIn('tr.treegrid-group-row > td span.fancytree-title', html)
+        # A search match in a band title is marked on a pale ground, so it takes the band's colour.
+        self.assertIn('tr.treegrid-group-row mark', html)
