@@ -309,7 +309,10 @@
     color: #fff;
 }
 
+/* Over the banner's background and icon, which show if it will not load. */
 .django-card__banner-tile-banner-image {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;

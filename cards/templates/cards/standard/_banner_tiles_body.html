@@ -80,17 +80,15 @@
     {% else %}
     <div class="django-card__banner-tile{% if tile.is_detail %} django-card__banner-tile-detail{% endif %}{% if tile.link_url %} django-card__banner-tile--linked{% endif %}{% if tile.is_locked %} django-card__banner-tile--locked{% endif %}{% if tile.css_class %} {{ tile.css_class }}{% endif %}" id="{{ tile.key }}"{% if card.extra_card_info.banner_tiles_filters %} data-banner-filters="{{ tile.filter_json }}"{% if tile.key in card.extra_card_info.banner_tiles_hidden %} hidden{% endif %}{% endif %}>
         {% if tile.link_url %}<a href="{{ tile.link_url }}" class="django-card__banner-tile-link" aria-label="{% firstof tile.plain_title 'Open' %}"></a>{% endif %}
-        {% if tile.banner_link_url %}<a href="{{ tile.banner_link_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% if not tile.banner_caption and not tile.banner_label %} aria-label="{% firstof tile.plain_title 'Preview' %}"{% endif %}{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.background_css and not tile.image_url %} style="background: {{ tile.background_css }}"{% endif %}>
-            {% if tile.image_url %}
-            <img src="{{ tile.image_url }}" alt="" loading="lazy" class="django-card__banner-tile-banner-image">
-            {% elif tile.banner_icon %}
-            <i class="{{ tile.banner_icon }} django-card__banner-tile-banner-watermark" aria-hidden="true"></i>
-            {% endif %}
+        {% if tile.banner_link_url %}<a href="{{ tile.banner_link_url }}" class="django-card__banner-tile-banner django-card__banner-tile-banner--link"{% if not tile.banner_caption and not tile.banner_label %} aria-label="{% firstof tile.plain_title 'Preview' %}"{% endif %}{% else %}<div class="django-card__banner-tile-banner"{% endif %}{% if tile.background_css %} style="background: {{ tile.background_css }}"{% endif %}>
+            {# The background and icon are drawn under an image too, so one that will not load leaves a banner. #}
+            {% if tile.banner_icon %}<i class="{{ tile.banner_icon }} django-card__banner-tile-banner-watermark" aria-hidden="true"></i>{% endif %}
+            {% if tile.image_url %}<img src="{{ tile.image_url }}" alt="" loading="lazy" class="django-card__banner-tile-banner-image">{% endif %}
             {% if tile.step %}<span class="django-card__banner-tile-step">{{ tile.step }}</span>{% endif %}
             {% if tile.banner_link_url %}<span class="django-card__banner-tile-play" aria-hidden="true"><i class="fas fa-play"></i></span>{% endif %}
             {% if tile.is_locked %}<span class="django-card__banner-tile-lock"{% if tile.locked_text %} title="{{ tile.locked_text }}"{% endif %}><i class="fas fa-lock" role="img" aria-label="Locked"></i></span>{% endif %}
             {% if tile.banner_caption %}<span class="django-card__banner-tile-banner-caption">{{ tile.banner_caption }}</span>{% endif %}
-            {% if tile.banner_label %}
+            {% if tile.banner_label and not tile.banner_caption %}{# the caption takes the label's place at the foot #}
             <span class="django-card__banner-tile-banner-label">{% if tile.banner_icon %}<i class="{{ tile.banner_icon }}"></i> {% endif %}{{ tile.banner_label }}</span>
             {% endif %}
         {% if tile.banner_link_url %}</a>{% else %}</div>{% endif %}

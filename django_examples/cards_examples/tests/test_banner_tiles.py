@@ -716,3 +716,15 @@ class TestBannerTileLinksLocksActionsAndFilters(TestCase):
         html = self.render([BannerTile(key='c1', title='A', filter_keys=['x'])], slider=True, filters=['x'])
         self.assertIn('return !tile.hidden', html)
         self.assertIn("track.dispatchEvent(new Event('scroll'))", html)
+
+    def test_an_image_is_drawn_over_the_banner_so_a_broken_one_leaves_it(self):
+        html = self.render([BannerTile(key='c1', title='T', image_url='/i.png', banner_icon='fas fa-cube',
+                                       banner_background='#123456')])
+        self.assertIn('style="background: #123456"', html)
+        self.assertLess(html.index('banner-tile-banner-watermark'), html.index('src="/i.png"'))
+
+    def test_a_banner_caption_takes_the_labels_place(self):
+        html = self.render([BannerTile(key='c1', layout='detail', banner_label='Projects',
+                                       banner_url='/p/', banner_caption='Preview this course')])
+        self.assertIn('Preview this course', html)
+        self.assertNotIn('banner-tile-banner-label', html)
