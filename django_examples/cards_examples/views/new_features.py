@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 from django.utils.html import format_html
 
-from cards.standard import CardMixin, Tile, BannerTile
+from cards.standard import CardMixin, Tile, BannerAction, BannerTile
 from django_menus.menu import MenuItem
 from cards_examples.bootstrap import col
 
@@ -1097,6 +1097,40 @@ class BannerTilesIndex(MainMenu, CardMixin, TemplateView):
             ])
         ], slider=True)
 
+        # Filters over a slider, one tile a link as a whole, and one locked until the step
+        # before it is done. A press of a filter is answered in the browser.
+        path = self.add_card('path', title='Your path (filters, whole-tile links, a locked step)')
+        path.add_banner_tiles([
+            BannerTile(key=f'path_{n}', title=name, description='A short course.',
+                       banner_label=area, banner_icon=icon, step=f'Step {n} of 4',
+                       stats=[('far fa-play-circle', f'{lessons} lessons')], progress=progress,
+                       status='Not started' if not progress else f'{progress}% complete',
+                       url=None if locked else f'javascript:alert("{name}")',
+                       locked='Finish step 3 first' if locked else None, filter_keys=[area])
+            for n, (name, area, icon, lessons, progress, locked) in enumerate([
+                ('Contacts', 'CRM', 'fas fa-address-book', 4, 100, False),
+                ('Your first quote', 'Sales', 'fas fa-file-invoice', 6, 40, False),
+                ('Pricing rules', 'Sales', 'fas fa-tags', 5, 0, False),
+                ('The Gantt', 'Production', 'fas fa-stream', 8, None, True),
+            ], 1)
+        ], slider=True, filters=['CRM', 'Sales', 'Production'], subtitle='The courses for an Estimator, in order.')
+
+        # The detail layout with buttons the page's script answers, rather than links.
+        buttons = self.add_card('course_buttons', border='none')
+        buttons.add_banner_tiles([
+            BannerTile(key='course_buttons_1', layout='detail', banner_icon='fas fa-stream', progress=40,
+                       status='40% complete',
+                       action=BannerAction('Continue: Lesson 3', icon='fas fa-arrow-right',
+                                           attrs={'data-example-button': 'continue'}),
+                       secondary_actions=[BannerAction('Restart', icon='fas fa-redo',
+                                                       attrs={'data-example-button': 'restart'}),
+                                          BannerAction('Leave the course', icon='fas fa-user-minus',
+                                                       attrs={'data-example-button': 'leave'})],
+                       note='Your progress is saved as you go.'),
+            BannerTile(key='course_buttons_2', layout='detail', banner_icon='fas fa-lock',
+                       action_label='Start this course', locked='Finish step 3 of your path first'),
+        ], width='320px')
+
         self.add_card_group('promotions', div_css_class='col-12')
         self.add_card_group('system_map', div_css_class='col-12')
         self.add_card_group('training', div_css_class='col-12')
@@ -1104,6 +1138,8 @@ class BannerTilesIndex(MainMenu, CardMixin, TemplateView):
         self.add_card_group('course_sidebar', div_css_class=col('col-4', self.request, 'right'))
         self.add_card_group('stages', div_css_class='col-12', div_css='clear:both')
         self.add_card_group('more_courses', div_css_class='col-12')
+        self.add_card_group('path', div_css_class='col-12')
+        self.add_card_group('course_buttons', div_css_class='col-12')
 
 
 class FactsExample(MainMenu, CardMixin, TemplateView):

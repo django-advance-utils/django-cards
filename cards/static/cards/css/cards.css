@@ -723,6 +723,148 @@ a.django-card__banner-tile-banner--link:hover .django-card__banner-tile-play {
     background: var(--django-card-banner-tile-accent, #8e3a94);
 }
 
+/* BannerTile(url=...): the whole tile is a link. The link is an empty box over the tile, under
+ * its own buttons and links, which sit above it and keep their own clicks. */
+.django-card__banner-tile--linked {
+    position: relative;
+    transition: box-shadow .15s, transform .15s;
+}
+
+.django-card__banner-tile--linked:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+    transform: translateY(-2px);
+}
+
+.django-card__banner-tile-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+}
+
+.django-card__banner-tile-link:focus-visible {
+    outline: 3px solid var(--django-card-banner-tile-accent, #8e3a94);
+    outline-offset: 2px;
+}
+
+.django-card__banner-tile--linked a:not(.django-card__banner-tile-link),
+.django-card__banner-tile--linked button {
+    position: relative;
+    z-index: 2;
+}
+
+/* BannerTile(locked=...): faded, with a lock in the banner and the reason in place of the status. */
+.django-card__banner-tile--locked .django-card__banner-tile-banner {
+    filter: grayscale(.7);
+    opacity: .7;
+}
+
+.django-card__banner-tile--locked .django-card__banner-tile-title,
+.django-card__banner-tile--locked .django-card__banner-tile-description {
+    color: var(--django-card-banner-tile-muted-color, #6c757d);
+}
+
+.django-card__banner-tile-lock {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(10, 16, 60, .75);
+    font-size: 12px;
+}
+
+.django-card__banner-tile-locked-text i {
+    margin-right: 4px;
+}
+
+/* The detail layout's quiet buttons: secondary_label's link and secondary_actions, in a row. */
+.django-card__banner-tile-secondaries {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 18px;
+    margin-top: 12px;
+}
+
+.django-card__banner-tile-secondaries .django-card__banner-tile-secondary {
+    margin-top: 0;
+}
+
+button.django-card__banner-tile-secondary {
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+button.django-card__banner-tile-secondary:disabled,
+button.django-card__banner-tile-action:disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+/* add_banner_tiles(subtitle=..., filters=...): a line over the tiles, and the buttons that show
+ * only some of them -- round pills, or a row of tabs. */
+.django-card__banner-tiles-subtitle {
+    margin: 0 8px 8px;
+    color: var(--django-card-banner-tile-muted-color, #6c757d);
+}
+
+.django-card__banner-tile-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 8px 8px;
+}
+
+.django-card__banner-tile-filters button {
+    padding: 6px 14px;
+    border: 1px solid var(--django-card-border-color, #dee2e6);
+    border-radius: 999px;
+    background: var(--django-card-banner-tile-tile-bg, #fff);
+    color: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.django-card__banner-tile-filters button.active {
+    border-color: var(--django-card-banner-tile-accent, #8e3a94);
+    background: var(--django-card-banner-tile-accent, #8e3a94);
+    color: #fff;
+}
+
+.django-card__banner-tile-filters--tabs {
+    gap: 0 4px;
+    border-bottom: 1px solid var(--django-card-border-color, #dee2e6);
+}
+
+.django-card__banner-tile-filters--tabs button {
+    margin-bottom: -1px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: none;
+    color: var(--django-card-banner-tile-muted-color, #6c757d);
+}
+
+.django-card__banner-tile-filters--tabs button.active {
+    border-bottom-color: var(--django-card-banner-tile-accent, #8e3a94);
+    background: none;
+    color: inherit;
+}
+
+/* A tile its filter hides: [hidden] is display: none only until a rule sets display, as the
+ * tile's own does. */
+.django-card__banner-tiles > .django-card__banner-tile[hidden] {
+    display: none;
+}
+
 /* The feature layout (BannerTile(layout='feature')): a wide promotional slide. In a grid it
  * takes the whole row; in a slider the rule above sets its width. */
 

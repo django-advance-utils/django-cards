@@ -5,6 +5,7 @@ import math
 import re
 import string
 from html import unescape
+import dataclasses
 from dataclasses import dataclass, field
 
 from ajax_helpers.html_include import pip_version
@@ -63,6 +64,22 @@ _BACKGROUND_FUNCTIONS = _COLOUR_FUNCTIONS | frozenset({
     'linear-gradient', 'radial-gradient', 'conic-gradient',
     'repeating-linear-gradient', 'repeating-radial-gradient', 'repeating-conic-gradient',
 })
+
+
+def _banner_filters(filters):
+    """``add_banner_tiles(filters=...)`` as ``(key, label)`` pairs: a bare key is its own label."""
+    if isinstance(filters, str) or not isinstance(filters, (list, tuple)):
+        raise TypeError(f'filters is a list of keys or (key, label) pairs; got {filters!r}')
+    pairs = []
+    for entry in filters:
+        if isinstance(entry, (list, tuple)):
+            if len(entry) != 2:
+                raise ValueError(f'A filter is a key or a (key, label) pair; got {entry!r}')
+            key, label = entry
+        else:
+            key, label = entry, entry
+        pairs.append((str(key), label))
+    return pairs
 
 
 def css_background(background):
@@ -933,6 +950,70 @@ class _SectionsHtml:
             'sections': sections, 'request': card.request, 'django_cards_stack_id': stack_id(card)}))
 
 
+#: The attributes a BannerAction may carry: ``data-*`` and ``aria-*`` only, so nothing passed in
+#: can be an event handler (``onclick``) or replace what the button is (``href``, ``class``).
+_ACTION_ATTRIBUTE = re.compile(r'^(data|aria)-[a-z0-9][a-z0-9-]*$')
+
+
+@dataclass
+class BannerAction:
+    """A button on a :class:`BannerTile`: a link with ``url``, or with no ``url`` a
+    ``<button type="button">`` the page's own script answers, found by its ``attrs``::
+
+        BannerAction('Start this course', icon='fas fa-arrow-right', attrs={'data-course-button': 'start'})
+        BannerAction('Save for later', icon='far fa-bookmark', attrs={'data-course-button': 'save'})
+        BannerAction('Locked', icon='fas fa-lock', disabled=True)
+
+    A press that changes something belongs on a button, not a link: a link is followed again by
+    a refresh, Back or a double-click, and prefetched, with no CSRF check.
+
+    Args:
+        label (str): The button's text. Escaped.
+        url (str, optional): Where a link goes. Escaped; as with ``BannerTile.action_url``, a
+            ``javascript:`` URL is allowed, so build it in code.
+        icon (str, optional): Icon classes, drawn after the label on a main button and before it
+            on a secondary one.
+        css_class (str, optional): The button's classes. Left as None, it takes the tile's own
+            (``BannerTile.action_classes``) as a main button, or the quiet link style as a
+            secondary one.
+        attrs (dict, optional): ``data-*`` and ``aria-*`` attributes. Their values are escaped;
+            any other name raises.
+        disabled (bool, optional): Draw it greyed out and not pressable: a button gets
+            ``disabled``, a link loses its ``href``.
+    """
+    label: str
+    url: str = None
+    icon: str = None
+    css_class: str = None
+    attrs: dict = field(default_factory=dict)
+    disabled: bool = False
+
+    def __post_init__(self):
+        if not isinstance(self.attrs or {}, dict):
+            raise TypeError(f'BannerAction attrs is a dict; got {type(self.attrs).__name__}')
+        for name in self.attrs or {}:
+            if not isinstance(name, str) or not _ACTION_ATTRIBUTE.match(name):
+                raise ValueError(f'A BannerAction attribute is data-* or aria-*; got {name!r}')
+
+    @classmethod
+    def build(cls, action):
+        """An action from a BannerAction or a dict of its fields."""
+        if isinstance(action, cls):
+            return action
+        if isinstance(action, dict):
+            return cls(**action)
+        raise TypeError(f'A banner tile action is a BannerAction or a dict of its fields, not '
+                        f'{type(action).__name__}')
+
+    @property
+    def is_link(self):
+        return self.url is not None
+
+    @property
+    def attr_items(self):
+        return sorted((self.attrs or {}).items())
+
+
 @dataclass
 class BannerTile:
     """One card in an :meth:`CardBase.add_banner_tiles` grid -- a large tile with a banner.
@@ -1030,6 +1111,19 @@ class BannerTile:
         flow (list, optional): Names drawn as boxes joined by lines in a showcase panel
             (``['CRM', 'Projects', 'Gantt']``). Escaped.
         panel_icon (str, optional): Icon classes for the showcase's small icon panel.
+        url (str, optional): Makes the whole tile a link (compact and detail layouts): a click
+            anywhere on it but its own buttons follows it. Escaped, like the other URLs.
+        locked (bool or str, optional): The tile is not open yet. It is drawn faded with a lock
+            in its banner, and nothing on it is a link: not ``url``, not ``banner_url``. Text is
+            the reason, shown in place of the status and progress (``'Finish step 2 first'``)
+            and as the lock's tooltip. The compact layout drops its button; the detail layout
+            draws it disabled, with a lock, and drops the secondary ones.
+        action (BannerAction, optional): The tile's button, in place of ``action_label`` and
+            ``action_url`` -- for a ``<button>`` the page's script answers rather than a link.
+        secondary_actions (list, optional): The detail layout's further quiet buttons, each a
+            :class:`BannerAction`, after ``secondary_label``'s link if there is one.
+        filter_keys (list, optional): The ``add_banner_tiles(filters=...)`` keys this tile is
+            shown under. A tile with none shows only under the All button.
 
     Warning:
         ``title_html`` is the one field rendered as-is, for the same reason as
@@ -1095,6 +1189,11 @@ class BannerTile:
     points: list = field(default_factory=list)
     flow: list = field(default_factory=list)
     panel_icon: str = None
+    url: str = None
+    locked: object = None
+    action: object = None
+    secondary_actions: list = field(default_factory=list)
+    filter_keys: list = field(default_factory=list)
 
     ACTION_CSS_CLASSES = {'detail': 'btn btn-primary',
                           'highlight': 'btn django-card__banner-tile-highlight-action',
@@ -1113,6 +1212,14 @@ class BannerTile:
             value = getattr(self, name)
             if value is not None and not isinstance(value, (list, tuple)):
                 raise TypeError(f'BannerTile {name} is a list; got {type(value).__name__} {value!r}')
+        for name in ('secondary_actions', 'filter_keys'):
+            value = getattr(self, name)
+            if value is not None and not isinstance(value, (list, tuple)):
+                raise TypeError(f'BannerTile {name} is a list; got {type(value).__name__} {value!r}')
+        if self.action is not None:
+            self.action = BannerAction.build(self.action)
+        self.secondary_actions = [BannerAction.build(action) for action in self.secondary_actions or ()]
+        self.filter_keys = [str(key) for key in self.filter_keys or ()]
         self.stat_items
         self.point_items
         self.progress_percent
@@ -1246,7 +1353,67 @@ class BannerTile:
             return False
         if self.is_detail:
             return bool(self.footer_label or self.footer_icon)
-        return bool(self.footer_label or self.footer_icon or self.action_label)
+        return bool(self.footer_label or self.footer_icon or self.main_action)
+
+    @property
+    def is_locked(self):
+        return bool(self.locked)
+
+    @property
+    def locked_text(self):
+        """What a locked tile says in place of its status: ``locked`` itself when it is text."""
+        return self.locked if isinstance(self.locked, str) else None
+
+    @property
+    def link_url(self):
+        """The whole tile's link: ``url``, but none while the tile is locked."""
+        return None if self.is_locked else self.url
+
+    @property
+    def banner_link_url(self):
+        return None if self.is_locked else self.banner_url
+
+    @property
+    def main_action(self):
+        """The tile's button as a :class:`BannerAction`: ``action``, or one made from
+        ``action_label`` and ``action_url``. A locked tile's is drawn disabled in the detail
+        layout, which is about one item and should say it cannot be started, and left out of the
+        others, whose lock says as much."""
+        if self.action is not None:
+            action = self.action
+        elif self.action_label:
+            # The detail and plain layouts have always drawn an arrow after the label.
+            arrow = 'fas fa-arrow-right' if self.is_detail or self.is_plain else None
+            action = BannerAction(self.action_label, url=self.action_url or '#', icon=arrow,
+                                  css_class=self.action_css_class)
+        else:
+            return None
+        if self.is_locked:
+            if not self.is_detail:
+                return None
+            return dataclasses.replace(action, url=None, attrs={}, disabled=True, icon='fas fa-lock')
+        return action
+
+    @property
+    def main_action_classes(self):
+        action = self.main_action
+        return action.css_class if action is not None and action.css_class else self.action_classes
+
+    @property
+    def secondary_items(self):
+        """The detail layout's quiet buttons under the main one: ``secondary_label``'s link first,
+        then ``secondary_actions``. None while the tile is locked."""
+        if self.is_locked:
+            return []
+        items = []
+        if self.secondary_label:
+            items.append(BannerAction(self.secondary_label, url=self.secondary_url or '#', icon=self.secondary_icon))
+        return items + list(self.secondary_actions)
+
+    @property
+    def filter_json(self):
+        """``filter_keys`` as JSON, for the ``data-`` attribute the filter buttons read."""
+        return json.dumps(self.filter_keys)
 
 
 class CardBase:
@@ -3063,7 +3230,8 @@ class CardBase:
         self.requires_card_css = True
         return self
 
-    def add_banner_tiles(self, tiles, empty_message=None, width=None, slider=None):
+    def add_banner_tiles(self, tiles, empty_message=None, width=None, slider=None, filters=None,
+                         filter_style=None, filter_all_label=None, filter_selected=None, subtitle=None):
         """Render the card's body as a grid of :class:`BannerTile` cards.
 
         The card it is called on is the master card -- its header, menu and footer stay as
@@ -3100,6 +3268,18 @@ class CardBase:
                 It is written into a ``style`` attribute, so it must come from code.
             slider (bool, optional): True lays the tiles out as a slider, False as a grid.
                 Left as None, it keeps what an earlier call set (a grid if none did).
+            filters (list, optional): Buttons over the tiles that show only some of them: each
+                a key, or a ``(key, label)`` pair. A tile shows under a button when the key is
+                in its ``filter_keys``. Pressing one is done in the browser, with no request.
+            filter_style (str, optional): ``'pills'`` (the default), round buttons, or
+                ``'tabs'``, a row of tabs.
+            filter_all_label (str, optional): The first button's text, which shows every tile.
+                Defaults to ``'All'``; ``''`` draws no such button.
+            filter_selected (str, optional): The key pressed when the page opens -- read by the
+                view, from the query string, say, so a link can open on one. The tiles it hides
+                are hidden as the page is drawn, not by script after it.
+            subtitle (str, optional): A line of text over the tiles (and their filters).
+                Escaped.
 
         Returns:
             CardBase: The card, so the call can be chained onto add_card().
@@ -3118,9 +3298,35 @@ class CardBase:
             self.extra_card_info['banner_tiles_empty_message'] = empty_message
         if width is not None:
             self.extra_card_info['banner_tiles_width'] = width
+        if subtitle is not None:
+            self.extra_card_info['banner_tiles_subtitle'] = subtitle
+        if filter_style is not None:
+            if filter_style not in ('pills', 'tabs'):
+                raise ValueError(f"filter_style is 'pills' or 'tabs'; got {filter_style!r}")
+            self.extra_card_info['banner_tiles_filter_style'] = filter_style
+        if filters is not None:
+            self.extra_card_info['banner_tiles_filters'] = _banner_filters(filters)
+        if filter_all_label is not None:
+            self.extra_card_info['banner_tiles_filter_all'] = filter_all_label
+        if filter_selected is not None:
+            self.extra_card_info['banner_tiles_filter_selected'] = str(filter_selected)
+        self._banner_filter_state()
         self.template_name = 'banner_tiles'
         self.requires_card_css = True
         return self
+
+    def _banner_filter_state(self):
+        """What the template needs to draw the filters, worked out once: the buttons, which is
+        pressed, and the tiles that pressing it hides. A selection that is not one of the filters
+        is forgotten, so a stale or hand-typed one shows every tile rather than none."""
+        info = self.extra_card_info
+        filters = info.get('banner_tiles_filters') or []
+        selected = info.get('banner_tiles_filter_selected')
+        if selected not in {key for key, _ in filters}:
+            selected = None
+        info['banner_tiles_filter_active'] = selected or ''
+        info['banner_tiles_hidden'] = {
+            tile.key for tile in info.get('banner_tiles', ()) if selected and selected not in tile.filter_keys}
 
     def add_sections(self, cards):
         """Make this card's body a stack of folding sections, one per card in ``cards``.
