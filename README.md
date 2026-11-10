@@ -734,12 +734,11 @@ card.add_facts(
 |---|---|
 | `title` | The column's heading. Escaped unless marked safe |
 | `lead` | One value drawn large under the heading, with no label -- a total, a price. A string, or a dict of entry options |
-| `entries` | The column's facts, top to bottom: field names or dicts of `add_entry()` options, as in `add_row()`. A hidden entry is left out |
-
+| `entries` | The column's facts, top to bottom: field names or dicts of `add_entry()` options, as in `add_row()`. A hidden entry is left out; a column with no title and nothing left to show is left out too |
 | `note` | A short line under the lead -- what the number counts ("lessons done this week") |
 | `icon` | An icon class drawn large beside the column, so a number reads as a figure |
-| `ring` | A percentage drawn as a progress ring beside the column, in the icon's place; held to 0-100 |
-| `url` | The whole column is a link |
+| `ring` | A percentage drawn as a progress ring beside the column, in the icon's place; rounded and held to 0-100 |
+| `url` | The whole column is a link. Its entries then cannot carry a link, `value_link`, `menu`, `copy_to_clipboard`, `auto_link`, `popover` or html with a link or a button -- a link inside a link ends it early -- and doing so raises |
 | `css_class` | Classes added to the column, for a tone of your own |
 
 Every fact is an ordinary entry drawn by the same markup as a row's, so `badge`, `menu` (shown beside the label), `default`, `value_link`, `copy_to_clipboard`, `status_dot` and the rest work unchanged. `extra_row_kwargs` applies options to every fact. Both methods work in the default and `table` templates, and the export takes the facts. Set `--django-card-facts-min-width` (default `10rem`) for the narrowest a column gets before the row wraps.

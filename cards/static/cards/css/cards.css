@@ -1543,6 +1543,7 @@ button.django-card__banner-tile-action:disabled {
 details > .django-card__feed-summary,
 .django-card__feed-link {
     cursor: pointer;
+    text-decoration: none;
     border-radius: 0.25rem;
 }
 
@@ -1620,13 +1621,13 @@ details > .django-card__feed-summary:hover,
 }
 
 /* A row that opens says so: a chevron at the line's start, turned down while it is open. */
-details > .django-card__feed-summary .django-card__feed-line::before {
+details > .django-card__feed-summary .django-card__feed-text::before {
     content: '';
-    flex: none;
-    align-self: center;
+    display: inline-block;
+    vertical-align: middle;
     width: 0.4rem;
     height: 0.4rem;
-    margin-right: 0.1rem;
+    margin: -0.15rem 0.5rem 0 0;
     border-right: 2px solid currentColor;
     border-bottom: 2px solid currentColor;
     opacity: 0.45;
@@ -1634,7 +1635,7 @@ details > .django-card__feed-summary .django-card__feed-line::before {
     transition: transform 0.15s;
 }
 
-details[open] > .django-card__feed-summary .django-card__feed-line::before {
+details[open] > .django-card__feed-summary .django-card__feed-text::before {
     transform: rotate(45deg);
 }
 

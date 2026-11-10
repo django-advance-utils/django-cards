@@ -1,6 +1,6 @@
 {# An add_feed() feed: a heading with its aside and link, then the rows on a rail of dots. Free of Bootstrap names, so one copy serves both packs. A row that has a body or buttons is a <details>, opened by a press with no script; one with a url and nothing to open is a link. #}
 <div class="django-card__feed">
-    {% if row.title or row.aside or row.link_label %}<div class="django-card__feed-head">{% if row.title %}<span class="django-card__feed-title" role="heading" aria-level="3">{{ row.title }}</span>{% endif %}{% if row.aside or row.link_label %}<span class="django-card__feed-aside">{{ row.aside|default:'' }}{% if row.link_label %}{% if row.aside %} &middot; {% endif %}<a href="{{ row.link_url|default:'#' }}">{{ row.link_label }}</a>{% endif %}</span>{% endif %}</div>{% endif %}
+    {% if row.title or row.aside or row.link_label %}<div class="django-card__feed-head">{% if row.title %}<span class="django-card__feed-title" role="heading" aria-level="3">{{ row.title }}</span>{% endif %}{% if row.aside or row.link_label %}<span class="django-card__feed-aside">{{ row.aside|default:'' }}{% if row.link_label %}{% if row.aside %} &middot; {% endif %}<a href="{{ row.link_url }}">{{ row.link_label }}</a>{% endif %}</span>{% endif %}</div>{% endif %}
     {% if row.items %}
     <ol class="django-card__feed-rail">
         {% for item in row.items %}

@@ -13,6 +13,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.functional import Promise
 from django.utils.html import conditional_escape, strip_tags
 from django.utils.safestring import SafeData, mark_safe
 from django.utils.timesince import timesince
@@ -1014,6 +1015,20 @@ class BannerAction:
         return sorted((self.attrs or {}).items())
 
 
+def _feed_text(text):
+    """A feed row's line as plain text for the export: markup only where it was marked safe -- tags taken off and
+    entities turned back -- and a plain line as it stands, '<' and all."""
+    if isinstance(text, SafeData):
+        return unescape(re.sub(r'<[^>]+>', '', str(text)))
+    return str(text)
+
+
+#: The entry options that put a link, a button or a popover in an entry, which a fact column that is itself a
+#: link cannot hold (``add_facts``), and the markup that does the same in an entry's html.
+_LINKING_ENTRY_OPTIONS = ('link', 'value_link', 'menu', 'copy_to_clipboard', 'auto_link', 'popover')
+_LINKING_MARKUP = re.compile(r'<(a|button)[\s>]', re.IGNORECASE)
+
+
 #: The dots a feed row can carry (``FeedItem.tone``): done or logged, the system's, a note to
 #: notice, one still to do, and one gone by. Anything else is the caller's own, styled by them.
 FEED_TONES = ('done', 'muted', 'notice', 'todo', 'late')
@@ -1062,7 +1077,12 @@ class FeedItem:
 
     def __post_init__(self):
         self.actions = [BannerAction.build(action) for action in self.actions or []]
-        badges = [self.badges] if isinstance(self.badges, str) else list(self.badges or [])
+        badges = self.badges
+        if isinstance(badges, (str, Promise)):  # one badge, a lazy translation too, not one per letter
+            badges = [badges]
+        elif isinstance(badges, tuple) and len(badges) == 2 and all(isinstance(b, (str, Promise)) for b in badges):
+            raise ValueError(f'Feed badges are a list: put the (text, tone) pair {badges!r} in one')
+        badges = list(badges or [])
         self.badges = []
         for badge in badges:
             if isinstance(badge, (tuple, list)):
@@ -2324,14 +2344,24 @@ class CardBase:
             built = [entry(lead, 'django-card__fact django-card__fact--lead')] if lead is not None else []
             built += [entry(spec, 'django-card__fact') for spec in entries]
             built = [e for e in built if e is not None]
-            if not built and column.get('title') is None:
+            if not built and not column.get('title'):
                 continue  # every entry hidden, or none: a figure or a note alone would be a column of nothing
             url = column.get('url')
-            if url and any(e.get(key) for e in built for key in ('link', 'value_link', 'menu', 'copy_to_clipboard')):
-                # The column is an <a>, and a link, a menu or a button inside one ends it early in the browser.
-                raise ValueError('A fact column with a url is one link: its entries cannot carry a link, '
-                                 'value_link, menu or copy_to_clipboard of their own')
+            if url:
+                # The column is an <a>, and a link, a menu, a button or a popover inside one ends it early in
+                # the browser, or takes a press meant for it. Asked of what the caller gave (an empty menu is no
+                # menu) and of the markup an entry was drawn with (html_override, a row style).
+                specs = [lead, *entries]
+                given = [{**extra_row_kwargs, **spec} for spec in specs if isinstance(spec, dict)]
+                if any(spec.get(key) for spec in given for key in _LINKING_ENTRY_OPTIONS) or any(
+                        _LINKING_MARKUP.search(str(e.get(key) or '')) for e in built
+                        for key in ('html', 'row_style_html')):
+                    raise ValueError('A fact column with a url is one link: its entries cannot carry a link, '
+                                     'value_link, menu, copy_to_clipboard, auto_link, popover or markup with a '
+                                     'link or a button of their own')
             ring = column.get('ring')
+            if isinstance(ring, bool):
+                raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}")
             if ring is not None:
                 try:
                     ring = max(0, min(100, round(float(ring))))
@@ -3528,8 +3558,7 @@ class CardBase:
             if row.get('type') in ('html', 'heading'):
                 continue
             if row.get('type') == 'feed':  # a row each: the line, labelled with its when
-                data += [{'label': str(item.when or ''), 'value': re.sub(r'<[^>]+>', '', str(item.text))}
-                         for item in row['items']]
+                data += [{'label': str(item.when or ''), 'value': _feed_text(item.text)} for item in row['items']]
                 continue
             if row.get('type') == 'facts':
                 entries = [entry for column in row['columns'] for entry in column['entries']]

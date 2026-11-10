@@ -96,10 +96,19 @@ class TestFeed(SimpleTestCase):
             _card().add_feed([FeedItem('x')], link_label='all in Events')
 
     def test_badges_are_checked_when_the_row_is_made(self):
+        from django.utils.translation import gettext_lazy
         self.assertEqual(FeedItem('t', badges='Sticky').badges, [('Sticky', None)])
+        self.assertEqual([str(text) for text, _tone in FeedItem('t', badges=gettext_lazy('Sticky')).badges], ['Sticky'])
+        with self.assertRaisesMessage(ValueError, 'Feed badges are a list'):
+            FeedItem('t', badges=('Overdue', 'late'))
         self.assertEqual(FeedItem('t', badges=['a', ['b', 'late']]).badges, [('a', None), ('b', 'late')])
         with self.assertRaisesMessage(ValueError, 'a (text, tone) pair'):
             FeedItem('t', badges=[('a', 'b', 'c')])
+
+    def test_a_link_label_and_url_alone_draw_a_head(self):
+        card = _card()
+        card.add_feed([], link_label='all in Events', link_url='/events/')
+        self.assertIn('href="/events/">all in Events<', card.render())
 
     def test_a_row_that_opens_is_not_a_link_too(self):
         card = _card()
@@ -110,8 +119,11 @@ class TestFeed(SimpleTestCase):
 
     def test_export_takes_a_row_each(self):
         card = _card()
-        card.add_feed([FeedItem(format_html('<b>{}</b>', 'Bold'), when='Today')])
-        self.assertEqual(card.get_export_data(), [{'label': 'Today', 'value': 'Bold'}])
+        card.add_feed([FeedItem(format_html('<b>{}</b>', 'Bold'), when='Today'),
+                       FeedItem(format_html('<b>{}</b>', '1 < 2')),
+                       FeedItem('a < b and c > d')])
+        self.assertEqual([row['value'] for row in card.get_export_data()], ['Bold', '1 < 2', 'a < b and c > d'])
+        self.assertEqual(card.get_export_data()[0]['label'], 'Today')
 
 
 class TestFactFigures(SimpleTestCase):
@@ -143,20 +155,25 @@ class TestFactFigures(SimpleTestCase):
             self.assertIn(f'--django-card-facts-ring: {drawn}"', card.render())
 
     def test_a_ring_that_is_no_number_says_so(self):
-        for given in ('abc', '43%', '', float('nan'), float('inf'), object()):
+        for given in ('abc', '43%', '', float('nan'), float('inf'), object(), True, False):
             with self.subTest(given=given), self.assertRaisesMessage(ValueError, "ring is a percentage"):
                 _card().add_facts({'lead': 'x', 'ring': given})
 
     def test_a_linked_column_refuses_entries_that_are_links_menus_or_buttons_themselves(self):
-        for extra in ({'link': '/entry/'}, {'value_link': '/v/'}, {'copy_to_clipboard': True}):
+        for extra in ({'link': '/entry/'}, {'value_link': '/v/'}, {'copy_to_clipboard': True}, {'auto_link': True},
+                      {'popover': 'More'}, {'html_override': '<a href="/h/">%1%</a>'}):
             with self.subTest(extra=extra), self.assertRaisesMessage(ValueError, 'is one link'):
                 _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V', **extra}]})
-        # plain entries are fine
-        _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V'}]})
+        with self.assertRaisesMessage(ValueError, 'is one link'):  # on the lead, and from extra_row_kwargs
+            _card().add_facts({'lead': {'value': 'x', 'link': '/l/'}, 'url': '/col/'})
+        with self.assertRaisesMessage(ValueError, 'is one link'):
+            _card().add_facts({'lead': 'x', 'url': '/col/'}, extra_row_kwargs={'value_link': '/v/'})
+        # plain entries are fine, and an empty menu is no menu
+        _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V', 'menu': []}]})
 
     def test_a_column_with_nothing_but_a_figure_or_a_note_is_left_out(self):
         card = _card()
-        card.add_facts({'icon': 'fas fa-fire', 'note': 'alone'})
+        card.add_facts({'icon': 'fas fa-fire', 'note': 'alone'}, {'title': '', 'icon': 'fas fa-fire'})
         self.assertEqual(card.rows, [])
         card.add_facts({'icon': 'fas fa-fire', 'entries': [{'label': 'L', 'value': 'V', 'hidden': True}]},
                        {'lead': 'kept'})
