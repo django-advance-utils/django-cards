@@ -119,6 +119,9 @@ FLAT_TEMPLATES = {
                                         'both packs; its classes are the tiles\' own, and '
                                         '`btn` is the same in both versions',
     'standard/_banner_tiles_slider_script.html': 'script',
+    'standard/_banner_tiles_filter_script.html': 'script',
+    'standard/_banner_tile_action.html': 'one banner tile button, shared by both packs; its classes are '
+                                         'given by the caller',
     'standard/_section_stack_body.html': 'the folding sections inside an add_sections() card, '
                                          'shared by both packs; its classes are the sections\' '
                                          'own, with no Bootstrap name in it',

@@ -1339,6 +1339,11 @@ BannerTile(key='system_map', layout='showcase',
 | `flow` | `showcase`'s diagram: names drawn as boxes joined by lines |
 | `panel_icon` | `showcase`'s small icon panel |
 | `css_class` | Extra classes on the tile |
+| `url` | Makes the whole tile a link (`compact`, `detail`); its own buttons keep their clicks |
+| `locked` | `True`, or the reason as text: faded, a lock in the banner, no links, the reason in place of the status |
+| `action` | The button as a `BannerAction`, in place of `action_label`/`action_url` |
+| `secondary_actions` | `detail`'s further quiet buttons, each a `BannerAction` |
+| `filter_keys` | The `filters` this tile shows under |
 
 A misspelled field in a dict, an unknown `layout`, a malformed `stats`/`points` entry, a bare
 string for `stats`, `points` or `flow`, or a `progress` that is not a number raises when the tile
@@ -1357,6 +1362,63 @@ script. A small script adds prev/next arrows, which hide at each end, and a dot 
 jumps to it; the current tile's dot widens into a pill. Any layout can be a slide: `feature` and
 `showcase` slides are about 88% of the track wide, so the next one peeks in, and the rest keep
 their grid width.
+
+### Buttons, locks and links
+
+`BannerAction` is a button on a tile. With a `url` it is a link; without one it is a
+`<button type="button">` that the page's own script answers, found by its `data-` attributes. A
+press that changes something (start, save, leave) belongs on a button: a link is followed again
+by a refresh, Back or a double-click, and prefetched, with no CSRF check.
+
+```python
+from cards.standard import BannerAction, BannerTile
+
+BannerTile(key='course_12', layout='detail', progress=40, status='40% complete',
+           action=BannerAction('Continue: Lesson 3', icon='fas fa-arrow-right',
+                               attrs={'data-course-button': 'continue'}),
+           secondary_actions=[BannerAction('Restart', icon='fas fa-redo',
+                                           attrs={'data-course-button': 'restart'}),
+                              BannerAction('Leave the course', icon='fas fa-user-minus',
+                                           attrs={'data-course-button': 'leave'})])
+```
+
+| `BannerAction` field | Purpose |
+| --- | --- |
+| `label` | The text. **Escaped** |
+| `url` | A link's address; none makes it a button |
+| `icon` | Icon classes: after the label on the main button, before it on a secondary one |
+| `css_class` | Its classes; by default the tile's button style, or the quiet secondary style |
+| `attrs` | `data-*` and `aria-*` attributes, values **escaped**; any other name raises |
+| `disabled` | Greyed out and not pressable |
+
+`url=` makes the whole tile a link: a click anywhere on it but its own buttons follows it. A
+`locked` tile is not open yet: it is drawn faded with a lock in its banner, and nothing on it is a
+link. Give the reason as text and it is shown in place of the status and progress, and as the
+lock's tooltip. The compact layout drops its button; the detail layout draws it disabled with a
+lock and drops the secondary buttons.
+
+```python
+BannerTile(key='course_14', title='The Gantt', step='Step 4 of 4', locked='Finish step 3 first',
+           url=course.get_absolute_url())   # no link while it is locked
+```
+
+### Filters
+
+`filters=` puts a row of buttons over the tiles, each showing only the tiles that name its key in
+`filter_keys`; the first, All, shows every one. They are answered in the browser, with no request,
+and a slider skips the tiles a filter hides, dots and all.
+
+```python
+card.add_banner_tiles(tiles, slider=True,
+                      filters=['CRM', 'Sales', ('production', 'Production')],
+                      filter_style='tabs',                       # or 'pills', the default
+                      filter_selected=request.GET.get('stage'),  # pressed as the page opens
+                      subtitle='Every course, by stage of your work.')
+```
+
+`filter_selected` names the button pressed when the page opens; the tiles it hides are hidden as
+the page is drawn. One that is not among the filters is ignored. `filter_all_label` names the
+All button, and `''` leaves it out. `subtitle` is a line of text over the tiles. Both are escaped.
 
 ### Escaping
 

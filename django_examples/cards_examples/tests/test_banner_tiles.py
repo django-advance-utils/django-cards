@@ -7,7 +7,7 @@ from django.test import RequestFactory, TestCase
 from django.utils.html import format_html
 from django.views.generic import TemplateView
 
-from cards.standard import CardMixin, BannerTile
+from cards.standard import CardMixin, BannerAction, BannerTile
 
 
 _TEMPLATES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -582,3 +582,149 @@ class TestBannerTileInlineStyles(TestCase):
         self.assertNotIn('url(x)', html)
         self.assertIn(f'style="background: {BannerTile.POINT_COLOURS[0]}"', html)
         self.assertIn(f'style="background: {BannerTile.POINT_COLOURS[1]}"', html)
+
+
+class TestBannerTileLinksLocksActionsAndFilters(TestCase):
+    """1.9.2: a tile that is a link as a whole, a locked tile, buttons the page's script answers, and filters."""
+
+    def setUp(self):
+        self.view = _BannerTileCardView()
+        self.view.request = RequestFactory().get('/')
+
+    def render(self, tiles, **kwargs):
+        card = self.view.add_card('demo', title='Master')
+        card.add_banner_tiles(tiles, **kwargs)
+        return card.render()
+
+    def test_a_url_makes_the_whole_tile_a_link_under_its_own_button(self):
+        html = self.render([BannerTile(key='c1', title='Joinery <basics>', url='/courses/1/',
+                                       action_label='Start', action_url='/start/')])
+        self.assertIn('django-card__banner-tile--linked', html)
+        self.assertIn('<a href="/courses/1/" class="django-card__banner-tile-link" aria-label="Joinery &lt;basics&gt;"></a>',
+                      html)
+        self.assertIn('href="/start/"', html)
+
+    def test_a_tile_with_no_url_is_no_link(self):
+        html = self.render([BannerTile(key='c1', title='T')])
+        self.assertNotIn('banner-tile-link', html)
+        self.assertNotIn('banner-tile--linked', html)
+
+    def test_a_locked_tile_links_nowhere_and_says_why(self):
+        html = self.render([BannerTile(key='c1', title='T', url='/courses/1/', banner_url='/preview/',
+                                       locked='Finish step <2> first', progress=40, status='40%',
+                                       action_label='Start', action_url='/start/')])
+        self.assertIn('django-card__banner-tile--locked', html)
+        self.assertIn('title="Finish step &lt;2&gt; first"', html)
+        self.assertIn('<i class="fas fa-lock"></i> Finish step &lt;2&gt; first', html)
+        for gone in ('/courses/1/', '/preview/', '/start/', 'width: 40%', 'banner-tile-play'):
+            self.assertNotIn(gone, html)
+
+    def test_locked_as_true_says_locked(self):
+        html = self.render([BannerTile(key='c1', title='T', locked=True)])
+        self.assertIn('<i class="fas fa-lock"></i> Locked', html)
+        self.assertNotIn(' title="', html.split('banner-tile-lock')[1].split('>')[0])
+
+    def test_a_locked_detail_tile_draws_its_button_disabled_and_no_secondaries(self):
+        html = self.render([BannerTile(key='c1', layout='detail', action_label='Start', action_url='/start/',
+                                       secondary_label='Save', secondary_url='/save/', locked=True)])
+        self.assertRegex(html, r'<button type="button" disabled class="btn btn-primary '
+                               r'django-card__banner-tile-action">Start <i class="fas fa-lock"></i></button>')
+        self.assertNotIn('/save/', html)
+        self.assertNotIn('banner-tile-secondaries', html)
+
+    def test_an_action_with_no_url_is_a_button_carrying_its_data_attributes(self):
+        html = self.render([BannerTile(key='c1', layout='detail', action=BannerAction(
+            'Start <now>', icon='fas fa-arrow-right', attrs={'data-course-button': 'start"x'}))])
+        self.assertIn('<button type="button" class="btn btn-primary django-card__banner-tile-action" '
+                      'data-course-button="start&quot;x">Start &lt;now&gt; <i class="fas fa-arrow-right"></i></button>',
+                      html)
+
+    def test_an_action_takes_only_data_and_aria_attributes(self):
+        for name in ('onclick', 'href', 'class', 'data-', 'Data-x', 'data-x y'):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                BannerAction('Go', attrs={name: 'x'})
+        BannerAction('Go', attrs={'data-x': '1', 'aria-describedby': 'y'})
+
+    def test_secondary_actions_follow_the_secondary_link(self):
+        html = self.render([BannerTile(
+            key='c1', layout='detail', secondary_label='Save', secondary_url='/save/',
+            secondary_actions=[BannerAction('Restart', icon='fas fa-redo', attrs={'data-b': 'restart'}),
+                               {'label': 'Leave', 'attrs': {'data-b': 'leave'}}])])
+        save, restart, leave = html.index('/save/'), html.index('Restart'), html.index('Leave')
+        self.assertLess(save, restart)
+        self.assertLess(restart, leave)
+        self.assertIn('<button type="button" class="django-card__banner-tile-secondary" data-b="restart">'
+                      '<i class="fas fa-redo"></i> Restart</button>', html)
+
+    def test_an_action_label_still_draws_as_before(self):
+        detail = self.render([BannerTile(key='c1', layout='detail', action_label='Go', action_url='/go/')])
+        self.assertIn('<a href="/go/" class="btn btn-primary django-card__banner-tile-action">Go '
+                      '<i class="fas fa-arrow-right"></i></a>', detail)
+        compact = self.render([BannerTile(key='c2', action_label='Go')])
+        self.assertIn('<a href="#" class="btn btn-sm btn-outline-primary">Go</a>', compact)
+
+    def test_filters_draw_buttons_and_mark_each_tile(self):
+        html = self.render([BannerTile(key='c1', title='A', filter_keys=['crm']),
+                            BannerTile(key='c2', title='B', filter_keys=['gantt', 'crm'])],
+                           filters=['crm', ('gantt', 'The <Gantt>')], filter_style='tabs', subtitle='Pick <one>')
+        self.assertIn('django-card__banner-tile-filters--tabs', html)
+        self.assertIn('<p class="django-card__banner-tiles-subtitle">Pick &lt;one&gt;</p>', html)
+        self.assertIn('data-banner-filter="" class="active" aria-pressed="true">All</button>', html)
+        self.assertIn('data-banner-filter="gantt" aria-pressed="false">The &lt;Gantt&gt;</button>', html)
+        self.assertIn('data-banner-filters="[&quot;gantt&quot;, &quot;crm&quot;]"', html)
+        self.assertIn('id="demo_filters"', html)
+        self.assertNotIn(' hidden', html)
+
+    def test_a_selected_filter_hides_the_others_as_the_page_is_drawn(self):
+        html = self.render([BannerTile(key='c1', title='A', filter_keys=['crm']),
+                            BannerTile(key='c2', title='B', filter_keys=['gantt'])],
+                           filters=['crm', 'gantt'], filter_selected='gantt', filter_all_label='')
+        self.assertNotIn('data-banner-filter=""', html)
+        self.assertIn('data-banner-filter="gantt" class="active"', html)
+        self.assertRegex(html, r'id="c1" data-banner-filters="[^"]*" hidden')
+        self.assertNotRegex(html, r'id="c2" data-banner-filters="[^"]*" hidden')
+
+    def test_a_selection_that_is_not_a_filter_shows_every_tile(self):
+        html = self.render([BannerTile(key='c1', title='A', filter_keys=['crm'])],
+                           filters=['crm'], filter_selected='nope')
+        self.assertNotIn(' hidden', html)
+        self.assertIn('data-banner-filter="" class="active"', html)
+
+    def test_tiles_added_after_the_filters_are_hidden_by_the_selection_too(self):
+        card = self.view.add_card('demo', title='Master')
+        card.add_banner_tiles([], filters=['crm'], filter_selected='crm')
+        card.add_banner_tiles([BannerTile(key='c9', title='Z')])
+        self.assertIn('c9', card.extra_card_info['banner_tiles_hidden'])
+
+    def test_no_filters_draws_no_buttons_nor_script(self):
+        html = self.render([BannerTile(key='c1', title='A', filter_keys=['crm'])])
+        self.assertNotIn('banner-tile-filters', html)
+        self.assertNotIn('data-banner-filters', html)
+
+    def test_bad_filter_input_raises(self):
+        card = self.view.add_card('demo')
+        with self.assertRaises(TypeError):
+            card.add_banner_tiles([], filters='crm')
+        with self.assertRaises(ValueError):
+            card.add_banner_tiles([], filters=[('a', 'b', 'c')])
+        with self.assertRaises(ValueError):
+            card.add_banner_tiles([], filter_style='buttons')
+        with self.assertRaises(TypeError):
+            BannerTile(key='c1', filter_keys='crm')
+
+    def test_the_slider_skips_a_hidden_tile_and_its_dot(self):
+        html = self.render([BannerTile(key='c1', title='A', filter_keys=['x'])], slider=True, filters=['x'])
+        self.assertIn('return !tile.hidden', html)
+        self.assertIn("track.dispatchEvent(new Event('scroll'))", html)
+
+    def test_an_image_is_drawn_over_the_banner_so_a_broken_one_leaves_it(self):
+        html = self.render([BannerTile(key='c1', title='T', image_url='/i.png', banner_icon='fas fa-cube',
+                                       banner_background='#123456')])
+        self.assertIn('style="background: #123456"', html)
+        self.assertLess(html.index('banner-tile-banner-watermark'), html.index('src="/i.png"'))
+
+    def test_a_banner_caption_takes_the_labels_place(self):
+        html = self.render([BannerTile(key='c1', layout='detail', banner_label='Projects',
+                                       banner_url='/p/', banner_caption='Preview this course')])
+        self.assertIn('Preview this course', html)
+        self.assertNotIn('banner-tile-banner-label', html)

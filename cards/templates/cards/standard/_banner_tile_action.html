@@ -1,0 +1,4 @@
+{# One BannerAction: a link with a url, else a button the page's script answers by its data- attributes. #}
+{# `classes` is the button's classes; `lead` draws the icon before the label (a secondary button), else #}
+{# after it (a main one). Everything is escaped; the attributes' names were checked on BannerAction.     #}
+{% if action.is_link and not action.disabled %}<a href="{{ action.url }}"{% else %}<button type="button"{% if action.disabled %} disabled{% endif %}{% endif %} class="{{ classes }}"{% for name, value in action.attr_items %} {{ name }}="{{ value }}"{% endfor %}>{% if lead and action.icon %}<i class="{{ action.icon }}"></i> {% endif %}{{ action.label }}{% if not lead and action.icon %} <i class="{{ action.icon }}"></i>{% endif %}{% if action.is_link and not action.disabled %}</a>{% else %}</button>{% endif %}

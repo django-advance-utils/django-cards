@@ -1,0 +1,27 @@
+{# The filter buttons of add_banner_tiles(filters=...): a press shows the tiles whose filter keys hold its key (every #}
+{# tile for the All button) and hides the rest, in the browser. A slider is told by a scroll event on its track, #}
+{# which its own script listens for, and sent back to its start.                                               #}
+<script>
+(function () {
+    var filters = document.getElementById('{{ card.code|escapejs }}_filters');
+    if (!filters) { return; }
+    var body = filters.parentNode;
+    var track = body.querySelector('.django-card__banner-tiles');
+    if (!track) { return; }
+    filters.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-banner-filter]');
+        if (!button || !filters.contains(button)) { return; }
+        var key = button.getAttribute('data-banner-filter');
+        filters.querySelectorAll('[data-banner-filter]').forEach(function (other) {
+            other.classList.toggle('active', other === button);
+            other.setAttribute('aria-pressed', other === button ? 'true' : 'false');
+        });
+        track.querySelectorAll(':scope > [data-banner-filters]').forEach(function (tile) {
+            var keys = JSON.parse(tile.getAttribute('data-banner-filters') || '[]');
+            tile.hidden = !!key && keys.indexOf(key) < 0;
+        });
+        track.scrollLeft = 0;
+        track.dispatchEvent(new Event('scroll'));
+    });
+})();
+</script>
