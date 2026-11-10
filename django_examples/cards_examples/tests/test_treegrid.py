@@ -24,14 +24,14 @@ class TestFancytreeIncludes(TestCase):
     def test_js_url_is_local(self):
         for cdn in (False, True):
             with self.subTest(cdn=cdn):
-                output = FancytreeJS('1.0', False).includes(cdn=cdn)
+                output = FancytreeJS('1.0').includes(cdn=cdn)
                 self.assertNotIn('http', output)
                 self.assertIn('src="/static/cards/fancytree/jquery.fancytree-all-deps.min.js?v=1.0"', output)
 
     def test_css_url_is_local(self):
         for cdn in (False, True):
             with self.subTest(cdn=cdn):
-                output = FancytreeAwesomeSkinCSS('1.0', False).includes(cdn=cdn)
+                output = FancytreeAwesomeSkinCSS('1.0').includes(cdn=cdn)
                 self.assertNotIn('http', output)
                 self.assertIn('href="/static/cards/fancytree/skin-awesome/ui.fancytree.min.css?v=1.0"', output)
 
