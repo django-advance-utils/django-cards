@@ -4,13 +4,13 @@ django-crispy-forms==1.12.0
 #django-tab-menus==0.0.13
 django-advanced-menus==2.1.0
 # django-filtered-datatables==0.0.19
-django-advanced-datatables==1.0.12
+django-advanced-datatables==1.0.13
 
 # django-nested-modals==0.0.17
-django-advanced-modals==1.0.6
+django-advanced-modals==1.0.7
 
 # django-ajax-helpers==0.0.20
-ajax-advanced-helpers==1.0.8
+ajax-advanced-helpers==2.0.0
 time-stamped-model==0.2.2
 date-offset==0.0.2
 django-debug-toolbar==3.2.4
