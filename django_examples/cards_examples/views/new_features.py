@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 
 from django.utils.html import format_html
 
-from cards.standard import CardMixin, Tile, BannerAction, BannerTile
+from cards.standard import CardMixin, Tile, BannerAction, BannerTile, FeedItem
 from django_menus.menu import MenuItem
 from cards_examples.bootstrap import col
 
@@ -1192,6 +1192,35 @@ class FactsExample(MainMenu, CardMixin, TemplateView):
         table.add_facts({'title': 'Sell', 'lead': '£12,400.00', 'entries': [{'label': 'Orders', 'value': 14}]},
                         {'title': 'Cost', 'lead': '£8,150.00', 'entries': [{'label': 'Margin', 'value': '34%'}]})
 
+        figures = self.add_card('facts_figures', title='Figures: an icon, a ring, a note, a link')
+        figures.add_facts(
+            {'lead': '3/7', 'note': 'path steps done', 'ring': 43, 'url': '#'},
+            {'lead': '4 lessons', 'note': 'done this week', 'icon': 'fas fa-fire'},
+            {'lead': '2 skills', 'note': 'qualified', 'icon': 'fas fa-medal', 'url': '#'},
+        )
+
+        feed = self.add_card('facts_feed', title='add_feed(): an activity feed')
+        feed.add_feed(
+            [
+                FeedItem('Price agreed on the phone', when='Today 10:40', meta='Phone call · Alice Johnson',
+                         tone='done', body=format_html('<p>{}</p>', 'Agreed £5,800 for the sash windows.'),
+                         actions=[BannerAction('Open the event', url='#'), BannerAction('Open project', url='#')]),
+                FeedItem('Send the revised quote', when='Tomorrow', meta='Follow-up · Bob', tone='todo',
+                         badges=[('Current', 'todo')]),
+                FeedItem('Chase the deposit', when='3 Nov', meta='Follow-up · Bob', tone='late',
+                         badges=[('Overdue', 'late')]),
+                FeedItem('Gate code is 4471', when='1 Nov', tone='notice', badges=['Sticky']),
+                FeedItem('Project created', when='28 Oct', meta='System', tone='muted'),
+                FeedItem('Bob Freeman became a qualified Estimator', when='20 Oct', avatar='BF', url='#'),
+            ],
+            title='Activity', aside='6 of 31 · newest first', link_label='all in Events', link_url='#',
+        )
+        empty = self.add_card('facts_feed_empty', title='An empty feed')
+        empty.add_feed([], title='Activity', empty_title='Nothing logged yet', empty_text='Add an event from the header.')
+
         self.add_card_group('facts_summary', div_css_class='col-12')
+        self.add_card_group('facts_figures', div_css_class='col-12')
         self.add_card_group('facts_account', div_css_class='col-md-6')
         self.add_card_group('facts_table', div_css_class='col-md-6')
+        self.add_card_group('facts_feed', div_css_class='col-md-8')
+        self.add_card_group('facts_feed_empty', div_css_class='col-md-4')

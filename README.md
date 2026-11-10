@@ -736,7 +736,58 @@ card.add_facts(
 | `lead` | One value drawn large under the heading, with no label -- a total, a price. A string, or a dict of entry options |
 | `entries` | The column's facts, top to bottom: field names or dicts of `add_entry()` options, as in `add_row()`. A hidden entry is left out |
 
+| `note` | A short line under the lead -- what the number counts ("lessons done this week") |
+| `icon` | An icon class drawn large beside the column, so a number reads as a figure |
+| `ring` | A percentage drawn as a progress ring beside the column, in the icon's place; held to 0-100 |
+| `url` | The whole column is a link |
+| `css_class` | Classes added to the column, for a tone of your own |
+
 Every fact is an ordinary entry drawn by the same markup as a row's, so `badge`, `menu` (shown beside the label), `default`, `value_link`, `copy_to_clipboard`, `status_dot` and the rest work unchanged. `extra_row_kwargs` applies options to every fact. Both methods work in the default and `table` templates, and the export takes the facts. Set `--django-card-facts-min-width` (default `10rem`) for the narrowest a column gets before the row wraps.
+
+A strip of figures -- numbers with what they count -- is columns with a `lead`, a `note` and an `icon` or `ring`:
+
+```python
+card.add_facts(
+    {'lead': '3/7', 'note': 'path steps done', 'ring': 43, 'url': path_url},
+    {'lead': '4 lessons', 'note': 'done this week', 'icon': 'fas fa-fire'},
+)
+```
+
+The ring's colours are `--django-card-facts-ring-color`, `-track` and `-hole`; the icon's is `--django-card-facts-icon-color`.
+
+### add_feed()
+
+An activity feed: rows on a rail of dots, each a line, a when and a small line under it. A row with a `body` or `actions` opens to show them (a `<details>`, so no script); one with only a `url` is a link.
+
+```python
+from cards.standard import BannerAction, FeedItem
+
+card.add_feed(
+    [
+        FeedItem('Price agreed', when='Today 10:40', meta='Phone call · Alice', tone='done',
+                 body=format_html('<p>{}</p>', note), actions=[BannerAction('Open', url=event_url)]),
+        FeedItem('Chase the deposit', when='3 Nov', tone='late', badges=[('Overdue', 'late')]),
+        FeedItem('Bob Freeman became a qualified Estimator', when='20 Oct', avatar='BF'),
+    ],
+    title='Activity', aside='3 of 31 · newest first', link_label='all in Events', link_url=events_url,
+    empty_title='Nothing logged yet', empty_text='Add an event from the header.',
+)
+```
+
+| `FeedItem` field | Description |
+|---|---|
+| `text` | The row's line. Escaped unless marked safe |
+| `when` | When, already formatted, at the line's end |
+| `meta` | A small line under it: its type, who, what it was against |
+| `badges` | Labels after the line: a text, or `(text, tone)` |
+| `tone` | The dot: `done`, `muted`, `notice`, `todo` (ringed), `late` (ringed red), or a class of your own (`django-card__feed-row--<tone>`) |
+| `avatar` / `icon` | Initials, or an icon, in a circle in the dot's place |
+| `url` | The row is a link, when it opens nothing |
+| `body` | Shown when the row is opened. Escaped unless marked safe |
+| `actions` | `BannerAction` buttons shown when it is opened |
+| `css_class` | Classes added to the row |
+
+A row can be a dict of the same fields. It works in the default and `table` templates, and the export takes a row each (its `when` and line). Colours are `--django-card-feed-*` custom properties.
 
 ---
 
