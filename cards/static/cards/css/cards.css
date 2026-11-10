@@ -1463,7 +1463,7 @@ button.django-card__banner-tile-action:disabled {
 .django-card__feed-aside {
     margin-left: auto;
     font-size: 0.85rem;
-    color: var(--django-card-feed-muted-color, #6c757d);
+    color: var(--django-card-feed-muted-color, #5c636a);
 }
 
 .django-card__feed-rail {
@@ -1488,7 +1488,7 @@ button.django-card__banner-tile-action:disabled {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--django-card-feed-dot, #adb5bd);
+    background: var(--django-card-feed-dot, #868e96);
     box-shadow: 0 0 0 3px var(--django-card-feed-dot-ring, #fff);
 }
 
@@ -1518,7 +1518,8 @@ button.django-card__banner-tile-action:disabled {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    font-size: 0.7rem;
+    overflow: hidden;
+    font-size: 0.65rem;
     font-weight: 700;
     color: var(--django-card-feed-avatar-color, #fff);
     background: var(--django-card-feed-avatar-bg, #343a40);
@@ -1568,14 +1569,14 @@ details > .django-card__feed-summary:hover,
 .django-card__feed-when {
     margin-left: auto;
     font-size: 0.8rem;
-    white-space: nowrap;
-    color: var(--django-card-feed-muted-color, #6c757d);
+    text-align: right;
+    color: var(--django-card-feed-muted-color, #5c636a);
 }
 
 .django-card__feed-meta {
     display: block;
     font-size: 0.8rem;
-    color: var(--django-card-feed-muted-color, #6c757d);
+    color: var(--django-card-feed-muted-color, #5c636a);
 }
 
 .django-card__feed-badge {
@@ -1630,7 +1631,7 @@ details > .django-card__feed-summary .django-card__feed-text::before {
     margin: -0.15rem 0.5rem 0 0;
     border-right: 2px solid currentColor;
     border-bottom: 2px solid currentColor;
-    opacity: 0.45;
+    opacity: 0.6;
     transform: rotate(-45deg);
     transition: transform 0.15s;
 }
@@ -1641,5 +1642,30 @@ details[open] > .django-card__feed-summary .django-card__feed-text::before {
 
 .django-card__feed-empty {
     padding: 0.75rem 0;
-    color: var(--django-card-feed-muted-color, #6c757d);
+    color: var(--django-card-feed-muted-color, #5c636a);
+}
+
+/* Long words and urls break inside a feed rather than widening the card (or, in a table card, the table). */
+.django-card__feed-text,
+.django-card__feed-badge,
+.django-card__feed-title,
+.django-card__feed-aside,
+.django-card__feed-meta,
+.django-card__feed-when,
+.django-card__feed-action {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* What a dot's colour says, in words, for a screen reader only (FeedItem.tone_label). */
+.django-card__feed-tone {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

@@ -1,7 +1,10 @@
 """``add_feed()``: rows on a rail of dots -- what happened, when, and who or what it concerned -- and the
 figures ``add_facts()`` columns can now carry: an icon or a progress ring beside them, a note, a link."""
 from django.test import RequestFactory, SimpleTestCase, override_settings
+from decimal import Decimal
+
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.views.generic import TemplateView
 
 from cards.standard import BannerAction, CardMixin, FeedItem
@@ -105,6 +108,31 @@ class TestFeed(SimpleTestCase):
         with self.assertRaisesMessage(ValueError, 'a (text, tone) pair'):
             FeedItem('t', badges=[('a', 'b', 'c')])
 
+    def test_edge_inputs(self):
+        with self.assertRaisesMessage(ValueError, 'needs its text'):
+            FeedItem(None)
+        with self.assertRaisesMessage(ValueError, 'needs its text'):
+            FeedItem('   ')
+        item = FeedItem('t', when=0, meta=Decimal('0'), avatar=' ', body='   ', badges=[None, '', (None, 'late'), 'Kept'])
+        self.assertEqual((item.when, item.meta, item.avatar, item.body), ('0', '0', None, None))
+        self.assertEqual(item.badges, [('Kept', None)])
+        self.assertFalse(item.opens)
+        self.assertEqual(len(FeedItem('t', actions=BannerAction('Open', url='/o/')).actions), 1)
+        with self.assertRaisesMessage(ValueError, 'Feed badges are a list'):
+            FeedItem('t', badges=3)
+        card = _card()
+        card.add_feed(FeedItem('one row'), title=0)
+        html = card.render()
+        self.assertIn('>one row<', html)
+        self.assertIn('role="heading" aria-level="3">0<', html)
+
+    def test_a_tone_is_said_in_words_too(self):
+        card = _card()
+        card.add_feed([FeedItem('x', tone='late'), FeedItem('y', tone='mine')])
+        html = card.render()
+        self.assertIn('<span class="django-card__feed-tone">Late</span>', html)
+        self.assertEqual(html.count('django-card__feed-tone"'), 1)
+
     def test_a_link_label_and_url_alone_draw_a_head(self):
         card = _card()
         card.add_feed([], link_label='all in Events', link_url='/events/')
@@ -123,6 +151,9 @@ class TestFeed(SimpleTestCase):
                        FeedItem(format_html('<b>{}</b>', '1 < 2')),
                        FeedItem('a < b and c > d')])
         self.assertEqual([row['value'] for row in card.get_export_data()], ['Bold', '1 < 2', 'a < b and c > d'])
+        card = _card()
+        card.add_feed([FeedItem('x', when=format_html('<i>{}</i>', 'Today'))])
+        self.assertEqual(card.get_export_data()[0]['label'], 'Today')
         self.assertEqual(card.get_export_data()[0]['label'], 'Today')
 
 
@@ -148,14 +179,14 @@ class TestFactFigures(SimpleTestCase):
                 self.assertIn('<div class="django-card__facts-col"><div class="django-card__facts-content">'
                               '<div class="django-card__facts-title"', html)
 
-    def test_a_ring_is_held_to_0_to_100_and_rounded(self):
-        for given, drawn in ((-5, 0), (150, 100), (0, 0), (43.7, 44), ('50', 50)):
+    def test_a_ring_is_held_to_0_to_100_and_rounded_down(self):
+        for given, drawn in ((-5, 0), (150, 100), (0, 0), (43.7, 43), ('50', 50), (99.5, 99), (100, 100)):
             card = _card()
             card.add_facts({'lead': 'x', 'ring': given})
             self.assertIn(f'--django-card-facts-ring: {drawn}"', card.render())
 
     def test_a_ring_that_is_no_number_says_so(self):
-        for given in ('abc', '43%', '', float('nan'), float('inf'), object(), True, False):
+        for given in ('abc', '43%', '', float('nan'), float('inf'), object(), True, False, b'50'):
             with self.subTest(given=given), self.assertRaisesMessage(ValueError, "ring is a percentage"):
                 _card().add_facts({'lead': 'x', 'ring': given})
 
@@ -171,10 +202,37 @@ class TestFactFigures(SimpleTestCase):
         # plain entries are fine, and an empty menu is no menu
         _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V', 'menu': []}]})
 
-    def test_a_column_with_nothing_but_a_figure_or_a_note_is_left_out(self):
+    def test_a_column_with_nothing_but_a_figure_or_a_note_is_refused(self):
+        for column in ({'icon': 'fas fa-fire', 'note': 'alone'}, {'ring': 43, 'note': 'steps'}, {'title': '', 'icon': 'x'}):
+            with self.subTest(column=column), self.assertRaisesMessage(ValueError, 'needs a lead, entries or a title'):
+                _card().add_facts(column)
+
+    def test_a_column_whose_entries_are_all_hidden_is_left_out(self):
         card = _card()
-        card.add_facts({'icon': 'fas fa-fire', 'note': 'alone'}, {'title': '', 'icon': 'fas fa-fire'})
-        self.assertEqual(card.rows, [])
         card.add_facts({'icon': 'fas fa-fire', 'entries': [{'label': 'L', 'value': 'V', 'hidden': True}]},
                        {'lead': 'kept'})
         self.assertEqual(len(card.rows[0]['columns']), 1)
+
+    def test_plain_text_that_looks_like_a_tag_is_fine_in_a_linked_column(self):
+        card = _card()
+        card.add_facts({'url': '/u/', 'lead': 'Margin <a third', 'entries': [{'label': 'L', 'value': 'press <button>'}]})
+        self.assertIn('Margin &lt;a third', card.render())
+
+    def test_safe_markup_with_a_link_is_refused_anywhere_in_a_linked_column(self):
+        link = mark_safe('<a href="/x/">x</a>')
+        for column in ({'url': '/u/', 'lead': 'x', 'note': link}, {'url': '/u/', 'lead': 'x', 'title': link},
+                       {'url': '/u/', 'lead': 'x', 'entries': [{'label': link, 'value': 'V'}]}):
+            with self.subTest(column=column), self.assertRaisesMessage(ValueError, 'is one link'):
+                _card().add_facts(column)
+
+    def test_a_zero_note_is_shown(self):
+        card = _card()
+        card.add_facts({'lead': 'x', 'note': 0})
+        self.assertIn('<div class="django-card__facts-note">0</div>', card.render())
+
+    def test_export_takes_a_columns_note_and_ring(self):
+        card = _card()
+        card.add_facts({'title': 'Path', 'lead': '3/7', 'note': 'steps done', 'ring': 43})
+        data = card.get_export_data()
+        self.assertIn({'label': 'Path', 'value': 'steps done'}, data)
+        self.assertIn({'label': 'Path', 'value': '43%'}, data)

@@ -2,6 +2,7 @@ import _string
 import datetime
 import json
 import math
+from decimal import Decimal
 import re
 import string
 from html import unescape
@@ -1029,6 +1030,22 @@ _LINKING_ENTRY_OPTIONS = ('link', 'value_link', 'menu', 'copy_to_clipboard', 'au
 _LINKING_MARKUP = re.compile(r'<(a|button)[\s>]', re.IGNORECASE)
 
 
+def _shown(value):
+    """A value a feed or a fact column draws as text: a number (0 too) as its digits, so a falsy one is not
+    dropped; text that is only blanks, as nothing."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, Decimal)):
+        return str(value)
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
+
+
+#: What each of ``FEED_TONES`` says, for a reader who cannot see the dot's colour: drawn as hidden text.
+FEED_TONE_LABELS = {'done': 'Done', 'muted': 'System', 'notice': 'Note', 'todo': 'To do', 'late': 'Late'}
+
+
 #: The dots a feed row can carry (``FeedItem.tone``): done or logged, the system's, a note to
 #: notice, one still to do, and one gone by. Anything else is the caller's own, styled by them.
 FEED_TONES = ('done', 'muted', 'notice', 'todo', 'late')
@@ -1076,21 +1093,40 @@ class FeedItem:
     css_class: str = None
 
     def __post_init__(self):
-        self.actions = [BannerAction.build(action) for action in self.actions or []]
+        if self.text is None or (isinstance(self.text, str) and not self.text.strip()):
+            raise ValueError('A feed row needs its text')
+        for name in ('when', 'meta', 'avatar', 'body'):
+            setattr(self, name, _shown(getattr(self, name)))
+        actions = self.actions
+        if isinstance(actions, (BannerAction, dict)):  # one action, not in a list
+            actions = [actions]
+        self.actions = [BannerAction.build(action) for action in actions or []]
         badges = self.badges
         if isinstance(badges, (str, Promise)):  # one badge, a lazy translation too, not one per letter
             badges = [badges]
         elif isinstance(badges, tuple) and len(badges) == 2 and all(isinstance(b, (str, Promise)) for b in badges):
             raise ValueError(f'Feed badges are a list: put the (text, tone) pair {badges!r} in one')
-        badges = list(badges or [])
+        try:
+            badges = list(badges or [])
+        except TypeError:
+            raise ValueError(f'Feed badges are a list of texts or (text, tone) pairs, not {badges!r}') from None
         self.badges = []
         for badge in badges:
             if isinstance(badge, (tuple, list)):
                 if len(badge) != 2:
                     raise ValueError(f'A feed badge is a text or a (text, tone) pair, not {badge!r}')
-                self.badges.append(tuple(badge))
+                text, tone = badge
             else:
-                self.badges.append((badge, None))
+                text, tone = badge, None
+            text = _shown(text)
+            if text is None or text == '':
+                continue  # no badge for nothing
+            self.badges.append((text, tone))
+
+    @property
+    def tone_label(self):
+        """What the dot's colour says, in words, for a screen reader; None for a tone of the caller's own."""
+        return FEED_TONE_LABELS.get(self.tone)
 
     @property
     def opens(self):
@@ -2343,9 +2379,12 @@ class CardBase:
                 lead = {'value': lead}
             built = [entry(lead, 'django-card__fact django-card__fact--lead')] if lead is not None else []
             built += [entry(spec, 'django-card__fact') for spec in entries]
+            if lead is None and not entries and not column.get('title'):
+                raise ValueError('A fact column needs a lead, entries or a title: an icon, a ring or a note '
+                                 f'beside nothing draws nothing, in {column!r}')
             built = [e for e in built if e is not None]
             if not built and not column.get('title'):
-                continue  # every entry hidden, or none: a figure or a note alone would be a column of nothing
+                continue  # every entry hidden: a figure or a note alone would be a column of nothing
             url = column.get('url')
             if url:
                 # The column is an <a>, and a link, a menu, a button or a popover inside one ends it early in
@@ -2353,23 +2392,32 @@ class CardBase:
                 # menu) and of the markup an entry was drawn with (html_override, a row style).
                 specs = [lead, *entries]
                 given = [{**extra_row_kwargs, **spec} for spec in specs if isinstance(spec, dict)]
+                # Only markup can make an element: plain text is escaped when it is drawn, so 'Margin <a third'
+                # is safe and allowed. A row style's html is always markup.
+                markup = [e.get('row_style_html') for e in built]
+                markup += [value for e in built for value in (e.get('html'), e.get('label'), e.get('help_text'))
+                           if isinstance(value, SafeData)]
+                markup += [value for value in (column.get('title'), column.get('note')) if isinstance(value, SafeData)]
                 if any(spec.get(key) for spec in given for key in _LINKING_ENTRY_OPTIONS) or any(
-                        _LINKING_MARKUP.search(str(e.get(key) or '')) for e in built
-                        for key in ('html', 'row_style_html')):
+                        _LINKING_MARKUP.search(str(value)) for value in markup if value):
                     raise ValueError('A fact column with a url is one link: its entries cannot carry a link, '
                                      'value_link, menu, copy_to_clipboard, auto_link, popover or markup with a '
                                      'link or a button of their own')
             ring = column.get('ring')
-            if isinstance(ring, bool):
+            if isinstance(ring, (bool, bytes)):
                 raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}")
             if ring is not None:
                 try:
-                    ring = max(0, min(100, round(float(ring))))
+                    share = float(ring)
+                    if not math.isfinite(share):
+                        raise ValueError
+                    # Down, so the ring is full only when the work is: 99.5% is not done.
+                    ring = 100 if share >= 100 else max(0, math.floor(share))
                 except (TypeError, ValueError, OverflowError):
                     raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}") from None
             # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
             built_columns.append({'type': 'multiple', 'title': column.get('title'), 'entries': built,
-                                  'note': column.get('note'), 'icon': column.get('icon'), 'ring': ring,
+                                  'note': _shown(column.get('note')), 'icon': column.get('icon'), 'ring': ring,
                                   'url': url, 'css_class': column.get('css_class')})
         if built_columns:  # as add_row() with nothing to show adds no row
             self.rows.append({'type': 'facts', 'columns': built_columns})
@@ -2400,6 +2448,9 @@ class CardBase:
             CardBase: The card, so calls can be chained.
         """
         _refuse_if_stack(self)
+        if isinstance(items, (FeedItem, dict)):  # one row, not in a list
+            items = [items]
+        title, aside = _shown(title), _shown(aside)
         built = []
         for item in items or []:
             if isinstance(item, dict):
@@ -3558,10 +3609,17 @@ class CardBase:
             if row.get('type') in ('html', 'heading'):
                 continue
             if row.get('type') == 'feed':  # a row each: the line, labelled with its when
-                data += [{'label': str(item.when or ''), 'value': _feed_text(item.text)} for item in row['items']]
+                data += [{'label': _feed_text(item.when or ''), 'value': _feed_text(item.text)} for item in row['items']]
                 continue
             if row.get('type') == 'facts':
                 entries = [entry for column in row['columns'] for entry in column['entries']]
+                # A column's note and ring are facts too, under its title.
+                for column in row['columns']:
+                    label = _feed_text(column.get('title') or '')
+                    if column.get('note'):
+                        data.append({'label': label, 'value': _feed_text(column['note'])})
+                    if column.get('ring') is not None:
+                        data.append({'label': label, 'value': f"{column['ring']}%"})
             else:
                 entries = row.get('entries', [])
             for entry in entries:
