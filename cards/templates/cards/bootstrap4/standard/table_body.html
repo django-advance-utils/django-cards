@@ -12,7 +12,7 @@
             <tbody id="{{ card.code }}_tbody">
             {% endif %}
             {% for row in card.rows %}
-                {% if row.type == 'heading' or row.type == 'facts' %}<tr class="cards-html-row"><td class="{{ table_td_css_class }}" colspan="2">{% include 'cards/standard/_facts_row.html' %}</td></tr>{% else %}
+                {% if row.type == 'heading' or row.type == 'facts' %}<tr class="cards-html-row"><td class="{{ table_td_css_class }}" colspan="2">{% include 'cards/standard/_facts_row.html' %}</td></tr>{% elif row.type == 'feed' %}<tr class="cards-html-row"><td class="{{ table_td_css_class }}" colspan="2">{% include 'cards/standard/_feed_row.html' %}</td></tr>{% else %}
                 <tr{% if row.type == 'html' %} class="cards-html-row"{% elif row.entries.0.row_css_class and not row.entries.0.separator %} class="{{ row.entries.0.row_css_class }}"{% endif %}>
                     {% if row.type == 'html' %}{% if not row.exclude_td %}<td class="{{ table_td_css_class }}"{% if row.colspan %} colspan="{{ row.colspan }}"{% endif %} {% if row.rowspan %} rowspan="{{ row.rowspan }}"{% endif %}>{{ row.html|safe }}</td>{% else %}{{ row.html|safe }}{% endif %}{% else %}
                     {% for entry in row.entries %}

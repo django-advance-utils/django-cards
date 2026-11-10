@@ -1,0 +1,19 @@
+{# An add_feed() feed: a heading with its aside and link, then the rows on a rail of dots. Free of Bootstrap names, so one copy serves both packs. A row that has a body or buttons is a <details>, opened by a press with no script; one with a url and nothing to open is a link. #}
+<div class="django-card__feed">
+    {% if row.title or row.aside or row.link_label %}<div class="django-card__feed-head">{% if row.title %}<span class="django-card__feed-title" role="heading" aria-level="3">{{ row.title }}</span>{% endif %}{% if row.aside or row.link_label %}<span class="django-card__feed-aside">{{ row.aside|default:'' }}{% if row.link_label %}{% if row.aside %} &middot; {% endif %}<a href="{{ row.link_url }}">{{ row.link_label }}</a>{% endif %}</span>{% endif %}</div>{% endif %}
+    {% if row.items %}
+    <ol class="django-card__feed-rail">
+        {% for item in row.items %}
+        <li class="django-card__feed-row{% if item.tone %} django-card__feed-row--{{ item.tone }}{% endif %}{% if item.avatar or item.icon %} django-card__feed-row--badge{% endif %}{% if item.css_class %} {{ item.css_class }}{% endif %}">
+            {% if item.avatar %}<span class="django-card__feed-avatar" aria-hidden="true">{{ item.avatar }}</span>{% elif item.icon %}<span class="django-card__feed-avatar" aria-hidden="true"><i class="{{ item.icon }}"></i></span>{% endif %}
+            {% if item.opens %}<details class="django-card__feed-details"><summary class="django-card__feed-summary">{% elif item.url %}<a class="django-card__feed-summary django-card__feed-link" href="{{ item.url }}">{% else %}<div class="django-card__feed-summary">{% endif %}
+                <span class="django-card__feed-line"><span class="django-card__feed-text">{{ item.text }}</span>{% if item.tone_label %}<span class="django-card__feed-tone">{{ item.tone_label }}</span>{% endif %}{% for text, tone in item.badge_items %}<span class="django-card__feed-badge{% if tone %} django-card__feed-badge--{{ tone }}{% endif %}">{{ text }}</span>{% endfor %}{% if item.when %}<span class="django-card__feed-when">{{ item.when }}</span>{% endif %}</span>
+                {% if item.meta %}<span class="django-card__feed-meta">{{ item.meta }}</span>{% endif %}
+            {% if item.opens %}</summary><div class="django-card__feed-body">{% if item.body %}<div class="django-card__feed-content">{{ item.body }}</div>{% endif %}{% if item.actions %}<div class="django-card__feed-actions">{% for action in item.actions %}{% include 'cards/standard/_banner_tile_action.html' with classes=action.css_class|default:'django-card__feed-action' lead=True %}{% endfor %}</div>{% endif %}</div></details>{% elif item.url %}</a>{% else %}</div>{% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+    {% elif row.empty_title or row.empty_text %}
+    <div class="django-card__feed-empty">{% if row.empty_title %}<b>{{ row.empty_title }}</b> {% endif %}{{ row.empty_text|default:'' }}</div>
+    {% endif %}
+</div>

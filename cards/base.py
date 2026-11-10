@@ -2,6 +2,7 @@ import _string
 import datetime
 import json
 import math
+from decimal import Decimal
 import re
 import string
 from html import unescape
@@ -13,6 +14,7 @@ from ajax_helpers.utils import random_string
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.functional import Promise
 from django.utils.html import conditional_escape, strip_tags
 from django.utils.safestring import SafeData, mark_safe
 from django.utils.timesince import timesince
@@ -1012,6 +1014,128 @@ class BannerAction:
     @property
     def attr_items(self):
         return sorted((self.attrs or {}).items())
+
+
+def _feed_text(text):
+    """A feed row's line as plain text for the export: markup only where it was marked safe -- tags taken off and
+    entities turned back -- and a plain line as it stands, '<' and all."""
+    if isinstance(text, SafeData):
+        return unescape(re.sub(r'<[^>]+>', '', str(text)))
+    return str(text)
+
+
+#: The entry options that put a link, a button or a popover in an entry, which a fact column that is itself a
+#: link cannot hold (``add_facts``), and the markup that does the same in an entry's html.
+_LINKING_ENTRY_OPTIONS = ('link', 'value_link', 'menu', 'copy_to_clipboard', 'auto_link', 'popover')
+_LINKING_MARKUP = re.compile(r'<(a|button)[\s>]', re.IGNORECASE)
+
+
+def _shown(value):
+    """A value a feed or a fact column draws as text: a number (0 too) as its digits, so a falsy one is not
+    dropped; text that is only blanks, as nothing."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, Decimal)):
+        return str(value)
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
+
+
+#: What each of ``FEED_TONES`` says, for a reader who cannot see the dot's colour: drawn as hidden text.
+FEED_TONE_LABELS = {'done': 'Done', 'muted': 'System', 'notice': 'Note', 'todo': 'To do', 'late': 'Late'}
+
+
+#: The dots a feed row can carry (``FeedItem.tone``): done or logged, the system's, a note to
+#: notice, one still to do, and one gone by. Anything else is the caller's own, styled by them.
+FEED_TONES = ('done', 'muted', 'notice', 'todo', 'late')
+
+
+@dataclass
+class FeedItem:
+    """One row of an :meth:`CardBase.add_feed` feed: what happened, when, and who or what it
+    concerned, on a rail of dots down the side::
+
+        FeedItem('Bob Freeman became a qualified Estimator', when='10 Nov 2026', avatar='BF')
+        FeedItem('Call: price agreed', when='Today 10:40', meta='Phone call · Tom', tone='done',
+                 body=format_html('<p>{}</p>', text), actions=[BannerAction('Open', url=url)])
+
+    A row with a ``body`` or ``actions`` opens with a press to show them; one without opens
+    nothing, and with a ``url`` is a link.
+
+    Args:
+        text (str): The row's line. Escaped unless marked safe.
+        when (str, optional): When it happened, already formatted, at the line's end.
+        meta (str, optional): A small line under it: its type, who, what it was against.
+        badges (list, optional): Small labels after the line: a text, or a ``(text, tone)`` pair
+            whose tone is one of ``FEED_TONES``.
+        tone (str, optional): The row's dot: one of ``FEED_TONES``, or a class of the caller's
+            own (``django-card__feed-row--<tone>``). Left as None, the dot is plain.
+        avatar (str, optional): Initials in a circle in place of the dot -- for who did it.
+        icon (str, optional): An icon in the circle in place of the dot.
+        url (str, optional): The row is a link there. Only when it opens nothing: a row with a
+            ``body`` or ``actions`` is not a link (put a link among its ``actions``).
+        body (str, optional): What the row shows when opened. Escaped unless marked safe.
+        actions (list, optional): :class:`BannerAction` buttons (or dicts of them) shown when
+            the row is opened.
+        css_class (str, optional): Classes added to the row.
+    """
+    text: str
+    when: str = None
+    meta: str = None
+    badges: list = field(default_factory=list)
+    tone: str = None
+    avatar: str = None
+    icon: str = None
+    url: str = None
+    body: str = None
+    actions: list = field(default_factory=list)
+    css_class: str = None
+
+    def __post_init__(self):
+        if self.text is None or (isinstance(self.text, str) and not self.text.strip()):
+            raise ValueError('A feed row needs its text')
+        for name in ('when', 'meta', 'avatar', 'body'):
+            setattr(self, name, _shown(getattr(self, name)))
+        actions = self.actions
+        if isinstance(actions, (BannerAction, dict)):  # one action, not in a list
+            actions = [actions]
+        self.actions = [BannerAction.build(action) for action in actions or []]
+        badges = self.badges
+        if isinstance(badges, (str, Promise)):  # one badge, a lazy translation too, not one per letter
+            badges = [badges]
+        elif isinstance(badges, tuple) and len(badges) == 2 and all(isinstance(b, (str, Promise)) for b in badges):
+            raise ValueError(f'Feed badges are a list: put the (text, tone) pair {badges!r} in one')
+        try:
+            badges = list(badges or [])
+        except TypeError:
+            raise ValueError(f'Feed badges are a list of texts or (text, tone) pairs, not {badges!r}') from None
+        self.badges = []
+        for badge in badges:
+            if isinstance(badge, (tuple, list)):
+                if len(badge) != 2:
+                    raise ValueError(f'A feed badge is a text or a (text, tone) pair, not {badge!r}')
+                text, tone = badge
+            else:
+                text, tone = badge, None
+            text = _shown(text)
+            if text is None or text == '':
+                continue  # no badge for nothing
+            self.badges.append((text, tone))
+
+    @property
+    def tone_label(self):
+        """What the dot's colour says, in words, for a screen reader; None for a tone of the caller's own."""
+        return FEED_TONE_LABELS.get(self.tone)
+
+    @property
+    def opens(self):
+        return bool(self.body) or bool(self.actions)
+
+    @property
+    def badge_items(self):
+        """``(text, tone)`` pairs, a bare text having taken no tone (``__post_init__``)."""
+        return self.badges
 
 
 @dataclass
@@ -2206,6 +2330,17 @@ class CardBase:
                 - ``entries`` (list): the column's entries, top to bottom. Each is a field name or
                   a dict of :meth:`add_entry` options, as in :meth:`add_row`; an entry that is
                   hidden is left out.
+                - ``note`` (str, optional): a short line under the lead -- what the number counts
+                  ("lessons done this week"). Escaped unless marked safe.
+                - ``icon`` (str, optional): an icon class, drawn large beside the column, so a
+                  number reads as a figure: a flame by "4 lessons".
+                - ``ring`` (int, optional): a percentage, drawn as a progress ring beside the
+                  column in the icon's place; 0 to 100, anything outside is held to it.
+                - ``url`` (str, optional): the whole column is a link there. Its entries then
+                  cannot carry a ``link``, ``value_link``, ``menu`` or ``copy_to_clipboard`` of
+                  their own -- a link inside a link ends it early -- and doing so raises.
+                - ``css_class`` (str, optional): classes added to the column, for a tone of the
+                  caller's own.
 
             extra_row_kwargs (dict, optional): Options applied to every entry.
 
@@ -2244,12 +2379,92 @@ class CardBase:
                 lead = {'value': lead}
             built = [entry(lead, 'django-card__fact django-card__fact--lead')] if lead is not None else []
             built += [entry(spec, 'django-card__fact') for spec in entries]
+            if lead is None and not entries and not column.get('title'):
+                raise ValueError('A fact column needs a lead, entries or a title: an icon, a ring or a note '
+                                 f'beside nothing draws nothing, in {column!r}')
+            built = [e for e in built if e is not None]
+            if not built and not column.get('title'):
+                continue  # every entry hidden: a figure or a note alone would be a column of nothing
+            url = column.get('url')
+            if url:
+                # The column is an <a>, and a link, a menu, a button or a popover inside one ends it early in
+                # the browser, or takes a press meant for it. Asked of what the caller gave (an empty menu is no
+                # menu) and of the markup an entry was drawn with (html_override, a row style).
+                specs = [lead, *entries]
+                given = [{**extra_row_kwargs, **spec} for spec in specs if isinstance(spec, dict)]
+                # Only markup can make an element: plain text is escaped when it is drawn, so 'Margin <a third'
+                # is safe and allowed. A row style's html is always markup.
+                markup = [e.get('row_style_html') for e in built]
+                markup += [value for e in built for value in (e.get('html'), e.get('label'), e.get('help_text'))
+                           if isinstance(value, SafeData)]
+                markup += [value for value in (column.get('title'), column.get('note')) if isinstance(value, SafeData)]
+                if any(spec.get(key) for spec in given for key in _LINKING_ENTRY_OPTIONS) or any(
+                        _LINKING_MARKUP.search(str(value)) for value in markup if value):
+                    raise ValueError('A fact column with a url is one link: its entries cannot carry a link, '
+                                     'value_link, menu, copy_to_clipboard, auto_link, popover or markup with a '
+                                     'link or a button of their own')
+            ring = column.get('ring')
+            if isinstance(ring, (bool, bytes)):
+                raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}")
+            if ring is not None:
+                try:
+                    share = float(ring)
+                    if not math.isfinite(share):
+                        raise ValueError
+                    # Down, so the ring is full only when the work is: 99.5% is not done.
+                    ring = 100 if share >= 100 else max(0, math.floor(share))
+                except (TypeError, ValueError, OverflowError):
+                    raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}") from None
             # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
-            built_columns.append({'type': 'multiple', 'title': column.get('title'),
-                                  'entries': [e for e in built if e is not None]})
+            built_columns.append({'type': 'multiple', 'title': column.get('title'), 'entries': built,
+                                  'note': _shown(column.get('note')), 'icon': column.get('icon'), 'ring': ring,
+                                  'url': url, 'css_class': column.get('css_class')})
         if built_columns:  # as add_row() with nothing to show adds no row
             self.rows.append({'type': 'facts', 'columns': built_columns})
             self.requires_card_css = True
+        return self
+
+    def add_feed(self, items, title=None, aside=None, link_label=None, link_url=None, empty_title=None,
+                 empty_text=None):
+        """Add an activity feed: rows on a rail of dots, newest first or however ``items`` come.
+
+        Example:
+            card.add_feed(
+                [FeedItem('Bob Freeman became a qualified Estimator', when='10 Nov 2026', avatar='BF')],
+                title='Recently qualified in your company',
+                empty_title='Nobody yet', empty_text='The first to qualify is shown here.',
+            )
+
+        Args:
+            items (list): :class:`FeedItem` rows, or dicts of their fields.
+            title (str, optional): A heading over the feed. Escaped unless marked safe.
+            aside (str, optional): A short line at the heading's end -- "50 of 300 · newest first".
+            link_label (str, optional): A link after the aside, to the rest ("all in Events").
+            link_url (str, optional): Where it goes. Needed with ``link_label``.
+            empty_title (str, optional): Shown in bold when there are no rows.
+            empty_text (str, optional): Shown after it.
+
+        Returns:
+            CardBase: The card, so calls can be chained.
+        """
+        _refuse_if_stack(self)
+        if isinstance(items, (FeedItem, dict)):  # one row, not in a list
+            items = [items]
+        title, aside = _shown(title), _shown(aside)
+        built = []
+        for item in items or []:
+            if isinstance(item, dict):
+                item = FeedItem(**item)
+            elif not isinstance(item, FeedItem):
+                raise TypeError(f'A feed row is a FeedItem or a dict of its fields, not {type(item).__name__}')
+            built.append(item)
+        if link_label and not link_url:
+            raise ValueError('add_feed: a link_label needs a link_url')
+        if not (built or title or aside or link_label or empty_title or empty_text):
+            return self  # as add_facts() with nothing to show adds no row
+        self.rows.append({'type': 'feed', 'items': built, 'title': title, 'aside': aside, 'link_label': link_label,
+                          'link_url': link_url, 'empty_title': empty_title, 'empty_text': empty_text})
+        self.requires_card_css = True
         return self
 
     def add_row_style(self, name, html, is_default=False):
@@ -3393,8 +3608,18 @@ class CardBase:
         for row in self.rows:
             if row.get('type') in ('html', 'heading'):
                 continue
+            if row.get('type') == 'feed':  # a row each: the line, labelled with its when
+                data += [{'label': _feed_text(item.when or ''), 'value': _feed_text(item.text)} for item in row['items']]
+                continue
             if row.get('type') == 'facts':
                 entries = [entry for column in row['columns'] for entry in column['entries']]
+                # A column's note and ring are facts too, under its title.
+                for column in row['columns']:
+                    label = _feed_text(column.get('title') or '')
+                    if column.get('note'):
+                        data.append({'label': label, 'value': _feed_text(column['note'])})
+                    if column.get('ring') is not None:
+                        data.append({'label': label, 'value': f"{column['ring']}%"})
             else:
                 entries = row.get('entries', [])
             for entry in entries:
