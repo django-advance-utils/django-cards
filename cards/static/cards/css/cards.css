@@ -1429,6 +1429,12 @@ button.django-card__banner-tile-action:disabled {
     font-weight: 600;
 }
 
+/* The entries beside a figure take the rest of the width, and a long value wraps rather than overflowing. */
+.django-card__facts-content {
+    flex: 1;
+    min-width: 0;
+}
+
 .django-card__facts-col--link {
     color: inherit;
     text-decoration: none;
@@ -1604,6 +1610,32 @@ details > .django-card__feed-summary:hover,
     background: transparent;
     color: inherit;
     text-decoration: none;
+}
+
+.django-card__feed-action:hover,
+.django-card__feed-action:focus {
+    color: inherit;
+    text-decoration: none;
+    background: var(--django-card-feed-hover-bg, rgba(0, 0, 0, 0.03));
+}
+
+/* A row that opens says so: a chevron at the line's start, turned down while it is open. */
+details > .django-card__feed-summary .django-card__feed-line::before {
+    content: '';
+    flex: none;
+    align-self: center;
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-right: 0.1rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    opacity: 0.45;
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+}
+
+details[open] > .django-card__feed-summary .django-card__feed-line::before {
+    transform: rotate(45deg);
 }
 
 .django-card__feed-empty {

@@ -86,6 +86,28 @@ class TestFeed(SimpleTestCase):
         with self.assertRaises(TypeError):
             _card().add_feed(['a string'])
 
+    def test_a_feed_with_nothing_to_show_adds_no_row(self):
+        card = _card()
+        card.add_feed([])
+        self.assertEqual(card.rows, [])
+
+    def test_a_link_label_needs_a_url(self):
+        with self.assertRaisesMessage(ValueError, 'link_label needs a link_url'):
+            _card().add_feed([FeedItem('x')], link_label='all in Events')
+
+    def test_badges_are_checked_when_the_row_is_made(self):
+        self.assertEqual(FeedItem('t', badges='Sticky').badges, [('Sticky', None)])
+        self.assertEqual(FeedItem('t', badges=['a', ['b', 'late']]).badges, [('a', None), ('b', 'late')])
+        with self.assertRaisesMessage(ValueError, 'a (text, tone) pair'):
+            FeedItem('t', badges=[('a', 'b', 'c')])
+
+    def test_a_row_that_opens_is_not_a_link_too(self):
+        card = _card()
+        card.add_feed([FeedItem('x', url='/elsewhere/', body='Body')])
+        html = card.render()
+        self.assertIn('<details', html)
+        self.assertNotIn('/elsewhere/', html)
+
     def test_export_takes_a_row_each(self):
         card = _card()
         card.add_feed([FeedItem(format_html('<b>{}</b>', 'Bold'), when='Today')])
@@ -114,8 +136,28 @@ class TestFactFigures(SimpleTestCase):
                 self.assertIn('<div class="django-card__facts-col"><div class="django-card__facts-content">'
                               '<div class="django-card__facts-title"', html)
 
-    def test_a_ring_is_held_to_0_to_100(self):
-        for given, drawn in ((-5, 0), (150, 100), (0, 0)):
+    def test_a_ring_is_held_to_0_to_100_and_rounded(self):
+        for given, drawn in ((-5, 0), (150, 100), (0, 0), (43.7, 44), ('50', 50)):
             card = _card()
             card.add_facts({'lead': 'x', 'ring': given})
             self.assertIn(f'--django-card-facts-ring: {drawn}"', card.render())
+
+    def test_a_ring_that_is_no_number_says_so(self):
+        for given in ('abc', '43%', '', float('nan'), float('inf'), object()):
+            with self.subTest(given=given), self.assertRaisesMessage(ValueError, "ring is a percentage"):
+                _card().add_facts({'lead': 'x', 'ring': given})
+
+    def test_a_linked_column_refuses_entries_that_are_links_menus_or_buttons_themselves(self):
+        for extra in ({'link': '/entry/'}, {'value_link': '/v/'}, {'copy_to_clipboard': True}):
+            with self.subTest(extra=extra), self.assertRaisesMessage(ValueError, 'is one link'):
+                _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V', **extra}]})
+        # plain entries are fine
+        _card().add_facts({'lead': 'x', 'url': '/col/', 'entries': [{'label': 'L', 'value': 'V'}]})
+
+    def test_a_column_with_nothing_but_a_figure_or_a_note_is_left_out(self):
+        card = _card()
+        card.add_facts({'icon': 'fas fa-fire', 'note': 'alone'})
+        self.assertEqual(card.rows, [])
+        card.add_facts({'icon': 'fas fa-fire', 'entries': [{'label': 'L', 'value': 'V', 'hidden': True}]},
+                       {'lead': 'kept'})
+        self.assertEqual(len(card.rows[0]['columns']), 1)

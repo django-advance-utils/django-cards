@@ -1041,7 +1041,8 @@ class FeedItem:
             own (``django-card__feed-row--<tone>``). Left as None, the dot is plain.
         avatar (str, optional): Initials in a circle in place of the dot -- for who did it.
         icon (str, optional): An icon in the circle in place of the dot.
-        url (str, optional): The row is a link there, when it opens nothing.
+        url (str, optional): The row is a link there. Only when it opens nothing: a row with a
+            ``body`` or ``actions`` is not a link (put a link among its ``actions``).
         body (str, optional): What the row shows when opened. Escaped unless marked safe.
         actions (list, optional): :class:`BannerAction` buttons (or dicts of them) shown when
             the row is opened.
@@ -1061,6 +1062,15 @@ class FeedItem:
 
     def __post_init__(self):
         self.actions = [BannerAction.build(action) for action in self.actions or []]
+        badges = [self.badges] if isinstance(self.badges, str) else list(self.badges or [])
+        self.badges = []
+        for badge in badges:
+            if isinstance(badge, (tuple, list)):
+                if len(badge) != 2:
+                    raise ValueError(f'A feed badge is a text or a (text, tone) pair, not {badge!r}')
+                self.badges.append(tuple(badge))
+            else:
+                self.badges.append((badge, None))
 
     @property
     def opens(self):
@@ -1068,8 +1078,8 @@ class FeedItem:
 
     @property
     def badge_items(self):
-        """``(text, tone)`` pairs, a bare text taking no tone."""
-        return [badge if isinstance(badge, (tuple, list)) else (badge, None) for badge in self.badges or []]
+        """``(text, tone)`` pairs, a bare text having taken no tone (``__post_init__``)."""
+        return self.badges
 
 
 @dataclass
@@ -2270,7 +2280,9 @@ class CardBase:
                   number reads as a figure: a flame by "4 lessons".
                 - ``ring`` (int, optional): a percentage, drawn as a progress ring beside the
                   column in the icon's place; 0 to 100, anything outside is held to it.
-                - ``url`` (str, optional): the whole column is a link there.
+                - ``url`` (str, optional): the whole column is a link there. Its entries then
+                  cannot carry a ``link``, ``value_link``, ``menu`` or ``copy_to_clipboard`` of
+                  their own -- a link inside a link ends it early -- and doing so raises.
                 - ``css_class`` (str, optional): classes added to the column, for a tone of the
                   caller's own.
 
@@ -2311,14 +2323,24 @@ class CardBase:
                 lead = {'value': lead}
             built = [entry(lead, 'django-card__fact django-card__fact--lead')] if lead is not None else []
             built += [entry(spec, 'django-card__fact') for spec in entries]
-            # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
+            built = [e for e in built if e is not None]
+            if not built and column.get('title') is None:
+                continue  # every entry hidden, or none: a figure or a note alone would be a column of nothing
+            url = column.get('url')
+            if url and any(e.get(key) for e in built for key in ('link', 'value_link', 'menu', 'copy_to_clipboard')):
+                # The column is an <a>, and a link, a menu or a button inside one ends it early in the browser.
+                raise ValueError('A fact column with a url is one link: its entries cannot carry a link, '
+                                 'value_link, menu or copy_to_clipboard of their own')
             ring = column.get('ring')
             if ring is not None:
-                ring = max(0, min(100, int(ring)))
-            built_columns.append({'type': 'multiple', 'title': column.get('title'),
-                                  'entries': [e for e in built if e is not None],
+                try:
+                    ring = max(0, min(100, round(float(ring))))
+                except (TypeError, ValueError, OverflowError):
+                    raise ValueError(f"A fact column's ring is a percentage, 0 to 100, not {ring!r}") from None
+            # 'multiple' keeps _entry.html from wrapping each entry in a list-group item.
+            built_columns.append({'type': 'multiple', 'title': column.get('title'), 'entries': built,
                                   'note': column.get('note'), 'icon': column.get('icon'), 'ring': ring,
-                                  'url': column.get('url'), 'css_class': column.get('css_class')})
+                                  'url': url, 'css_class': column.get('css_class')})
         if built_columns:  # as add_row() with nothing to show adds no row
             self.rows.append({'type': 'facts', 'columns': built_columns})
             self.requires_card_css = True
@@ -2340,7 +2362,7 @@ class CardBase:
             title (str, optional): A heading over the feed. Escaped unless marked safe.
             aside (str, optional): A short line at the heading's end -- "50 of 300 · newest first".
             link_label (str, optional): A link after the aside, to the rest ("all in Events").
-            link_url (str, optional): Where it goes.
+            link_url (str, optional): Where it goes. Needed with ``link_label``.
             empty_title (str, optional): Shown in bold when there are no rows.
             empty_text (str, optional): Shown after it.
 
@@ -2355,6 +2377,10 @@ class CardBase:
             elif not isinstance(item, FeedItem):
                 raise TypeError(f'A feed row is a FeedItem or a dict of its fields, not {type(item).__name__}')
             built.append(item)
+        if link_label and not link_url:
+            raise ValueError('add_feed: a link_label needs a link_url')
+        if not (built or title or aside or link_label or empty_title or empty_text):
+            return self  # as add_facts() with nothing to show adds no row
         self.rows.append({'type': 'feed', 'items': built, 'title': title, 'aside': aside, 'link_label': link_label,
                           'link_url': link_url, 'empty_title': empty_title, 'empty_text': empty_text})
         self.requires_card_css = True
